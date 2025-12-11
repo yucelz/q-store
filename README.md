@@ -303,7 +303,7 @@ See [LICENSE](LICENSE) file for details.
 
 ## Support
 
-For support, submit issues in this repository or contact support@ionq.com.
+For support, submit issues in this repository or contact yucelz@gmail.com.
 
 ## Citation
 
@@ -314,7 +314,7 @@ If you use Q-Store in your research, please cite:
   title={Q-Store: Quantum-Native Database Architecture},
   author=Yucel Zengin,
   year={2025},
-  url={https://github.com/yourusername/q-store}
+  url={https://github.com/yucelz/q-store}
 }
 ```
 
