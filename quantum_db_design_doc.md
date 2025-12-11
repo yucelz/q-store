@@ -1,4 +1,4 @@
-# Quantum-Native Database Architecture
+# Quantum-Native (Q-Store) Database Architecture
 ## Technical Design Document v1.0
 
 ---
