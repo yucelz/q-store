@@ -2,6 +2,11 @@
 
 A novel database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—as **core features** for exponential performance advantages in vector similarity search, relationship management, and pattern discovery.
 
+<a href="http://www.q-store.tech" target="_blank">
+  <strong>q-store website </strong>
+</a>
+
+
 ## Overview
 
 Q-Store provides a hybrid classical-quantum database architecture that:
