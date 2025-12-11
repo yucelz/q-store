@@ -1,4 +1,4 @@
-# Quantum-Native Database Architecture v2.0
+# Quantum-Native (Q-Store) Database Architecture v2.0
 ## Enhanced Design with Production-Ready Patterns
 
 ---
