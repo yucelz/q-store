@@ -1,6 +1,8 @@
 # Quantum-Native (Q-Store) Database Architecture
 ## Technical Design Document v1.0
 
+> **Note:** For production-ready patterns including connection pooling, transactions, monitoring, and deployment architectures, see [Quantum Database Architecture v2.0](quantum_db_design_v2.md).
+
 ---
 
 ## Executive Summary
@@ -60,6 +62,7 @@ This document describes a novel database architecture that leverages quantum mec
 - Handles cold data efficiently
 - Provides coarse filtering (top-1000 candidates)
 - Mature, reliable, cost-effective
+- Options: Pinecone, pgvector, Qdrant, Redis Cache (see [v2.0 design](quantum_db_design_v2.md) for connection pooling)
 
 **Quantum Component:**
 - Stores hot data in quantum superposition
@@ -67,6 +70,7 @@ This document describes a novel database architecture that leverages quantum mec
 - Maintains entangled relationships
 - Provides tunneling-based pattern discovery
 - Handles 100-1000 active vectors
+- See [v2.0 design](quantum_db_design_v2.md) for transaction semantics and state management lifecycle
 
 **Why Hybrid:** Current quantum computers (NISQ era) have limited qubits (10-100) and short coherence times. Hybrid architecture maximizes quantum advantages while remaining practical.
 
@@ -910,4 +914,115 @@ Examples:
 ```
 
 **Current Hardware (2025):**
+- IonQ Aria: 25 qubits → ~4 vectors (64-dim) or ~3 vectors (256-dim)
+- IonQ Forte: 36 qubits → ~6 vectors (64-dim) or ~4 vectors (256-dim)
+
+---
+
+## 8. Deployment Guide
+
+### 8.1 Quick Start
+
+See [quantum_db_design_v2.md](quantum_db_design_v2.md) for detailed deployment architectures including:
+- Kubernetes configuration
+- Cloud deployment patterns
+- Connection pooling setup
+- Monitoring and observability
+
+### 8.2 Basic Setup
+
+```python
+# Install
+pip install q-store
+
+# Initialize
+from q_store import QuantumDatabase
+
+db = QuantumDatabase(
+    classical_backend='pinecone',
+    quantum_backend='ionq',
+    ionq_api_key=YOUR_KEY
+)
+```
+
+---
+
+## 9. API Reference
+
+### 9.1 Core Methods
+
+See section 4.1 for generic API examples.
+
+For production-ready REST API and async Python SDK, refer to [quantum_db_design_v2.md](quantum_db_design_v2.md) section 4.
+
+---
+
+## 10. Future Roadmap
+
+### 10.1 Version 2.0 (Completed - See [quantum_db_design_v2.md](quantum_db_design_v2.md))
+
+**Production-Ready Features:**
+- ✅ Connection pooling and resource management
+- ✅ Transaction-like semantics with quantum states
+- ✅ Batch operations for efficiency
+- ✅ Error handling and retry logic with circuit breakers
+- ✅ Monitoring and observability (metrics, logging)
+- ✅ Async/await patterns for quantum operations
+- ✅ Multi-level caching strategy (L1-L4)
+- ✅ REST API and Python SDK design
+- ✅ Kubernetes deployment configuration
+- ✅ Migration path from classical to quantum-enhanced
+- ✅ Cost optimization strategies
+
+### 10.2 Near-Term (3-6 months)
+
+- [ ] GraphQL API implementation
+- [ ] Advanced circuit optimization algorithms
+- [ ] Multi-tenant isolation
+- [ ] Enhanced monitoring dashboard
+- [ ] Automated benchmarking suite
+- [ ] Support for additional classical backends
+- [ ] Python type hints and improved IDE support
+
+### 10.3 Medium-Term (6-12 months)
+
+- [ ] Distributed quantum execution across multiple backends
+- [ ] Error correction integration for fault-tolerant operations
+- [ ] ML-based query optimization and routing
+- [ ] Real-time coherence time adaptation
+- [ ] Cross-cloud quantum provider support
+- [ ] Advanced entanglement patterns (W-states, cluster states)
+- [ ] Quantum-classical hybrid algorithms for specific domains
+
+### 10.4 Long-Term (12+ months)
+
+- [ ] Quantum-only architecture (post-NISQ era)
+- [ ] Topological error correction support
+- [ ] Native quantum storage protocols
+- [ ] Quantum network integration
+- [ ] Industry-specific optimizations (finance, pharma, ML)
+- [ ] Quantum RAM interfaces
+- [ ] Full quantum internet compatibility
+
+---
+
+## Appendix A: Related Documents
+
+- **[Quantum Database Architecture v2.0](quantum_db_design_v2.md)** - Production-ready patterns, deployment, monitoring
+- **README.md** - Project overview and quick start
+- **examples/** - Domain-specific implementation examples
+
+## Appendix B: References
+
+1. IonQ Documentation: https://docs.ionq.com/
+2. Cirq Documentation: https://quantumai.google/cirq
+3. Quantum Computing Theory: Nielsen & Chuang
+4. Grover's Algorithm: arXiv:quant-ph/9605043
+5. Amplitude Encoding: arXiv:quant-ph/0406176
+
+---
+
+**Document Version:** 1.0  
+**Last Updated:** December 11, 2025  
+**Next Review:** See v2.0 for production updates
 - IonQ Aria: 25 qubits → ~4 vectors (64-dim) or ~3 vectors
