@@ -312,7 +312,7 @@ If you use Q-Store in your research, please cite:
 ```bibtex
 @software{qstore2025,
   title={Q-Store: Quantum-Native Database Architecture},
-  author=Yucel Zengins,
+  author=Yucel Zengin,
   year={2025},
   url={https://github.com/yourusername/q-store}
 }
