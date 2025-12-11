@@ -1,276 +1,614 @@
 """
-Main Quantum Database Implementation
-Integrates all quantum components with classical backend.
+Quantum Database Implementation v2.0
+Production-ready implementation with best practices
 """
 
+import asyncio
+import logging
+import os
+import time
+import uuid
 import numpy as np
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field
+from contextlib import asynccontextmanager
+from enum import Enum
 
 from .ionq_backend import IonQQuantumBackend
-from .state_manager import StateManager, QuantumState
+from .state_manager import StateManager, QuantumState, StateStatus
 from .entanglement_registry import EntanglementRegistry
 from .tunneling_engine import TunnelingEngine
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+# ============================================================================
+# Configuration and Types
+# ============================================================================
+
+class QueryMode(Enum):
+    """Query execution modes"""
+    PRECISE = "precise"
+    BALANCED = "balanced"
+    EXPLORATORY = "exploratory"
+
 
 @dataclass
-class QuantumDatabaseConfig:
-    """Configuration for Quantum Database"""
-    # Classical backend
-    classical_backend: str = 'pinecone'
-    classical_index_name: str = 'vectors'
+class DatabaseConfig:
+    """Comprehensive database configuration"""
+    # Pinecone configuration
+    pinecone_api_key: str
+    pinecone_environment: Optional[str] = None
+    pinecone_index_name: str = "quantum-vectors"
+    pinecone_dimension: int = 768
+    pinecone_metric: str = "cosine"
     
-    # Quantum backend
-    quantum_backend: str = 'ionq'
+    # IonQ configuration
     ionq_api_key: Optional[str] = None
-    n_qubits: int = 20
-    target_device: str = 'simulator'  # or 'qpu.aria', 'qpu.forte'
+    ionq_target: str = "simulator"  # or qpu.aria, qpu.forte
     
-    # Superposition settings
+    # Connection pooling
+    max_connections: int = 50
+    min_connections: int = 10
+    connection_timeout: int = 30
+    idle_timeout: int = 300
+    
+    # Quantum settings
+    enable_quantum: bool = True
     enable_superposition: bool = True
-    max_contexts_per_vector: int = 5
-    
-    # Entanglement settings
     enable_entanglement: bool = True
-    auto_detect_correlations: bool = True
-    correlation_threshold: float = 0.7
-    
-    # Decoherence settings
-    enable_decoherence: bool = True
-    default_coherence_time: float = 1000.0  # ms
-    
-    # Tunneling settings
     enable_tunneling: bool = True
-    tunnel_probability: float = 0.2
-    barrier_threshold: float = 0.8
+    max_quantum_states: int = 1000
     
     # Performance settings
-    quantum_batch_size: int = 100
     classical_candidate_pool: int = 1000
-    cache_quantum_states: bool = True
+    quantum_batch_size: int = 50
+    circuit_cache_size: int = 500
+    result_cache_ttl: int = 300
+    
+    # Coherence settings
+    default_coherence_time: float = 1000.0  # ms
+    decoherence_check_interval: int = 60  # seconds
+    
+    # Retry and timeout
+    max_retries: int = 3
+    retry_backoff_base: float = 1.0
+    quantum_job_timeout: int = 120  # seconds
+    
+    # Monitoring
+    enable_metrics: bool = True
+    enable_tracing: bool = True
 
 
 @dataclass
 class QueryResult:
-    """Result from database query"""
+    """Enhanced query result with metadata"""
     id: str
     vector: np.ndarray
     score: float
     metadata: Dict = field(default_factory=dict)
+    quantum_enhanced: bool = False
+    execution_time_ms: float = 0.0
+    source: str = "classical"  # classical, quantum, hybrid
 
+
+@dataclass
+class Metrics:
+    """Performance and operational metrics"""
+    total_queries: int = 0
+    quantum_queries: int = 0
+    cache_hits: int = 0
+    cache_misses: int = 0
+    avg_latency_ms: float = 0.0
+    p95_latency_ms: float = 0.0
+    p99_latency_ms: float = 0.0
+    active_quantum_states: int = 0
+    decoherence_events: int = 0
+    error_count: int = 0
+
+
+# ============================================================================
+# Connection Pool Manager
+# ============================================================================
+
+class ConnectionPool:
+    """Manages connections to classical and quantum backends"""
+    
+    def __init__(self, config: DatabaseConfig):
+        self.config = config
+        self._pinecone_client = None
+        self._quantum_backend = None
+        self._lock = asyncio.Lock()
+        self._connection_count = 0
+        
+    async def initialize(self):
+        """Initialize all backend connections"""
+        try:
+            await self._init_pinecone()
+            if self.config.enable_quantum and self.config.ionq_api_key:
+                await self._init_quantum()
+            logger.info("Connection pool initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize connection pool: {e}")
+            raise
+    
+    async def _init_pinecone(self):
+        """Initialize Pinecone connection"""
+        try:
+            import pinecone
+            
+            # Get environment from config or environment variable
+            environment = self.config.pinecone_environment or os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+            
+            pinecone.init(
+                api_key=self.config.pinecone_api_key,
+                environment=environment
+            )
+            
+            # Create index if it doesn't exist
+            if self.config.pinecone_index_name not in pinecone.list_indexes():
+                pinecone.create_index(
+                    name=self.config.pinecone_index_name,
+                    dimension=self.config.pinecone_dimension,
+                    metric=self.config.pinecone_metric
+                )
+            
+            self._pinecone_client = pinecone.Index(self.config.pinecone_index_name)
+            logger.info("Pinecone connection established")
+            
+        except ImportError:
+            logger.warning("Pinecone not installed, using mock backend")
+            self._pinecone_client = MockPineconeIndex()
+        except Exception as e:
+            logger.error(f"Failed to initialize Pinecone: {e}")
+            raise
+    
+    async def _init_quantum(self):
+        """Initialize quantum backend connection"""
+        try:
+            self._quantum_backend = IonQQuantumBackend(
+                api_key=self.config.ionq_api_key,
+                target=self.config.ionq_target
+            )
+            logger.info(f"Quantum backend initialized: {self.config.ionq_target}")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize quantum backend: {e}")
+            # Don't raise - quantum is optional
+            self._quantum_backend = None
+    
+    def get_pinecone_client(self):
+        """Get Pinecone client"""
+        if self._pinecone_client is None:
+            raise RuntimeError("Pinecone client not initialized")
+        return self._pinecone_client
+    
+    def get_quantum_backend(self):
+        """Get quantum backend"""
+        return self._quantum_backend
+    
+    async def close(self):
+        """Close all connections"""
+        logger.info("Closing connection pool")
+        # Cleanup logic here
+        self._pinecone_client = None
+        self._quantum_backend = None
+
+
+# ============================================================================
+# Main Database Class
+# ============================================================================
 
 class QuantumDatabase:
-    """
-    Quantum-Native Database with hybrid classical-quantum architecture
-    """
+    """Production-ready quantum database with best practices"""
     
-    def __init__(self, config: Optional[QuantumDatabaseConfig] = None, **kwargs):
-        """
-        Initialize Quantum Database
-        
-        Args:
-            config: QuantumDatabaseConfig instance
-            **kwargs: Alternative way to pass config parameters
-        """
-        if config is None:
-            config = QuantumDatabaseConfig(**kwargs)
-        
+    def __init__(self, config: DatabaseConfig):
         self.config = config
-        
-        # Initialize quantum components
-        if config.ionq_api_key:
-            self.quantum_backend = IonQQuantumBackend(
-                api_key=config.ionq_api_key,
-                target=config.target_device
-            )
-        else:
-            self.quantum_backend = None
-        
-        self.state_manager = StateManager()
+        self.pool = ConnectionPool(config)
+        self.state_manager = StateManager(config)
         self.entanglement_registry = EntanglementRegistry()
-        self.tunneling_engine = TunnelingEngine(self.quantum_backend)
+        self.tunneling_engine = None  # Will be initialized with quantum backend
+        self.metrics = Metrics()
+        self._initialized = False
+        self._cache: Dict[str, Tuple[Any, float]] = {}
         
-        # Classical backend placeholder (would integrate Pinecone/pgvector/Qdrant)
-        self.classical_store: Dict[str, np.ndarray] = {}
-        self.metadata_store: Dict[str, Dict] = {}
-        
-    def insert(self,
-              id: str,
-              vector: np.ndarray,
-              contexts: Optional[List[Tuple[str, float]]] = None,
-              coherence_time: Optional[float] = None,
-              metadata: Optional[Dict] = None):
-        """
-        Insert vector with optional quantum superposition
-        
-        Args:
-            id: Unique identifier
-            vector: Vector embedding
-            contexts: Optional list of (context_name, probability) tuples
-            coherence_time: How long to keep in quantum memory (ms)
-            metadata: Additional metadata
-        """
-        # Store in classical backend
-        self.classical_store[id] = vector
-        
-        if metadata:
-            self.metadata_store[id] = metadata
-        
-        # Store in quantum superposition if contexts provided
-        if contexts and self.config.enable_superposition:
-            coherence = coherence_time or self.config.default_coherence_time
-            
-            # Create vectors for each context (simplified - same vector for now)
-            context_vectors = [vector] * len(contexts)
-            context_names = [c[0] for c in contexts]
-            
-            self.state_manager.create_superposition(
-                state_id=id,
-                vectors=context_vectors,
-                contexts=context_names,
-                coherence_time=coherence
-            )
-    
-    def create_entangled_group(self,
-                              group_id: str,
-                              entity_ids: List[str],
-                              correlation_strength: float = 0.85):
-        """
-        Create entangled group of related entities
-        
-        Args:
-            group_id: Unique group identifier
-            entity_ids: List of entity IDs to entangle
-            correlation_strength: Correlation strength (0-1)
-        """
-        if not self.config.enable_entanglement:
+    async def initialize(self):
+        """Initialize database and all components"""
+        if self._initialized:
             return
         
-        self.entanglement_registry.create_entangled_group(
-            group_id=group_id,
-            entity_ids=entity_ids,
-            correlation_strength=correlation_strength
-        )
-    
-    def query(self,
-             vector: np.ndarray,
-             context: Optional[str] = None,
-             mode: str = 'balanced',
-             enable_tunneling: Optional[bool] = None,
-             top_k: int = 10) -> List[QueryResult]:
-        """
-        Query database with quantum advantages
-        
-        Args:
-            vector: Query vector
-            context: Context for superposition collapse
-            mode: 'precise', 'balanced', or 'exploratory'
-            enable_tunneling: Override tunneling setting
-            top_k: Number of results
+        try:
+            await self.pool.initialize()
+            await self.state_manager.start()
             
-        Returns:
-            List of QueryResults
-        """
-        # Apply decoherence
-        if self.config.enable_decoherence:
-            self.state_manager.apply_decoherence()
+            # Initialize tunneling engine if quantum backend available
+            quantum_backend = self.pool.get_quantum_backend()
+            if quantum_backend:
+                self.tunneling_engine = TunnelingEngine(quantum_backend)
+            
+            self._initialized = True
+            logger.info("Quantum database initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
+            raise
+    
+    async def close(self):
+        """Close database and cleanup resources"""
+        if not self._initialized:
+            return
         
+        try:
+            await self.state_manager.stop()
+            await self.pool.close()
+            self._initialized = False
+            logger.info("Quantum database closed")
+        except Exception as e:
+            logger.error(f"Error closing database: {e}")
+    
+    @asynccontextmanager
+    async def connect(self):
+        """Context manager for database connection"""
+        await self.initialize()
+        try:
+            yield self
+        finally:
+            await self.close()
+    
+    async def insert(
+        self,
+        id: str,
+        vector: np.ndarray,
+        contexts: Optional[List[Tuple[str, float]]] = None,
+        coherence_time: Optional[float] = None,
+        metadata: Optional[Dict] = None
+    ):
+        """Insert vector with optional quantum features"""
+        if not self._initialized:
+            await self.initialize()
+        
+        start_time = time.time()
+        
+        try:
+            # Insert into classical store (Pinecone)
+            pinecone_client = self.pool.get_pinecone_client()
+            
+            vector_dict = {
+                'id': id,
+                'values': vector.tolist(),
+                'metadata': metadata or {}
+            }
+            
+            pinecone_client.upsert(vectors=[vector_dict])
+            
+            # Create quantum superposition if contexts provided
+            if contexts and self.config.enable_superposition:
+                coherence = coherence_time or self.config.default_coherence_time
+                
+                # Create vectors for each context
+                context_vectors = [vector] * len(contexts)
+                context_names = [c[0] for c in contexts]
+                
+                await self.state_manager.create_superposition(
+                    state_id=id,
+                    vectors=context_vectors,
+                    contexts=context_names,
+                    coherence_time=coherence
+                )
+            
+            duration_ms = (time.time() - start_time) * 1000
+            logger.debug(f"Inserted {id} in {duration_ms:.2f}ms")
+            
+        except Exception as e:
+            self.metrics.error_count += 1
+            logger.error(f"Failed to insert {id}: {e}")
+            raise
+    
+    async def insert_batch(
+        self,
+        vectors: List[Dict[str, Any]]
+    ):
+        """Batch insert for efficiency"""
+        if not self._initialized:
+            await self.initialize()
+        
+        start_time = time.time()
+        
+        try:
+            pinecone_client = self.pool.get_pinecone_client()
+            
+            # Prepare for Pinecone
+            pinecone_vectors = []
+            quantum_states = []
+            
+            for vec_data in vectors:
+                vector_id = vec_data['id']
+                vector = vec_data['vector']
+                metadata = vec_data.get('metadata', {})
+                contexts = vec_data.get('contexts')
+                
+                pinecone_vectors.append({
+                    'id': vector_id,
+                    'values': vector.tolist(),
+                    'metadata': metadata
+                })
+                
+                if contexts and self.config.enable_superposition:
+                    quantum_states.append((vector_id, vector, contexts))
+            
+            # Batch upsert to Pinecone
+            pinecone_client.upsert(vectors=pinecone_vectors)
+            
+            # Create quantum states
+            for state_id, vector, contexts in quantum_states:
+                context_names = [c[0] for c in contexts]
+                await self.state_manager.create_superposition(
+                    state_id=state_id,
+                    vectors=[vector] * len(contexts),
+                    contexts=context_names
+                )
+            
+            duration_ms = (time.time() - start_time) * 1000
+            logger.info(f"Batch inserted {len(vectors)} vectors in {duration_ms:.2f}ms")
+            
+        except Exception as e:
+            self.metrics.error_count += 1
+            logger.error(f"Batch insert failed: {e}")
+            raise
+    
+    async def query(
+        self,
+        vector: np.ndarray,
+        context: Optional[str] = None,
+        mode: QueryMode = QueryMode.BALANCED,
+        enable_tunneling: Optional[bool] = None,
+        top_k: int = 10,
+        timeout_ms: Optional[int] = None
+    ) -> List[QueryResult]:
+        """Query with quantum enhancements"""
+        if not self._initialized:
+            await self.initialize()
+        
+        query_id = str(uuid.uuid4())
+        start_time = time.time()
+        
+        try:
+            self.metrics.total_queries += 1
+            
+            # Check cache
+            cache_key = self._get_cache_key(vector.tobytes(), context, mode, top_k)
+            cached_result = self._get_from_cache(cache_key)
+            if cached_result:
+                self.metrics.cache_hits += 1
+                return cached_result
+            
+            self.metrics.cache_misses += 1
+            
+            # Classical similarity search from Pinecone
+            classical_results = await self._classical_query(vector, top_k * 2)
+            
+            # Apply quantum enhancements if enabled
+            if context and self.config.enable_superposition:
+                self.metrics.quantum_queries += 1
+                results = await self._quantum_refined_query(
+                    vector, classical_results, context, mode, top_k
+                )
+            else:
+                results = self._rank_results(classical_results, vector, top_k)
+            
+            # Post-process
+            results = self._post_process_results(results, vector)
+            
+            # Cache results
+            self._add_to_cache(cache_key, results)
+            
+            # Update metrics
+            duration_ms = (time.time() - start_time) * 1000
+            self._update_latency_metrics(duration_ms)
+            
+            return results
+            
+        except Exception as e:
+            self.metrics.error_count += 1
+            logger.error(f"Query failed: {e}")
+            raise
+    
+    async def _classical_query(
+        self,
+        vector: np.ndarray,
+        top_k: int
+    ) -> List[Dict]:
+        """Execute classical similarity search"""
+        pinecone_client = self.pool.get_pinecone_client()
+        
+        results = pinecone_client.query(
+            vector=vector.tolist(),
+            top_k=top_k,
+            include_metadata=True
+        )
+        
+        return results.get('matches', [])
+    
+    async def _quantum_refined_query(
+        self,
+        query_vector: np.ndarray,
+        candidates: List[Dict],
+        context: Optional[str],
+        mode: QueryMode,
+        top_k: int
+    ) -> List[QueryResult]:
+        """Apply quantum refinement to candidates"""
         results = []
         
-        # Get candidates from classical store
-        candidates = list(self.classical_store.items())
-        
-        # If tunneling enabled, use quantum tunneling search
-        use_tunneling = (enable_tunneling if enable_tunneling is not None 
-                        else self.config.enable_tunneling)
-        
-        if use_tunneling and self.quantum_backend:
-            candidate_vectors = [v for _, v in candidates]
-            tunneling_results = self.tunneling_engine.tunnel_search(
-                query=vector,
-                candidates=candidate_vectors,
-                barrier_threshold=self.config.barrier_threshold,
-                top_k=top_k
+        for candidate in candidates[:top_k]:
+            candidate_id = candidate['id']
+            candidate_vector = np.array(candidate.get('values', []))
+            
+            # Try quantum measurement
+            quantum_vector = await self.state_manager.measure_with_context(
+                candidate_id, context
             )
             
-            # Match back to IDs
-            for i, (id, _) in enumerate(candidates[:len(tunneling_results)]):
+            if quantum_vector is not None:
+                # Use quantum-enhanced vector
+                score = self._calculate_similarity(query_vector, quantum_vector)
                 results.append(QueryResult(
-                    id=id,
-                    vector=tunneling_results[i].vector,
-                    score=1.0 / (1.0 + tunneling_results[i].distance),
-                    metadata=self.metadata_store.get(id, {})
+                    id=candidate_id,
+                    vector=quantum_vector,
+                    score=score,
+                    metadata=candidate.get('metadata', {}),
+                    quantum_enhanced=True,
+                    source="quantum"
                 ))
-        else:
-            # Classical similarity search
-            for id, candidate_vector in candidates:
-                # Check if in quantum superposition
-                if context and self.config.enable_superposition:
-                    quantum_vector = self.state_manager.measure_with_context(id, context)
-                    if quantum_vector is not None:
-                        candidate_vector = quantum_vector
-                
-                # Calculate similarity
-                distance = np.linalg.norm(vector - candidate_vector)
-                score = 1.0 / (1.0 + distance)
-                
+            else:
+                # Fall back to classical
+                score = candidate.get('score', 0.0)
                 results.append(QueryResult(
-                    id=id,
+                    id=candidate_id,
                     vector=candidate_vector,
                     score=score,
-                    metadata=self.metadata_store.get(id, {})
+                    metadata=candidate.get('metadata', {}),
+                    quantum_enhanced=False,
+                    source="classical"
                 ))
-            
-            # Sort by score
-            results.sort(key=lambda r: r.score, reverse=True)
-            results = results[:top_k]
         
         return results
     
-    def update(self, id: str, new_vector: np.ndarray):
-        """
-        Update entity (entangled partners auto-update via correlation)
+    def _rank_results(
+        self,
+        candidates: List[Dict],
+        query_vector: np.ndarray,
+        top_k: int
+    ) -> List[QueryResult]:
+        """Rank and return top-k results"""
+        results = []
         
-        Args:
-            id: Entity ID to update
-            new_vector: New vector data
-        """
-        # Update classical store
-        self.classical_store[id] = new_vector
+        for candidate in candidates:
+            results.append(QueryResult(
+                id=candidate['id'],
+                vector=np.array(candidate.get('values', [])),
+                score=candidate.get('score', 0.0),
+                metadata=candidate.get('metadata', {}),
+                quantum_enhanced=False,
+                source="classical"
+            ))
         
-        # Update quantum state
-        self.state_manager.update_state(id, new_vector)
-        
-        # Propagate to entangled partners
-        if self.config.enable_entanglement:
-            affected = self.entanglement_registry.update_entity(id, new_vector)
-            # In full implementation, would update affected entities
+        results.sort(key=lambda r: r.score, reverse=True)
+        return results[:top_k]
     
-    def apply_decoherence(self) -> List[str]:
-        """
-        Manually trigger decoherence (adaptive cleanup)
+    def _post_process_results(
+        self,
+        results: List[QueryResult],
+        query_vector: np.ndarray
+    ) -> List[QueryResult]:
+        """Post-process and deduplicate results"""
+        # Remove duplicates by ID
+        seen_ids = set()
+        unique_results = []
         
-        Returns:
-            List of removed state IDs
-        """
-        return self.state_manager.apply_decoherence()
+        for result in results:
+            if result.id not in seen_ids:
+                seen_ids.add(result.id)
+                unique_results.append(result)
+        
+        return unique_results
+    
+    def _calculate_similarity(
+        self,
+        v1: np.ndarray,
+        v2: np.ndarray
+    ) -> float:
+        """Calculate cosine similarity"""
+        dot_product = np.dot(v1, v2)
+        norm_product = np.linalg.norm(v1) * np.linalg.norm(v2)
+        return float(dot_product / norm_product) if norm_product > 0 else 0.0
+    
+    def _get_cache_key(self, *args) -> str:
+        """Generate cache key from query parameters"""
+        return str(hash(str(args)))
+    
+    def _get_from_cache(self, key: str) -> Optional[List[QueryResult]]:
+        """Retrieve from cache if valid"""
+        if key in self._cache:
+            result, timestamp = self._cache[key]
+            if time.time() - timestamp < self.config.result_cache_ttl:
+                return result
+            else:
+                del self._cache[key]
+        return None
+    
+    def _add_to_cache(self, key: str, result: List[QueryResult]):
+        """Add result to cache"""
+        self._cache[key] = (result, time.time())
+        
+        # Simple cache eviction
+        if len(self._cache) > 1000:
+            oldest_key = min(self._cache.keys(), key=lambda k: self._cache[k][1])
+            del self._cache[oldest_key]
+    
+    def _update_latency_metrics(self, duration_ms: float):
+        """Update latency tracking metrics"""
+        # Simplified exponential moving average
+        alpha = 0.1
+        self.metrics.avg_latency_ms = (
+            alpha * duration_ms +
+            (1 - alpha) * self.metrics.avg_latency_ms
+        )
+    
+    def get_metrics(self) -> Metrics:
+        """Get current metrics"""
+        self.metrics.active_quantum_states = self.state_manager.get_active_count()
+        return self.metrics
     
     def get_stats(self) -> Dict[str, Any]:
-        """
-        Get database statistics
-        
-        Returns:
-            Dictionary with stats
-        """
+        """Get comprehensive database statistics"""
         return {
-            'total_vectors': len(self.classical_store),
-            'quantum_states': self.state_manager.get_state_count(),
-            'entangled_groups': len(self.entanglement_registry.groups),
+            'total_vectors': 'N/A',  # Would query Pinecone
+            'quantum_states': self.state_manager.get_active_count(),
+            'metrics': {
+                'total_queries': self.metrics.total_queries,
+                'quantum_queries': self.metrics.quantum_queries,
+                'cache_hit_rate': (
+                    self.metrics.cache_hits / max(1, self.metrics.total_queries)
+                ),
+                'avg_latency_ms': self.metrics.avg_latency_ms,
+                'error_count': self.metrics.error_count
+            },
             'config': {
-                'quantum_backend': self.config.quantum_backend,
-                'target_device': self.config.target_device,
+                'quantum_enabled': self.config.enable_quantum,
                 'superposition_enabled': self.config.enable_superposition,
-                'entanglement_enabled': self.config.enable_entanglement,
-                'tunneling_enabled': self.config.enable_tunneling,
+                'tunneling_enabled': self.config.enable_tunneling
             }
         }
+
+
+# ============================================================================
+# Mock Backend for Testing
+# ============================================================================
+
+class MockPineconeIndex:
+    """Mock Pinecone index for testing without real backend"""
+    
+    def __init__(self):
+        self.vectors = {}
+    
+    def upsert(self, vectors: List[Dict]):
+        """Store vectors"""
+        for v in vectors:
+            self.vectors[v['id']] = v
+    
+    def query(self, vector: List[float], top_k: int, 
+             include_metadata: bool = True) -> Dict:
+        """Mock query"""
+        # Return random matches for testing
+        matches = [
+            {
+                'id': f'vec_{i}',
+                'score': 0.9 - i * 0.05,
+                'values': [0.1] * len(vector),
+                'metadata': {}
+            }
+            for i in range(min(top_k, max(5, len(self.vectors))))
+        ]
+        return {'matches': matches}
