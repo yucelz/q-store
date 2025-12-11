@@ -1,6 +1,6 @@
 # Q-Store: Quantum-Native Database v2.0
 
-A production-ready database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—as **core features** for exponential performance advantages in vector similarity search, relationship management, and pattern discovery.
+A database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—as **core features** for exponential performance advantages in vector similarity search, relationship management, and pattern discovery.
 
 <a href="http://www.q-store.tech" target="_blank">
   <strong>Q-STORE website </strong>
