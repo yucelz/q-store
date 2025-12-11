@@ -6,7 +6,11 @@ Demonstrates quantum database for training data selection and optimization.
 import os
 import numpy as np
 from getpass import getpass
+from dotenv import load_dotenv
 from q_store import QuantumDatabase, QuantumDatabaseConfig
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def generate_training_sample(label: int, noise: float = 0.1) -> np.ndarray:

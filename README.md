@@ -87,10 +87,21 @@ conda env create -f environment.yml
 conda activate q-store
 ```
 
-3. Set your IonQ API key:
-```bash
-export IONQ_API_KEY='your_api_key_here'
-```
+3. Configure your IonQ API key:
+
+   **Option A: Using .env file (recommended)**
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+   
+   # Edit .env and add your API key
+   # IONQ_API_KEY=your_actual_api_key_here
+   ```
+   
+   **Option B: Using environment variable**
+   ```bash
+   export IONQ_API_KEY='your_api_key_here'
+   ```
 
 ## Quick Start
 

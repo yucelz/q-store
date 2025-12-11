@@ -5,7 +5,11 @@ Basic example demonstrating Q-Store quantum database features
 import os
 import numpy as np
 from getpass import getpass
+from dotenv import load_dotenv
 from q_store import QuantumDatabase, QuantumDatabaseConfig
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def main():
