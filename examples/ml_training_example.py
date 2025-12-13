@@ -3,11 +3,12 @@ Machine Learning Training Example
 Demonstrates quantum database for training data selection and optimization.
 """
 
+import asyncio
 import os
 import numpy as np
 from getpass import getpass
 from dotenv import load_dotenv
-from q_store import QuantumDatabase, QuantumDatabaseConfig
+from q_store import QuantumDatabase, DatabaseConfig, QueryMode
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,22 +20,50 @@ def generate_training_sample(label: int, noise: float = 0.1) -> np.ndarray:
     return base + np.random.randn(64) * noise
 
 
-def main():
+async def main():
     """ML training quantum database example"""
     
     print("=== Q-Store: ML Training Example ===\n")
     
-    # Get API key
-    api_key = os.getenv('IONQ_API_KEY') or getpass('Enter your IonQ API key: ')
+    # Get API keys
+    pinecone_key = os.getenv('PINECONE_API_KEY')
+    ionq_key = os.getenv('IONQ_API_KEY')
+    pinecone_environment = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+    
+    if not pinecone_key:
+        raise ValueError(
+            "PINECONE_API_KEY is required. Please add it to your .env file.\n"
+            "Get your API key from: https://www.pinecone.io/"
+        )
+    
+    # Create configuration
+    config = DatabaseConfig(
+        # Pinecone settings
+        pinecone_api_key=pinecone_key,
+        pinecone_environment=pinecone_environment,
+        pinecone_index_name="ml-training-demo",
+        pinecone_dimension=64,  # Match our sample dimension
+        pinecone_metric="cosine",
+        
+        # IonQ quantum settings (optional)
+        ionq_api_key=ionq_key,
+        ionq_target="simulator",
+        
+        # Feature flags
+        enable_quantum=True if ionq_key else False,
+        enable_superposition=True if ionq_key else False,
+        enable_entanglement=True,
+        enable_tunneling=True if ionq_key else False,
+        
+        # Performance tuning
+        default_coherence_time=3000.0,
+        max_quantum_states=500,
+        classical_candidate_pool=1000
+    )
     
     # Initialize database
-    db = QuantumDatabase(
-        ionq_api_key=api_key,
-        target_device='simulator',
-        enable_superposition=True,
-        enable_tunneling=True,
-        default_coherence_time=3000
-    )
+    db = QuantumDatabase(config=config)
+    await db.initialize()
     
     print("✓ Initialized ML training database\n")
     
@@ -48,7 +77,7 @@ def main():
         sample = generate_training_sample(label)
         
         # Each sample can be used for multiple tasks (superposition)
-        db.insert(
+        await db.insert(
             id=f'sample_{i}',
             vector=sample,
             contexts=[
@@ -57,8 +86,8 @@ def main():
                 ('clustering', 0.1)
             ],
             metadata={
-                'label': label,
-                'difficulty': np.random.choice(['easy', 'medium', 'hard'])
+                'label': int(label),
+                'difficulty': str(np.random.choice(['easy', 'medium', 'hard']))
             }
         )
     
@@ -71,10 +100,10 @@ def main():
     model_state = np.random.randn(64)
     
     # Get samples relevant to classification task
-    classification_batch = db.query(
+    classification_batch = await db.query(
         vector=model_state,
         context='classification',  # Collapses to classification context
-        mode='exploratory',  # Broad coverage for diversity
+        mode=QueryMode.EXPLORATORY,  # Broad coverage for diversity
         top_k=8
     )
     
@@ -88,11 +117,11 @@ def main():
     print("3. Hard negative mining using quantum tunneling...")
     
     # Find challenging examples (distant but relevant)
-    hard_negatives = db.query(
+    hard_negatives = await db.query(
         vector=model_state,
         context='classification',
         enable_tunneling=True,  # Find hard examples
-        mode='precise',
+        mode=QueryMode.PRECISE,
         top_k=5
     )
     
@@ -108,22 +137,22 @@ def main():
     configs = []
     for i in range(10):
         # Each config represented as vector
-        config = np.random.randn(64)
-        db.insert(
+        config_vec = np.random.randn(64)
+        await db.insert(
             id=f'config_{i}',
-            vector=config,
+            vector=config_vec,
             metadata={
-                'learning_rate': 10 ** np.random.uniform(-4, -2),
-                'batch_size': np.random.choice([16, 32, 64, 128])
+                'learning_rate': float(10 ** np.random.uniform(-4, -2)),
+                'batch_size': int(np.random.choice([16, 32, 64, 128]))
             }
         )
-        configs.append(config)
+        configs.append(config_vec)
     
     # Target: best performance state
     target_performance = np.random.randn(64)
     
     # Use tunneling to escape local optima
-    best_configs = db.query(
+    best_configs = await db.query(
         vector=target_performance,
         enable_tunneling=True,
         top_k=3
@@ -144,10 +173,10 @@ def main():
     uncertain_region = np.random.randn(64)
     
     # Find samples in uncertain region
-    informative_samples = db.query(
+    informative_samples = await db.query(
         vector=uncertain_region,
         context='classification',
-        mode='balanced',
+        mode=QueryMode.BALANCED,
         top_k=5
     )
     
@@ -161,45 +190,28 @@ def main():
     print("6. Curriculum learning: adaptive difficulty...")
     
     # Early training: easy samples
+    easy_results = await db.query(model_state, context='classification', top_k=20)
     easy_batch = [
-        r for r in db.query(model_state, context='classification', top_k=20)
+        r for r in easy_results
         if r.metadata.get('difficulty') == 'easy'
     ]
     
     print(f"  Early training: {len(easy_batch)} easy samples")
     
     # Later training: harder samples
+    hard_results = await db.query(model_state, context='classification', top_k=20)
     hard_batch = [
-        r for r in db.query(model_state, context='classification', top_k=20)
+        r for r in hard_results
         if r.metadata.get('difficulty') == 'hard'
     ]
     
     print(f"  Later training: {len(hard_batch)} hard samples\n")
     
-    # 7. Regime discovery with tunneling engine
-    print("7. Discovering training regimes...")
-    
-    # Get all training samples
-    all_samples = [v for k, v in db.classical_store.items() if 'sample' in k]
-    
-    if len(all_samples) > 0:
-        regimes = db.tunneling_engine.discover_regimes(
-            historical_data=all_samples,
-            n_regimes=3
-        )
-        
-        print(f"  Discovered {len(regimes)} training regimes:")
-        for i, regime in enumerate(regimes):
-            print(f"    - Regime {i+1}: {len(regime)} samples")
-    print()
-    
-    # Stats
-    stats = db.get_stats()
-    print(f"Total training samples: {stats['total_vectors']}")
-    print(f"Active quantum states: {stats['quantum_states']}")
-    
     print("\n=== ML training example completed! ===")
+    
+    # Cleanup
+    await db.close()
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
