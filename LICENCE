@@ -1,36 +1,133 @@
-Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License
+# Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License
 
-This work, including all designs, graphics, and source files in this repository, is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0). 
-
-You are free to:
-
-1. **Share** — copy and redistribute the material in any medium or format.
-2. **Adapt** — remix, transform, and build upon the material.
-
-**Under the following terms:**
-
-1. **Attribution**  
-   You must give appropriate credit to the creator ([Your Name]), provide a link to this license, and indicate if any changes were made. Attribution should not suggest that the licensor endorses you or your use.
-
-2. **NonCommercial**  
-   You may not use the material for commercial purposes. Commercial purposes include, but are not limited to:
-   - Selling the design or derivative works.
-   - Using the design in products, services, or advertising for profit.
-   - Distributing the design through paid platforms.
-
-3. **No Additional Restrictions**  
-   You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
-
-4. **Disclaimer**  
-   This material is provided "as-is" without warranty of any kind. The licensor shall not be liable for any damages resulting from the use of this material.
-
-**Full License Text:** https://creativecommons.org/licenses/by-nc/4.0/legalcode
+This work, including all designs, graphics, source code, documentation, and related files in this repository, is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
 
 ---
 
-**Notes for Users:**  
-- Personal and educational use is allowed and encouraged.  
-- For commercial use, you must obtain explicit written permission from the copyright holder (Yucel zengin yucelz@gmail.com).  
-- Modifications are allowed for personal use but must retain this license if shared publicly.
+## You Are Free To:
 
-© 2025 yucel Zengin. All rights reserved.
+1. **Share** — Copy and redistribute the material in any medium or format for non-commercial purposes.
+2. **Adapt** — Remix, transform, and build upon the material for non-commercial purposes.
+
+---
+
+## Under the Following Terms:
+
+### 1. Attribution
+You must give appropriate credit to the creator (**Yucel Zengin**), provide a link to this license, and indicate if any changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+
+**Required attribution format:**
+```
+Original work by Yucel Zengin (yucelz@gmail.com)
+Licensed under CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
+```
+
+### 2. NonCommercial
+You may **NOT** use the material for commercial purposes without explicit written permission.
+
+---
+
+## Detailed Usage Guidelines
+
+### ✅ PERMITTED PERSONAL USE (Non-Commercial)
+
+You are **allowed** to use this work for:
+
+- **Personal Projects**: Using the design/code for your own personal portfolio, hobby projects, or learning purposes
+- **Educational Purposes**: Using the material in classroom settings, tutorials, workshops, or educational content (free of charge)
+- **Open Source Projects**: Incorporating the work into non-profit, open-source projects
+- **Academic Research**: Using the material for research, thesis work, or academic publications
+- **Non-Profit Organizations**: Using the work for registered non-profit or charitable organizations (with proper attribution)
+- **Personal Blogs/Portfolios**: Showcasing the work on personal websites or portfolios to demonstrate your skills
+- **Experimentation**: Modifying and testing the work for learning and skill development
+- **Free Distribution**: Sharing the work or modifications with others at no cost, provided they are also informed of this license
+
+### ❌ PROHIBITED COMMERCIAL USE
+
+You are **NOT allowed** to use this work for:
+
+- **Direct Sales**: Selling the design, code, or any derivative works in any form (digital or physical)
+- **Paid Products/Services**: Incorporating the work into products or services that generate revenue
+- **Client Work**: Using the work in projects for paying clients or commercial contracts
+- **Advertising/Marketing**: Using the work in commercial advertising, promotional materials, or marketing campaigns
+- **Monetized Platforms**: Distributing the work through paid platforms, subscription services, or marketplaces (e.g., theme marketplaces, template stores, stock websites)
+- **SaaS Applications**: Using the work as part of Software-as-a-Service offerings or paid web applications
+- **Commercial Training**: Using the work in paid courses, workshops, or training programs
+- **Fundraising**: Using the work for commercial fundraising activities (non-profit fundraising may be permitted with written approval)
+- **Indirect Monetization**: Using the work on platforms where you receive ad revenue, sponsorships, or other indirect compensation
+- **White-Label Products**: Rebranding and reselling the work under a different name
+- **Premium Features**: Using the work as a basis for premium or paid features in any application
+
+### 🔄 MODIFICATIONS AND DERIVATIVES
+
+- **Allowed**: You may modify, adapt, and create derivative works for personal and educational use
+- **Required**: All derivative works must retain this license (CC BY-NC 4.0) if shared publicly
+- **Attribution**: You must clearly indicate what changes were made to the original work
+- **No Warranty**: Modified versions are provided "as-is" without any warranty from the original creator
+
+### 📋 COMMERCIAL LICENSE
+
+If you wish to use this work for **any commercial purpose**, you must:
+
+1. Contact the copyright holder: **Yucel Zengin** at yucelz@gmail.com
+2. Obtain explicit written permission
+3. Negotiate terms for commercial licensing (which may include licensing fees)
+4. Receive a signed commercial license agreement
+
+**Commercial inquiries are welcome** — please provide details about your intended use when requesting permission.
+
+---
+
+## Additional Terms
+
+### No Additional Restrictions
+You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+
+### ShareAlike Not Required
+Unlike CC BY-NC-SA, this license does not require derivative works to be shared under the same license, but they must remain non-commercial unless permission is obtained.
+
+### Disclaimer of Warranties
+This material is provided **"as-is"** without warranty of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. The licensor shall not be liable for any damages, claims, or losses arising from the use of this material.
+
+### License Violations
+Unauthorized commercial use of this work constitutes a violation of copyright law and may result in legal action. If you discover unauthorized commercial use, please report it to yucelz@gmail.com.
+
+---
+
+## Summary for Quick Reference
+
+| Use Case | Allowed Without Permission | Requires Written Permission |
+|----------|---------------------------|----------------------------|
+| Personal hobby projects | ✅ Yes | ❌ No |
+| Learning and experimentation | ✅ Yes | ❌ No |
+| Educational/academic use | ✅ Yes | ❌ No |
+| Open-source projects (non-commercial) | ✅ Yes | ❌ No |
+| Non-profit organizations | ✅ Yes* | ❌ No |
+| Portfolio/showcase | ✅ Yes | ❌ No |
+| Client work (paid) | ❌ No | ✅ Yes |
+| Selling or monetizing | ❌ No | ✅ Yes |
+| Commercial products/services | ❌ No | ✅ Yes |
+| Paid courses/training | ❌ No | ✅ Yes |
+
+*Non-profit use with proper attribution is generally allowed, but please contact for clarification if uncertain.
+
+---
+
+## Full License Text
+
+The complete legal text of the CC BY-NC 4.0 license can be found at:  
+**https://creativecommons.org/licenses/by-nc/4.0/legalcode**
+
+---
+
+## Contact Information
+
+**Copyright Holder:** Yucel Zengin  
+**Email:** yucelz@gmail.com  
+**For Commercial Licensing Inquiries:** Please include details about your intended use, project scope, and timeline.
+
+---
+
+© 2025 Yucel Zengin. All rights reserved.
+
+*Last Updated: December 2025*
