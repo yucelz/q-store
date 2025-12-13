@@ -8,6 +8,10 @@ import numpy as np
 from typing import List
 import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import the quantum database
 from q_store import (
@@ -26,10 +30,16 @@ def setup_environment():
     """Setup environment variables and configuration"""
     print("=== Quantum Database Setup ===\n")
     
-    # Get API keys from environment
-    pinecone_key = os.getenv('PINECONE_API_KEY', None)
-    ionq_key = os.getenv('IONQ_API_KEY', None)  # Optional
-    pinecone_environment= os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+    # Get API keys from environment (loaded from .env via load_dotenv())
+    pinecone_key = os.getenv('PINECONE_API_KEY')
+    ionq_key = os.getenv('IONQ_API_KEY')  # Optional
+    pinecone_environment = os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+    
+    if not pinecone_key:
+        raise ValueError(
+            "PINECONE_API_KEY is required. Please add it to your .env file.\n"
+            "Get your API key from: https://www.pinecone.io/"
+        )
 
     # Create configuration
     config = DatabaseConfig(
@@ -45,10 +55,10 @@ def setup_environment():
         ionq_target="simulator",  # Use free simulator
         
         # Feature flags
-        enable_quantum=True,
-        enable_superposition=True,
+        enable_quantum=True if ionq_key else False,
+        enable_superposition=True if ionq_key else False,
         enable_entanglement=True,
-        enable_tunneling=True,
+        enable_tunneling=True if ionq_key else False,
         
         # Performance tuning
         max_quantum_states=500,
@@ -62,9 +72,14 @@ def setup_environment():
     
     print(f"Configuration:")
     print(f"  - Pinecone Index: {config.pinecone_index_name}")
+    print(f"  - Pinecone Environment: {pinecone_environment}")
     print(f"  - Dimension: {config.pinecone_dimension}")
     print(f"  - Quantum Enabled: {config.enable_quantum}")
     print(f"  - Superposition: {config.enable_superposition}")
+    if ionq_key:
+        print(f"  - IonQ Target: {config.ionq_target}")
+    else:
+        print(f"  - Note: IONQ_API_KEY not set, quantum features disabled")
     print()
     
     return config
@@ -346,10 +361,11 @@ async def example_production_patterns():
     print("=== Example 6: Production Patterns ===\n")
     
     config = DatabaseConfig(
-        pinecone_api_key=os.getenv('PINECONE_API_KEY', 'test-key'),
-        pinecone_environment="us-east-1",
+        pinecone_api_key=os.getenv('PINECONE_API_KEY'),
+        pinecone_environment=os.getenv('PINECONE_ENVIRONMENT', 'us-east-1'),
         pinecone_index_name="production-index",
-        pinecone_dimension=768
+        pinecone_dimension=768,
+        ionq_api_key=os.getenv('IONQ_API_KEY')
     )
     
     db = QuantumDatabase(config)
@@ -464,16 +480,18 @@ if __name__ == "__main__":
     
     # Check for API keys
     if not os.getenv('PINECONE_API_KEY'):
-        print("\n⚠️  WARNING: PINECONE_API_KEY not set")
-        print("The demo will use mock backends for demonstration.\n")
-        print("To use real Pinecone:")
-        print("  export PINECONE_API_KEY='your-api-key'")
-        print("  export PINECONE_ENVIRONMENT='us-east-1'\n")
-        
-        response = input("Continue with mock backend? (y/n): ")
-        if response.lower() != 'y':
-            print("Exiting. Please set API keys and try again.")
-            exit(0)
+        print("\n⚠️  ERROR: PINECONE_API_KEY not found in .env file\n")
+        print("Please create a .env file in the project root with:")
+        print("  PINECONE_API_KEY=your-pinecone-api-key")
+        print("  PINECONE_ENVIRONMENT=us-east-1")
+        print("  IONQ_API_KEY=your-ionq-api-key  (optional)\n")
+        print("Get your Pinecone API key from: https://www.pinecone.io/")
+        print("Get your IonQ API key from: https://cloud.ionq.com/settings/keys\n")
+        exit(1)
+    
+    if not os.getenv('IONQ_API_KEY'):
+        print("\n⚠️  Note: IONQ_API_KEY not set in .env file")
+        print("Quantum features will be disabled. Only classical vector search will work.\n")
     
     # Run demo
     try:

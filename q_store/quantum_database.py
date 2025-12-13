@@ -137,30 +137,44 @@ class ConnectionPool:
     async def _init_pinecone(self):
         """Initialize Pinecone connection"""
         try:
-            import pinecone
+            from pinecone import Pinecone, ServerlessSpec
             
             # Get environment from config or environment variable
-            environment = self.config.pinecone_environment or os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+            environment = self.config.pinecone_environment or os.getenv('PINECONE_ENVIRONMENT')
             
-            pinecone.init(
-                api_key=self.config.pinecone_api_key,
-                environment=environment
-            )
+            if not self.config.pinecone_api_key:
+                raise ValueError("PINECONE_API_KEY is required. Please set it in your .env file or DatabaseConfig.")
+            
+            if not environment:
+                raise ValueError("PINECONE_ENVIRONMENT is required. Please set it in your .env file or DatabaseConfig.")
+            
+            # Initialize Pinecone (new API)
+            pc = Pinecone(api_key=self.config.pinecone_api_key)
+            
+            logger.info(f"Pinecone initialized with environment: {environment}")
             
             # Create index if it doesn't exist
-            if self.config.pinecone_index_name not in pinecone.list_indexes():
-                pinecone.create_index(
+            existing_indexes = [index.name for index in pc.list_indexes()]
+            if self.config.pinecone_index_name not in existing_indexes:
+                logger.info(f"Creating Pinecone index: {self.config.pinecone_index_name}")
+                pc.create_index(
                     name=self.config.pinecone_index_name,
                     dimension=self.config.pinecone_dimension,
-                    metric=self.config.pinecone_metric
+                    metric=self.config.pinecone_metric,
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region=environment
+                    )
                 )
+                logger.info(f"Pinecone index '{self.config.pinecone_index_name}' created successfully")
+            else:
+                logger.info(f"Using existing Pinecone index: {self.config.pinecone_index_name}")
             
-            self._pinecone_client = pinecone.Index(self.config.pinecone_index_name)
+            self._pinecone_client = pc.Index(self.config.pinecone_index_name)
             logger.info("Pinecone connection established")
             
         except ImportError:
-            logger.warning("Pinecone not installed, using mock backend")
-            self._pinecone_client = MockPineconeIndex()
+            raise ImportError("Pinecone package is required. Install it with: pip install pinecone")
         except Exception as e:
             logger.error(f"Failed to initialize Pinecone: {e}")
             raise
@@ -168,6 +182,11 @@ class ConnectionPool:
     async def _init_quantum(self):
         """Initialize quantum backend connection"""
         try:
+            if not self.config.ionq_api_key:
+                logger.warning("IONQ_API_KEY not provided. Quantum features will be disabled.")
+                self._quantum_backend = None
+                return
+            
             self._quantum_backend = IonQQuantumBackend(
                 api_key=self.config.ionq_api_key,
                 target=self.config.ionq_target
