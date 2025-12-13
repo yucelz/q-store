@@ -22,10 +22,10 @@ cd "$SCRIPT_DIR/.."
 
 # Step 1: Generate Dataset
 echo -e "${BLUE}Step 1/3: Generating React training dataset...${NC}"
-echo "Running: python -m q_store_examples.react_dataset_generator"
+echo "Running: python src/q_store_examples/react_dataset_generator.py"
 echo ""
 
-python -m q_store_examples.react_dataset_generator
+python src/q_store_examples/react_dataset_generator.py
 
 echo ""
 echo -e "${GREEN}✓ Dataset generation complete!${NC}"
@@ -40,25 +40,25 @@ if [ -f "react_train.jsonl" ]; then
     echo "📊 Dataset Statistics:"
     echo "   Total samples: $SAMPLE_COUNT"
     echo ""
-    
+
     # Count by type
     GEN_COUNT=$(grep -c '"instruction".*[Cc]reate\|[Bb]uild' react_train.jsonl || true)
     FIX_COUNT=$(grep -c '"instruction".*[Ff]ix' react_train.jsonl || true)
     EXP_COUNT=$(grep -c '"instruction".*[Ee]xplain' react_train.jsonl || true)
     CONV_COUNT=$(grep -c '"instruction".*[Cc]onvert' react_train.jsonl || true)
-    
+
     echo "   Component Generation: ~$GEN_COUNT samples"
     echo "   Bug Fixing: ~$FIX_COUNT samples"
     echo "   Explanations: ~$EXP_COUNT samples"
     echo "   Conversions: ~$CONV_COUNT samples"
     echo ""
-    
+
     # Show sample
     echo "📝 Sample entry:"
     head -n 1 react_train.jsonl | python -m json.tool | head -n 15
     echo "   ..."
     echo ""
-    
+
     echo -e "${GREEN}✓ Dataset verification complete!${NC}"
 else
     echo -e "${YELLOW}⚠️  Warning: react_train.jsonl not found${NC}"
@@ -69,7 +69,7 @@ echo ""
 
 # Step 3: Run Training
 echo -e "${BLUE}Step 3/3: Starting quantum-enhanced training...${NC}"
-echo "Running: python -m q_store_examples.tinyllama_react_training"
+echo "Running: python src/q_store_examples/tinyllama_react_training.py"
 echo ""
 
 # Check for .env file
@@ -87,7 +87,7 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
-python -m q_store_examples.tinyllama_react_training
+python src/q_store_examples/tinyllama_react_training.py
 
 echo ""
 echo "======================================================================"

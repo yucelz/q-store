@@ -47,7 +47,7 @@ dependencies = [
 
 [project.optional-dependencies]
 backends = [
-    "pinecone-client>=3.0.0",
+    "pinecone>=3.0.0",
     "pgvector>=0.2.0",
     "qdrant-client>=1.7.0",
 ]

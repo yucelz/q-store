@@ -137,7 +137,8 @@ class ConnectionPool:
     async def _init_pinecone(self):
         """Initialize Pinecone connection"""
         try:
-            from pinecone import Pinecone, ServerlessSpec
+            from pinecone.grpc import PineconeGRPC as Pinecone
+            from pinecone import ServerlessSpec
 
             # Get environment from config or environment variable
             environment = self.config.pinecone_environment or os.getenv('PINECONE_ENVIRONMENT')
