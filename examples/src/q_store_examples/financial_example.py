@@ -7,7 +7,7 @@ import os
 import numpy as np
 from getpass import getpass
 from dotenv import load_dotenv
-from q_store import QuantumDatabase, QuantumDatabaseConfig
+from q_store import QuantumDatabase, DatabaseConfig
 
 # Load environment variables from .env file
 load_dotenv()

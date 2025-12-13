@@ -6,7 +6,7 @@ import os
 import numpy as np
 from getpass import getpass
 from dotenv import load_dotenv
-from q_store import QuantumDatabase, QuantumDatabaseConfig
+from q_store import QuantumDatabase, DatabaseConfig
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,7 +21,7 @@ def main():
     api_key = os.getenv('IONQ_API_KEY') or getpass('Enter your IonQ API key: ')
     
     # Initialize database with configuration
-    config = QuantumDatabaseConfig(
+    config = DatabaseConfig(
         ionq_api_key=api_key,
         target_device='simulator',
         enable_superposition=True,
