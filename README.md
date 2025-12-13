@@ -361,6 +361,20 @@ python examples/ml_training_example.py
 
 Training data selection, hyperparameter optimization, and active learning.
 
+### TinyLlama React Fine-Tuning
+```bash
+python examples/tinyllama_react_training.py
+```
+
+Advanced example demonstrating quantum-enhanced LLM fine-tuning:
+- Intelligent training data selection with quantum superposition
+- Curriculum learning (easy → hard examples)
+- Hard negative mining using quantum tunneling
+- Context-aware batch sampling
+- Multi-context storage for training samples
+
+See [TINYLLAMA_TRAINING_README.md](examples/TINYLLAMA_TRAINING_README.md) for detailed documentation.
+
 ## Testing
 
 Run the comprehensive test suite:
@@ -447,6 +461,8 @@ pip install -e .                    # Install package in dev mode
 python examples/quantum_db_quickstart.py  # Run quickstart demo
 python examples/basic_example.py          # Run basic example
 python examples/financial_example.py      # Run financial example
+python examples/ml_training_example.py    # Run ML training example
+python examples/tinyllama_react_training.py  # Run TinyLlama fine-tuning
 
 # Testing
 pytest tests/ -v                    # Run all tests
