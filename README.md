@@ -83,6 +83,10 @@ results = await db.query(
 
 ## Installation
 
+### Quick Start (5 minutes)
+
+**New users:** See [QUICKSTART.md](QUICKSTART.md) for a step-by-step beginner guide.
+
 ### Prerequisites
 - Python 3.11+
 - Conda package manager
@@ -103,37 +107,140 @@ conda env create -f environment.yml
 conda activate q-store
 ```
 
-3. Configure your API keys:
+3. Install the package in development mode:
+```bash
+pip install -e .
+```
 
-   ```bash
-   # Required: Pinecone for vector storage
-   export PINECONE_API_KEY='your_pinecone_key'
-   export PINECONE_ENVIRONMENT='us-east-1'
-   
-   # Optional: IonQ for quantum features
-   export IONQ_API_KEY='your_ionq_key'
-   ```
+4. Install required libraries:
+```bash
+# Install the new Pinecone SDK (not pinecone-client)
+pip install pinecone
+
+# Verify installation
+python -c "import pinecone; print('Pinecone installed successfully')"
+```
+
+5. Configure your API keys in `.env` file:
+
+Create a `.env` file in the project root:
+```bash
+# Required: Pinecone for vector storage
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_ENVIRONMENT=us-east-1
+
+# Optional: IonQ for quantum features
+IONQ_API_KEY=your_ionq_api_key
+```
+
+Get your API keys:
+- **Pinecone**: Sign up at [pinecone.io](https://www.pinecone.io/) and get your API key from the dashboard
+- **IonQ** (Optional): Get your API key from [cloud.ionq.com/settings/keys](https://cloud.ionq.com/settings/keys)
+
+6. **First Test - Run the Quickstart Example:**
+```bash
+# Verify installation
+python verify_installation.py
+
+# Run the full quickstart demo
+python examples/quantum_db_quickstart.py
+```
+
+Expected output from verification:
+```
+============================================================
+Q-Store Installation Verification
+============================================================
+
+Checking imports...
+  ✓ NumPy
+  ✓ SciPy
+  ✓ Cirq
+  ✓ Pinecone
+  ✓ Q-Store
+
+Checking .env file...
+  ✓ .env file exists
+  ✓ PINECONE_API_KEY set
+  ✓ PINECONE_ENVIRONMENT set
+
+Testing basic functionality...
+  ✓ DatabaseConfig created
+  ✓ QuantumDatabase instantiated
+
+============================================================
+✓ All checks passed!
+============================================================
+```
+
+Expected output from quickstart:
+```
+============================================================
+QUANTUM DATABASE - INTERACTIVE DEMO
+============================================================
+
+=== Quantum Database Setup ===
+
+Configuration:
+  - Pinecone Index: quantum-demo
+  - Pinecone Environment: us-east-1
+  - Dimension: 768
+  - Quantum Enabled: True
+  - Superposition: True
+  - IonQ Target: simulator
+
+Initializing database...
+INFO:q_store.quantum_database:Pinecone initialized with environment: us-east-1
+INFO:q_store.quantum_database:Creating Pinecone index: quantum-demo
+INFO:q_store.quantum_database:Pinecone index 'quantum-demo' created successfully
+✓ Database initialized successfully
+
+=== Example 1: Basic Operations ===
+...
+```
+
+**Note:** The first run will create Pinecone indexes (`quantum-demo` and `production-index`). Subsequent runs will use existing indexes.
 
 ## Quick Start
+
+### Using .env File (Recommended)
+
+1. Create a `.env` file in your project root:
+```bash
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_ENVIRONMENT=us-east-1
+IONQ_API_KEY=your_ionq_api_key  # Optional
+```
+
+2. Run the quickstart example:
+```bash
+python examples/quantum_db_quickstart.py
+```
+
+The example automatically loads credentials from `.env` using `python-dotenv`.
 
 ### Basic Usage with Async/Await
 
 ```python
 import asyncio
 import numpy as np
+from dotenv import load_dotenv
 from q_store import QuantumDatabase, DatabaseConfig, QueryMode
 
+# Load environment variables
+load_dotenv()
+
 async def main():
-    # Configure database
+    # Configure database (reads from .env automatically)
     config = DatabaseConfig(
         # Pinecone settings
-        pinecone_api_key='your_key',
-        pinecone_environment='us-east-1',
+        pinecone_api_key=os.getenv('PINECONE_API_KEY'),
+        pinecone_environment=os.getenv('PINECONE_ENVIRONMENT', 'us-east-1'),
         pinecone_index_name='my-index',
         pinecone_dimension=768,
         
         # Quantum features (optional)
-        ionq_api_key='your_ionq_key',
+        ionq_api_key=os.getenv('IONQ_API_KEY'),
         ionq_target='simulator',
         enable_quantum=True,
         enable_superposition=True
@@ -273,6 +380,83 @@ pytest tests/ -v -k "test_state"
 pytest tests/ -v -k "test_performance"
 ```
 
+## Troubleshooting
+
+### Common Issues
+
+**1. ModuleNotFoundError: No module named 'q_store'**
+```bash
+# Solution: Install the package in development mode
+pip install -e .
+```
+
+**2. ImportError: Pinecone package is required**
+```bash
+# Solution: Install the new Pinecone SDK (not pinecone-client)
+pip uninstall -y pinecone-client
+pip install pinecone
+```
+
+**3. PINECONE_API_KEY not found**
+```bash
+# Solution: Create a .env file in the project root
+cat > .env << EOF
+PINECONE_API_KEY=your_actual_api_key
+PINECONE_ENVIRONMENT=us-east-1
+IONQ_API_KEY=your_ionq_key
+EOF
+```
+
+**4. Pinecone index creation fails**
+- Ensure your Pinecone account has available index quota
+- Check that the environment (e.g., `us-east-1`) is valid
+- Verify your API key has the necessary permissions
+
+**5. IonQ quantum features not working**
+- IonQ API key is optional - the system works without it
+- Quantum features will be disabled if `IONQ_API_KEY` is not set
+- Verify your IonQ API key at [cloud.ionq.com](https://cloud.ionq.com/settings/keys)
+
+**6. Package version conflicts**
+```bash
+# Solution: Recreate the conda environment
+conda deactivate
+conda env remove -n q-store
+conda env create -f environment.yml
+conda activate q-store
+pip install -e .
+pip install pinecone
+```
+
+### Getting Help
+
+- Check the [examples](examples/) directory for working code
+- Review the [design document](quantum_db_design_v2.md) for architecture details
+- Submit issues on [GitHub](https://github.com/yucelz/q-store/issues)
+- Contact: yucelz@gmail.com
+
+## Common Commands
+
+```bash
+# Installation and setup
+conda activate q-store              # Activate environment
+python verify_installation.py       # Verify installation
+pip install -e .                    # Install package in dev mode
+
+# Running examples
+python examples/quantum_db_quickstart.py  # Run quickstart demo
+python examples/basic_example.py          # Run basic example
+python examples/financial_example.py      # Run financial example
+
+# Testing
+pytest tests/ -v                    # Run all tests
+pytest tests/ -v -k "test_state"    # Run specific tests
+
+# Maintenance
+conda env update -f environment.yml # Update dependencies
+conda deactivate                    # Deactivate environment
+```
+
 ## Architecture
 
 ```
@@ -360,7 +544,11 @@ q-store/
 │   └── ml_training_example.py
 ├── tests/                      # Test suite (NEW)
 │   └── test_quantum_database.py
+├── .env                        # Environment variables (you create this)
 ├── environment.yml             # Conda dependencies
+├── setup.py                    # Package setup
+├── verify_installation.py      # Installation verification script (NEW)
+├── QUICKSTART.md               # Quick start guide (NEW)
 ├── quantum_db_design_v2.md     # Architecture documentation v2.0
 └── README.md
 ```
