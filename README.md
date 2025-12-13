@@ -85,11 +85,11 @@ results = await db.query(
 
 ### Quick Start (5 minutes)
 
-**New users:** See [QUICKSTART.md](QUICKSTART.md) for a step-by-step beginner guide.
+**New users:** See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a step-by-step beginner guide.
 
 ### Prerequisites
 - Python 3.11+
-- Conda package manager
+- Conda package manager (recommended) or pip
 - [Pinecone API key](https://www.pinecone.io/)
 - [IonQ API key](https://cloud.ionq.com/settings/keys) (optional for quantum features)
 
@@ -109,7 +109,11 @@ conda activate q-store
 
 3. Install the package in development mode:
 ```bash
-pip install -e .
+# Install with all dependencies
+pip install -e ".[dev,backends]"
+
+# Or use the Makefile
+make install-dev
 ```
 
 4. Install required libraries:
@@ -677,6 +681,35 @@ See [LICENSE](LICENCE) file for details.
 - [Cirq Documentation](https://quantumai.google/cirq)
 - [Pinecone Documentation](https://docs.pinecone.io/)
 
+## Project Structure
+
+Q-Store follows modern Python packaging best practices:
+
+```
+q-store/
+├── src/q_store/          # Source code (PEP 420 namespace)
+│   ├── core/            # Core quantum database components
+│   ├── backends/        # Quantum backend implementations
+│   └── utils/           # Utility functions
+├── tests/               # Test suite
+├── docs/                # Documentation
+├── examples/            # Example implementations
+├── pyproject.toml      # Modern Python project configuration
+└── Makefile            # Development task automation
+```
+
+For detailed structure documentation, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
+
+### Development Commands
+
+```bash
+make install-dev    # Install with development dependencies
+make test          # Run tests
+make format        # Auto-format code
+make lint          # Run linters
+make verify        # Run all checks
+```
+
 ## Support
 
 For support, submit issues in this repository or contact yucelz@gmail.com.
@@ -696,7 +729,12 @@ If you use Q-Store in your research, please cite:
 
 ## Changelog
 
-### v2.0.0 (2025-01-11)
+### v2.0.0 (2025-12-13)
+- **New**: Modern Python project structure with src/ layout
+- **New**: pyproject.toml-based configuration (PEP 621)
+- **New**: Modular package organization (core/, backends/, utils/)
+- **New**: Development automation with Makefile
+- **New**: Comprehensive documentation in docs/
 - **Breaking Changes**: Full async/await API
 - **New**: Production-ready architecture with connection pooling
 - **New**: Pinecone integration for classical vector storage

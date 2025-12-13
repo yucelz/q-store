@@ -1,6 +1,5 @@
 """
-Quantum-Native (Q-Store) Database Architecture
-A novel database architecture leveraging quantum mechanical properties.
+Core quantum database components.
 """
 
 from .quantum_database import (
@@ -12,12 +11,10 @@ from .quantum_database import (
     ConnectionPool,
     MockPineconeIndex
 )
-from .ionq_backend import IonQQuantumBackend
 from .state_manager import StateManager, QuantumState, StateStatus
 from .entanglement_registry import EntanglementRegistry
 from .tunneling_engine import TunnelingEngine
 
-__version__ = "2.0.0"
 __all__ = [
     "QuantumDatabase",
     "DatabaseConfig",
@@ -26,7 +23,6 @@ __all__ = [
     "Metrics",
     "ConnectionPool",
     "MockPineconeIndex",
-    "IonQQuantumBackend",
     "StateManager",
     "QuantumState",
     "StateStatus",
