@@ -17,7 +17,7 @@ def verify_structure():
 
     # Get project root
     project_root = Path(__file__).parent
-    
+
     # Define expected structure
     expected_dirs = [
         "src/q_store",
@@ -28,7 +28,7 @@ def verify_structure():
         "docs",
         "examples",
     ]
-    
+
     expected_files = [
         "pyproject.toml",
         "setup.py",
@@ -50,7 +50,7 @@ def verify_structure():
         "docs/PROJECT_STRUCTURE.md",
         "docs/RESTRUCTURING_SUMMARY.md",
     ]
-    
+
     # Check directories
     print("Checking directory structure...")
     all_dirs_ok = True
@@ -61,9 +61,9 @@ def verify_structure():
         else:
             print(f"  ✗ {dir_path} - MISSING")
             all_dirs_ok = False
-    
+
     print()
-    
+
     # Check files
     print("Checking required files...")
     all_files_ok = True
@@ -74,9 +74,9 @@ def verify_structure():
         else:
             print(f"  ✗ {file_path} - MISSING")
             all_files_ok = False
-    
+
     print()
-    
+
     # Test imports
     print("Testing package imports...")
     try:
@@ -91,18 +91,18 @@ def verify_structure():
             TunnelingEngine,
         )
         print("  ✓ All main imports successful")
-        
+
         # Check version
         import q_store
         print(f"  ✓ Package version: {q_store.__version__}")
-        
+
         imports_ok = True
     except ImportError as e:
         print(f"  ✗ Import failed: {e}")
         imports_ok = False
-    
+
     print()
-    
+
     # Summary
     print("=" * 60)
     if all_dirs_ok and all_files_ok and imports_ok:
