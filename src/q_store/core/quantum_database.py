@@ -602,6 +602,26 @@ class QuantumDatabase:
             }
         }
 
+    def create_entangled_group(
+        self,
+        group_id: str,
+        entity_ids: List[str],
+        correlation_strength: float = 0.85
+    ):
+        """
+        Create an entangled group of entities
+
+        Args:
+            group_id: Unique identifier for the group
+            entity_ids: List of entity IDs to entangle
+            correlation_strength: Strength of correlation (0-1)
+        """
+        return self.entanglement_registry.create_entangled_group(
+            group_id=group_id,
+            entity_ids=entity_ids,
+            correlation_strength=correlation_strength
+        )
+
 
 # ============================================================================
 # Mock Backend for Testing
