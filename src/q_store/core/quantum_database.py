@@ -1,6 +1,13 @@
 """
-Quantum Database Implementation v2.0
-Production-ready implementation with best practices
+Quantum Database Implementation v3.1
+Production-ready with Hardware Abstraction Layer
+
+Key improvements:
+- Hardware-agnostic design via backend abstraction
+- Support for multiple SDKs (Cirq, Qiskit, etc.)
+- Plugin architecture for easy backend addition
+- Improved testability with mock backends
+- Enhanced error handling and fallback mechanisms
 """
 
 import asyncio
@@ -14,7 +21,14 @@ from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
 from enum import Enum
 
-from ..backends.ionq_backend import IonQQuantumBackend
+# Import abstraction layer
+from ..backends.quantum_backend_interface import (
+    QuantumCircuit,
+    CircuitBuilder,
+    ExecutionResult,
+    amplitude_encode_to_circuit
+)
+from ..backends.backend_manager import BackendManager, MockQuantumBackend
 from .state_manager import StateManager, QuantumState, StateStatus
 from .entanglement_registry import EntanglementRegistry
 from .tunneling_engine import TunnelingEngine
@@ -45,7 +59,13 @@ class DatabaseConfig:
     pinecone_dimension: int = 768
     pinecone_metric: str = "cosine"
 
-    # IonQ configuration
+    # Quantum backend configuration (hardware-agnostic)
+    quantum_backend_name: Optional[str] = None  # Use default if None
+    quantum_api_key: Optional[str] = None
+    quantum_target: str = "simulator"
+    quantum_sdk: str = "mock"  # 'cirq', 'qiskit', or 'mock'
+
+    # Legacy IonQ config (for backward compatibility)
     ionq_api_key: Optional[str] = None
     ionq_target: str = "simulator"  # or qpu.aria, qpu.forte
 
@@ -116,10 +136,10 @@ class Metrics:
 class ConnectionPool:
     """Manages connections to classical and quantum backends"""
 
-    def __init__(self, config: DatabaseConfig):
+    def __init__(self, config: DatabaseConfig, backend_manager: BackendManager):
         self.config = config
+        self.backend_manager = backend_manager
         self._pinecone_client = None
-        self._quantum_backend = None
         self._lock = asyncio.Lock()
         self._connection_count = 0
 
@@ -127,8 +147,8 @@ class ConnectionPool:
         """Initialize all backend connections"""
         try:
             await self._init_pinecone()
-            if self.config.enable_quantum and self.config.ionq_api_key:
-                await self._init_quantum()
+            if self.config.enable_quantum:
+                await self._init_quantum_backends()
             logger.info("Connection pool initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize connection pool: {e}")
@@ -180,24 +200,68 @@ class ConnectionPool:
             logger.error(f"Failed to initialize Pinecone: {e}")
             raise
 
-    async def _init_quantum(self):
-        """Initialize quantum backend connection"""
+    async def _init_quantum_backends(self):
+        """Initialize quantum backends via manager"""
         try:
-            if not self.config.ionq_api_key:
-                logger.warning("IONQ_API_KEY not provided. Quantum features will be disabled.")
-                self._quantum_backend = None
-                return
+            # Handle backward compatibility with ionq_api_key
+            api_key = self.config.quantum_api_key or self.config.ionq_api_key
+            target = self.config.quantum_target if self.config.quantum_target != "simulator" else self.config.ionq_target
+            sdk = self.config.quantum_sdk
 
-            self._quantum_backend = IonQQuantumBackend(
-                api_key=self.config.ionq_api_key,
-                target=self.config.ionq_target
-            )
-            logger.info(f"Quantum backend initialized: {self.config.ionq_target}")
+            if sdk == "mock" or not api_key:
+                # Use mock backend (default for testing)
+                await self._init_mock_backend()
+                logger.info("Initialized mock quantum backend")
+            elif sdk == "cirq" and api_key:
+                # Use Cirq adapter
+                try:
+                    from ..backends.cirq_ionq_adapter import CirqIonQBackend
+                    cirq_backend = CirqIonQBackend(api_key=api_key, target=target)
+                    self.backend_manager.register_backend(
+                        "ionq_cirq",
+                        cirq_backend,
+                        set_as_default=True,
+                        metadata={'description': f'IonQ {target} via Cirq'}
+                    )
+                    await cirq_backend.initialize()
+                    logger.info(f"Initialized Cirq-IonQ backend: {target}")
+                except ImportError:
+                    logger.warning("cirq-ionq not installed, falling back to mock")
+                    await self._init_mock_backend()
+            elif sdk == "qiskit" and api_key:
+                # Use Qiskit adapter
+                try:
+                    from ..backends.qiskit_ionq_adapter import QiskitIonQBackend
+                    qiskit_backend = QiskitIonQBackend(api_key=api_key, target=target)
+                    self.backend_manager.register_backend(
+                        "ionq_qiskit",
+                        qiskit_backend,
+                        set_as_default=True,
+                        metadata={'description': f'IonQ {target} via Qiskit'}
+                    )
+                    await qiskit_backend.initialize()
+                    logger.info(f"Initialized Qiskit-IonQ backend: {target}")
+                except ImportError:
+                    logger.warning("qiskit-ionq not installed, falling back to mock")
+                    await self._init_mock_backend()
+            else:
+                await self._init_mock_backend()
 
         except Exception as e:
-            logger.error(f"Failed to initialize quantum backend: {e}")
-            # Don't raise - quantum is optional
-            self._quantum_backend = None
+            logger.error(f"Failed to initialize quantum backends: {e}")
+            # Fall back to mock
+            await self._init_mock_backend()
+
+    async def _init_mock_backend(self):
+        """Initialize mock backend as fallback"""
+        mock_backend = MockQuantumBackend(name="mock_simulator", max_qubits=20, noise_level=0.0)
+        self.backend_manager.register_backend(
+            "mock_simulator",
+            mock_backend,
+            set_as_default=True,
+            metadata={'description': 'Mock simulator for testing'}
+        )
+        await mock_backend.initialize()
 
     def get_pinecone_client(self):
         """Get Pinecone client"""
@@ -205,16 +269,15 @@ class ConnectionPool:
             raise RuntimeError("Pinecone client not initialized")
         return self._pinecone_client
 
-    def get_quantum_backend(self):
-        """Get quantum backend"""
-        return self._quantum_backend
+    def get_quantum_backend(self, name: Optional[str] = None):
+        """Get quantum backend from manager"""
+        return self.backend_manager.get_backend(name)
 
     async def close(self):
         """Close all connections"""
         logger.info("Closing connection pool")
-        # Cleanup logic here
+        await self.backend_manager.close_all()
         self._pinecone_client = None
-        self._quantum_backend = None
 
 
 # ============================================================================
@@ -222,11 +285,12 @@ class ConnectionPool:
 # ============================================================================
 
 class QuantumDatabase:
-    """Production-ready quantum database with best practices"""
+    """Production-ready quantum database with hardware abstraction"""
 
-    def __init__(self, config: DatabaseConfig):
+    def __init__(self, config: DatabaseConfig, backend_manager: Optional[BackendManager] = None):
         self.config = config
-        self.pool = ConnectionPool(config)
+        self.backend_manager = backend_manager or BackendManager()
+        self.pool = ConnectionPool(config, self.backend_manager)
         self.state_manager = StateManager(config)
         self.entanglement_registry = EntanglementRegistry()
         self.tunneling_engine = None  # Will be initialized with quantum backend
@@ -621,6 +685,19 @@ class QuantumDatabase:
             entity_ids=entity_ids,
             correlation_strength=correlation_strength
         )
+
+    def list_backends(self) -> List[Dict[str, Any]]:
+        """List all available quantum backends"""
+        return self.backend_manager.list_backends()
+
+    def switch_backend(self, backend_name: str):
+        """Switch to a different quantum backend"""
+        self.backend_manager.set_default_backend(backend_name)
+        # Reinitialize tunneling engine with new backend
+        quantum_backend = self.pool.get_quantum_backend()
+        if quantum_backend:
+            self.tunneling_engine = TunnelingEngine(quantum_backend)
+        logger.info(f"Switched to backend: {backend_name}")
 
 
 # ============================================================================
