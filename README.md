@@ -1,29 +1,44 @@
-# Q-Store: Quantum-Native Database v2.0
+# Q-Store: Quantum-Native Database v3.2
 
-A database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—as **core features** for exponential performance advantages in vector similarity search, relationship management, and pattern discovery.
+A hardware-agnostic database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—for exponential performance advantages in vector similarity search, relationship management, pattern discovery, and **quantum-accelerated ML training**.
 
 <a href="http://www.q-store.tech" target="_blank">
   <strong>Q-STORE website </strong>
 </a>
 
-## 🆕 What's New in v2.0
+## 🆕 What's New in v3.2
 
-- **Production-Ready Architecture**: Async/await, connection pooling, robust error handling
-- **Enhanced Configuration**: Comprehensive DatabaseConfig with fine-grained control
-- **Performance Monitoring**: Built-in metrics, caching, and performance tracking
-- **Pinecone Integration**: Native support for Pinecone vector database
-- **Lifecycle Management**: Automatic state management with decoherence loops
-- **Type Safety**: Full type hints and dataclass-based configuration
-- **Testing Suite**: Comprehensive unit, integration, and performance tests
+### Quantum ML Training Integration
+- **Hardware-Agnostic Architecture**: Works with Cirq, Qiskit, and mock simulators
+- **Quantum Neural Network Layers**: Variational quantum circuits for ML
+- **Quantum Gradient Computation**: Parameter shift rule for backpropagation
+- **Hybrid Classical-Quantum Pipelines**: Seamless integration with PyTorch/TensorFlow
+- **Quantum Data Encoding**: Amplitude and angle encoding strategies
+
+### Advanced ML Features
+- **Quantum Transfer Learning**: Fine-tune pre-trained quantum models
+- **Quantum Data Augmentation**: Superposition-based data expansion
+- **Quantum Regularization**: Entanglement-based model optimization
+- **Quantum Adversarial Training**: Robust model training with quantum gradients
+- **Hyperparameter Optimization**: Quantum annealing for HPO
+
+### Training Infrastructure
+- **Distributed Quantum Training**: Multi-backend orchestration
+- **Training Data Management**: Store datasets in quantum database
+- **Model Checkpointing**: Save quantum states and classical weights
+- **Metrics Tracking**: Comprehensive training monitoring
+- **Framework Integration**: PyTorch, TensorFlow, and JAX support
 
 ## Overview
 
-Q-Store provides a hybrid classical-quantum database architecture that:
+Q-Store provides a hardware-agnostic hybrid classical-quantum database architecture that:
 - **Stores data in quantum superposition** for context-aware retrieval
 - **Uses entanglement** for automatic relationship synchronization
 - **Applies decoherence** as adaptive time-to-live (TTL)
 - **Leverages quantum tunneling** for global pattern discovery
-- **Integrates with IonQ quantum hardware** via Cirq
+- **Trains quantum ML models** with variational quantum circuits
+- **Supports multiple quantum backends** (Cirq/IonQ, Qiskit/IonQ, simulators)
+- **Integrates with classical ML frameworks** (PyTorch, TensorFlow, JAX)
 - **Scales with Pinecone** for classical vector storage
 
 ## Key Features
@@ -81,6 +96,32 @@ results = await db.query(
 )
 ```
 
+### 🧠 Quantum ML Training (NEW in v3.2)
+Train quantum neural networks with hardware-agnostic quantum circuits.
+
+**QuantumLayer** - Variational quantum circuit layer for neural networks
+**QuantumTrainer** - Training orchestration with quantum gradient computation
+**QuantumGradientComputer** - Parameter shift rule for gradient calculation
+**QuantumDataEncoder** - Classical-to-quantum data encoding (amplitude/angle)
+
+```python
+# Define quantum neural network layer
+quantum_layer = QuantumLayer(
+    n_qubits=10,
+    depth=4,
+    backend=backend,
+    entanglement='linear'
+)
+
+# Train quantum model
+trainer = QuantumTrainer(config, backend_manager)
+await trainer.train(
+    model=quantum_model,
+    train_loader=data_loader,
+    epochs=100
+)
+```
+
 ## Installation
 
 ### Quick Start (5 minutes)
@@ -91,7 +132,8 @@ results = await db.query(
 - Python 3.11+
 - Conda package manager (recommended) or pip
 - [Pinecone API key](https://www.pinecone.io/)
-- [IonQ API key](https://cloud.ionq.com/settings/keys) (optional for quantum features)
+- [IonQ API key](https://cloud.ionq.com/settings/keys) (optional for quantum hardware)
+- Choose quantum SDK: Cirq or Qiskit (for hardware-agnostic support)
 
 ### Setup
 
@@ -135,6 +177,10 @@ PINECONE_ENVIRONMENT=us-east-1
 
 # Optional: IonQ for quantum features
 IONQ_API_KEY=your_ionq_api_key
+
+# Quantum SDK selection (cirq or qiskit)
+QUANTUM_SDK=cirq  # or 'qiskit' for hardware-agnostic support
+QUANTUM_TARGET=simulator  # or 'qpu.aria', 'qpu.forte'
 ```
 
 Get your API keys:
@@ -243,9 +289,10 @@ async def main():
         pinecone_index_name='my-index',
         pinecone_dimension=768,
         
-        # Quantum features (optional)
+        # Quantum backend (hardware-agnostic)
+        quantum_sdk=os.getenv('QUANTUM_SDK', 'cirq'),  # 'cirq' or 'qiskit'
         ionq_api_key=os.getenv('IONQ_API_KEY'),
-        ionq_target='simulator',
+        ionq_target=os.getenv('QUANTUM_TARGET', 'simulator'),
         enable_quantum=True,
         enable_superposition=True
     )
@@ -278,6 +325,65 @@ async def main():
 
 # Run
 asyncio.run(main())
+```
+
+### Quantum ML Training
+
+```python
+from q_store import QuantumTrainer, QuantumModel, TrainingConfig
+
+# Configure training
+training_config = TrainingConfig(
+    # Database config
+    **config,
+    
+    # ML training settings
+    learning_rate=0.01,
+    batch_size=32,
+    epochs=100,
+    
+    # Quantum model architecture
+    n_qubits=10,
+    circuit_depth=4,
+    entanglement='linear'
+)
+
+async def train_quantum_model():
+    db = QuantumDatabase(training_config)
+    
+    async with db.connect():
+        # Store training data in quantum database
+        await db.store_training_data(
+            dataset_id='mnist_train',
+            data=X_train,
+            labels=y_train
+        )
+        
+        # Create quantum model
+        model = QuantumModel(
+            input_dim=784,
+            n_qubits=10,
+            output_dim=10,
+            backend=db.backend_manager.get_backend()
+        )
+        
+        # Create trainer
+        trainer = QuantumTrainer(training_config, db.backend_manager)
+        
+        # Create data loader
+        train_loader = db.create_ml_data_loader(
+            dataset_id='mnist_train',
+            batch_size=32
+        )
+        
+        # Train quantum neural network
+        await trainer.train(
+            model=model,
+            train_loader=train_loader,
+            epochs=100
+        )
+
+asyncio.run(train_quantum_model())
 ```
 
 ### Batch Operations
@@ -329,6 +435,41 @@ Comprehensive guide covering:
 - Monitoring and metrics
 - Production patterns
 
+### Quantum ML Training Examples
+
+#### Basic Quantum Neural Network
+```bash
+python examples/quantum_ml_basic.py
+```
+
+Demonstrates:
+- **QuantumLayer** - Variational quantum circuit layers
+- **QuantumTrainer** - Training orchestration
+- **QuantumGradientComputer** - Parameter shift rule gradients
+- **QuantumDataEncoder** - Amplitude and angle encoding
+
+#### Hybrid Classical-Quantum Model
+```bash
+python examples/quantum_ml_hybrid.py
+```
+
+Features:
+- Classical preprocessing layers
+- Quantum processing with **QuantumLayer**
+- Classical output layers
+- End-to-end training pipeline
+
+#### Transfer Learning
+```bash
+python examples/quantum_transfer_learning.py
+```
+
+Shows:
+- Loading pre-trained quantum models
+- Fine-tuning on new tasks
+- Parameter freezing strategies
+- **CheckpointManager** - Model persistence
+
 ### Quickstart Guide
 ```bash
 python examples/quantum_db_quickstart.py
@@ -342,7 +483,18 @@ Comprehensive guide covering:
 - Monitoring and metrics
 - Production patterns
 
-### Original Examples
+#### Hyperparameter Optimization
+```bash
+python examples/quantum_hpo.py
+```
+
+Demonstrates:
+- **QuantumHPOSearch** - Quantum-enhanced hyperparameter search
+- Search space definition
+- Quantum annealing for optimization
+- Multi-trial evaluation
+
+### Database Examples
 
 #### Basic Example
 ```bash
@@ -351,7 +503,7 @@ python examples/basic_example.py
 
 Demonstrates core quantum database features.
 
-### Financial Services
+#### Financial Services
 ```bash
 python examples/financial_example.py
 ```
@@ -376,6 +528,7 @@ Advanced example demonstrating quantum-enhanced LLM fine-tuning:
 - Hard negative mining using quantum tunneling
 - Context-aware batch sampling
 - Multi-context storage for training samples
+- Integration with **QuantumDataLoader** and **QuantumTrainer**
 
 See [TINYLLAMA_TRAINING_README.md](examples/TINYLLAMA_TRAINING_README.md) for detailed documentation.
 
@@ -482,12 +635,21 @@ conda deactivate                    # Deactivate environment
 ```
 ┌─────────────────────────────────────────────────┐
 │           Application Layer                     │
+│  • PyTorch • TensorFlow • JAX                   │
 └────────────────┬────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────┐
-│         Quantum Database API (v2.0)             │
+│      Quantum Training Engine (v3.2)             │
+│  • QuantumTrainer  • QuantumLayer               │
+│  • QuantumGradientComputer  • QuantumOptimizer  │
+│  • QuantumDataEncoder  • CheckpointManager      │
+└────────────────┬────────────────────────────────┘
+                 │
+┌────────────────▼────────────────────────────────┐
+│         Quantum Database API (v3.2)             │
 │  • Async Operations  • Connection Pooling       │
 │  • Metrics & Monitoring  • Type Safety          │
+│  • Training Data Management                     │
 └────────────────┬────────────────────────────────┘
                  │
         ┌────────┴────────┐
@@ -496,9 +658,12 @@ conda deactivate                    # Deactivate environment
 │  Classical   │   │    Quantum     │
 │   Backend    │◄──►   Processor    │
 │              │   │                │
-│  • Pinecone  │   │  • IonQ        │
-│  • Vector DB │   │  • Cirq        │
-│  • Caching   │   │  • State Mgr   │
+│  • Pinecone  │   │  • Cirq/IonQ   │
+│  • Vector DB │   │  • Qiskit/IonQ │
+│  • Caching   │   │  • Simulators  │
+│  • Training  │   │  • State Mgr   │
+│    Data      │   │  • Circuit     │
+│              │   │    Builder     │
 └──────────────┘   └────────────────┘
 ```
 
@@ -517,7 +682,8 @@ config = DatabaseConfig(
     pinecone_dimension=768,
     pinecone_metric='cosine',
     
-    # IonQ quantum backend (optional)
+    # Quantum backend (hardware-agnostic)
+    quantum_sdk='cirq',  # or 'qiskit'
     ionq_api_key='your_ionq_key',
     ionq_target='simulator',  # or 'qpu.aria', 'qpu.forte'
     
@@ -546,34 +712,87 @@ config = DatabaseConfig(
 )
 ```
 
+### TrainingConfig Options (v3.2)
+
+```python
+from q_store import TrainingConfig
+
+training_config = TrainingConfig(
+    # Inherits all DatabaseConfig options
+    **config,
+    
+    # ML Training settings
+    learning_rate=0.01,
+    batch_size=32,
+    epochs=100,
+    optimizer='adam',  # 'adam', 'sgd', 'rmsprop'
+    
+    # Quantum model architecture
+    n_qubits=10,
+    circuit_depth=4,
+    entanglement='linear',  # 'linear', 'circular', 'full'
+    
+    # Data encoding
+    encoding_method='amplitude',  # or 'angle'
+    
+    # Regularization
+    quantum_regularization=True,
+    entanglement_penalty=0.01,
+    
+    # Checkpointing
+    checkpoint_interval=10,  # epochs
+    save_best_only=True,
+    
+    # Advanced features
+    enable_data_augmentation=True,
+    enable_adversarial_training=False,
+    enable_transfer_learning=False
+)
+```
+
 ## Project Structure
 
 ```
 q-store/
-├── q_store/                    # Main package (v2.0)
+├── q_store/                    # Main package (v3.2)
 │   ├── __init__.py             # Public API exports
 │   ├── quantum_database.py     # Main database class
 │   ├── state_manager.py        # State lifecycle management
 │   ├── ionq_backend.py         # IonQ quantum backend
 │   ├── entanglement_registry.py # Entanglement management
-│   └── tunneling_engine.py     # Quantum tunneling
+│   ├── tunneling_engine.py     # Quantum tunneling
+│   └── quantum_ml/             # ML Training (NEW in v3.2)
+│       ├── __init__.py
+│       ├── quantum_layer.py    # Quantum neural network layers
+│       ├── quantum_trainer.py  # Training orchestration
+│       ├── gradient_computer.py # Quantum gradient computation
+│       ├── optimizers.py       # Quantum-aware optimizers
+│       ├── data_encoder.py     # Classical→Quantum encoding
+│       ├── circuit_builder.py  # ML circuit construction
+│       ├── checkpoint_manager.py # Model persistence
+│       └── metrics_tracker.py  # Training metrics
 ├── examples/                   # Example scripts
-│   ├── quantum_db_quickstart.py  # Comprehensive guide (NEW)
+│   ├── quantum_db_quickstart.py  # Comprehensive guide
+│   ├── quantum_ml_basic.py     # Basic quantum NN (NEW)
+│   ├── quantum_ml_hybrid.py    # Hybrid model (NEW)
+│   ├── quantum_transfer_learning.py # Transfer learning (NEW)
+│   ├── quantum_hpo.py          # HPO with quantum (NEW)
 │   ├── basic_example.py
 │   ├── financial_example.py
-│   └── ml_training_example.py
-├── tests/                      # Test suite (NEW)
+│   ├── ml_training_example.py
+│   └── tinyllama_react_training.py
+├── tests/                      # Test suite
 │   └── test_quantum_database.py
 ├── .env                        # Environment variables (you create this)
 ├── environment.yml             # Conda dependencies
 ├── setup.py                    # Package setup
-├── verify_installation.py      # Installation verification script (NEW)
-├── QUICKSTART.md               # Quick start guide (NEW)
-├── quantum_db_design_v2.md     # Architecture documentation v2.0
+├── verify_installation.py      # Installation verification script
+├── QUICKSTART.md               # Quick start guide
+├── quantum_db_design_v3_2.md   # Architecture documentation v3.2
 └── README.md
 ```
 
-## API Reference v2.0
+## API Reference v3.2
 
 ### QuantumDatabase
 
@@ -595,11 +814,57 @@ Batch insert for efficiency.
 **`async def query(vector, context=None, mode=QueryMode.BALANCED, enable_tunneling=None, top_k=10)`**
 Query database with quantum enhancements.
 
+**`async def store_training_data(dataset_id, data, labels, metadata=None)`**
+Store training dataset in quantum database.
+
+**`async def load_training_batch(dataset_id, batch_size, shuffle=True)`**
+Load training batch from quantum database.
+
+**`create_ml_data_loader(dataset_id, batch_size=32, shuffle=True)`**
+Create async data loader for training.
+
 **`get_metrics() -> Metrics`**
 Get performance metrics.
 
 **`get_stats() -> Dict`**
 Get comprehensive database statistics.
+
+### Quantum ML Training Classes (v3.2)
+
+**QuantumLayer**
+- `__init__(n_qubits, depth, backend, entanglement='linear')`
+- `async forward(x: np.ndarray) -> np.ndarray` - Forward pass through quantum circuit
+
+**QuantumTrainer**
+- `__init__(config, backend_manager)`
+- `async train_epoch(model, data_loader, epoch)` - Train for one epoch
+- `async train(model, train_loader, val_loader=None, epochs=100)` - Full training loop
+- `async validate(model, val_loader)` - Validation pass
+
+**QuantumGradientComputer**
+- `async compute_gradients(circuit, loss_function, current_params)` - Compute quantum gradients using parameter shift rule
+
+**QuantumDataEncoder**
+- `amplitude_encode(data: np.ndarray) -> QuantumCircuit` - Amplitude encoding
+- `angle_encode(data: np.ndarray, n_qubits: int) -> QuantumCircuit` - Angle encoding
+
+**QuantumOptimizer**
+- `__init__(learning_rate, method='adam')`
+- `step(parameters, gradients)` - Update parameters
+
+**QuantumHPOSearch**
+- `__init__(config, search_space, backend_manager)`
+- `async search(model_class, dataset_id, metric, n_trials, use_quantum_annealing=True)` - Hyperparameter search
+
+**CheckpointManager**
+- `__init__(config)`
+- `async save(model, epoch, metrics)` - Save model checkpoint
+- `async load(checkpoint_name)` - Load model checkpoint
+
+**MetricsTracker**
+- `__init__(config)`
+- `log_metrics(epoch, metrics)` - Log training metrics
+- `get_history()` - Get training history
 
 ### QueryMode Enum
 
@@ -617,7 +882,12 @@ Get comprehensive database statistics.
 
 ## Quantum Backend
 
-Q-Store integrates with IonQ quantum hardware using the official Cirq and cirq-ionq SDK.
+Q-Store integrates with multiple quantum backends for hardware-agnostic ML training.
+
+**Supported SDKs:**
+- `cirq` - Google Cirq with IonQ integration
+- `qiskit` - IBM Qiskit with IonQ integration
+- Mock simulators for development and testing
 
 **Supported Targets:**
 - `simulator` - Free simulator (unlimited use)
@@ -629,6 +899,14 @@ Q-Store integrates with IonQ quantum hardware using the official Cirq and cirq-i
 - All-to-all qubit connectivity (no SWAP gates)
 - High-fidelity native gates (>99.5% single-qubit, >97% two-qubit)
 - Native gate set: RX, RY, RZ, XX (Mølmer-Sørensen)
+- Optimal for variational quantum circuits in ML training
+
+**Backend Selection:**
+The **BackendManager** automatically selects the best backend based on:
+- Circuit requirements (qubit count, depth)
+- Cost constraints
+- Latency requirements
+- Backend availability
 
 ## Performance
 
@@ -638,8 +916,20 @@ Q-Store integrates with IonQ quantum hardware using the official Cirq and cirq-i
 | Pattern Discovery | O(N·M) | O(√(N·M)) | Quadratic |
 | Correlation Updates | O(K²) | O(1) | K² (entanglement) |
 | Storage Compression | N vectors | log₂(N) qubits | Exponential |
+| Gradient Computation | O(N) backprop | O(N) param shift | Comparable* |
+| HPO Search | O(M·N) grid | O(√M) tunneling | Quadratic |
+
+*Quantum gradients enable exploration of non-convex loss landscapes
 
 ## Use Cases
+
+### Quantum ML Training (NEW in v3.2)
+- Quantum neural network training
+- Hybrid classical-quantum models
+- Transfer learning with quantum layers
+- Hyperparameter optimization
+- Adversarial training
+- Few-shot learning
 
 ### Financial Services
 - Portfolio correlation management
@@ -675,10 +965,11 @@ See [LICENSE](LICENCE) file for details.
 
 ## References
 
-- [Quantum-Native Database Design Document v2.0](quantum_db_design_v2.md)
+- [Quantum-Native Database Design Document v3.2](docs/Quantum-Native_Database_Architecture_v3_2.md)
 - [IonQ Documentation](https://docs.ionq.com/)
 - [IonQ Getting Started](https://github.com/ionq-samples/getting-started)
 - [Cirq Documentation](https://quantumai.google/cirq)
+- [Qiskit Documentation](https://qiskit.org/documentation/)
 - [Pinecone Documentation](https://docs.pinecone.io/)
 
 ## Project Structure
@@ -689,7 +980,8 @@ Q-Store follows modern Python packaging best practices:
 q-store/
 ├── src/q_store/          # Source code (PEP 420 namespace)
 │   ├── core/            # Core quantum database components
-│   ├── backends/        # Quantum backend implementations
+│   ├── backends/        # Quantum backend implementations (Cirq, Qiskit)
+│   ├── ml/              # Quantum ML training components (v3.2)
 │   └── utils/           # Utility functions
 ├── tests/               # Test suite
 ├── docs/                # Documentation
@@ -729,6 +1021,25 @@ If you use Q-Store in your research, please cite:
 
 ## Changelog
 
+### v3.2.0 (2025-12-15)
+- **New**: Hardware-agnostic quantum ML training infrastructure
+- **New**: QuantumLayer - Variational quantum circuit layers
+- **New**: QuantumTrainer - Training orchestration with quantum gradients
+- **New**: QuantumGradientComputer - Parameter shift rule implementation
+- **New**: QuantumDataEncoder - Amplitude and angle encoding
+- **New**: QuantumOptimizer - Quantum-aware optimization algorithms
+- **New**: QuantumHPOSearch - Quantum-enhanced hyperparameter optimization
+- **New**: CheckpointManager - Model persistence with quantum states
+- **New**: Support for multiple quantum SDKs (Cirq, Qiskit)
+- **New**: Hybrid classical-quantum model support
+- **New**: Quantum transfer learning capabilities
+- **New**: Quantum data augmentation
+- **New**: Quantum regularization techniques
+- **New**: Training data management in quantum database
+- **New**: BackendManager - Intelligent backend selection
+- **Improved**: Database API extended for ML training workflows
+- **Improved**: StateManager for model parameter storage
+
 ### v2.0.0 (2025-12-13)
 - **New**: Modern Python project structure with src/ layout
 - **New**: pyproject.toml-based configuration (PEP 621)
@@ -756,4 +1067,4 @@ If you use Q-Store in your research, please cite:
 
 ---
 
-**Note:** Q-Store v2.0 is production-ready for research and development use. For mission-critical applications, additional validation and optimization are recommended.
+**Note:** Q-Store v3.2 introduces production-ready quantum ML training with hardware-agnostic support. The system seamlessly integrates with classical ML frameworks (PyTorch, TensorFlow, JAX) and supports multiple quantum backends (Cirq, Qiskit) for flexible deployment. For mission-critical applications, additional validation and optimization are recommended.
