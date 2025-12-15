@@ -174,7 +174,7 @@ class CircuitBatchManager:
         # Check if backend supports async submission
         if hasattr(self.backend, 'submit_job_async'):
             job_id = await self.backend.submit_job_async(circuit, shots)
-            
+
             # Track job
             self._active_jobs[job_id] = CircuitJob(
                 job_id=job_id,
@@ -186,10 +186,10 @@ class CircuitBatchManager:
         else:
             # Fallback: execute immediately for backends without job submission
             job_id = f"immediate_{id(circuit)}_{time.time()}"
-            
+
             # Execute circuit directly
             result = await self.backend.execute_circuit(circuit, shots)
-            
+
             # Store result directly
             self._active_jobs[job_id] = CircuitJob(
                 job_id=job_id,
