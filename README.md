@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="logo.svg" alt="Q-Store Logo" width="200"/>
+</div>
+
 # Q-Store: Quantum-Native Database v3.2
 
 A hardware-agnostic database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—for exponential performance advantages in vector similarity search, relationship management, pattern discovery, and **quantum-accelerated ML training**.
