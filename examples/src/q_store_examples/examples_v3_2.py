@@ -504,16 +504,16 @@ if __name__ == "__main__":
                         help='Use real backends (IonQ, Pinecone) instead of mock')
     parser.add_argument('--pinecone-api-key', type=str,
                         help='Pinecone API key (or set PINECONE_API_KEY env var)')
-    parser.add_argument('--pinecone-env', type=str, default='us-east-1',
-                        help='Pinecone environment (default: us-east-1)')
+    parser.add_argument('--pinecone-env', type=str,
+                        help='Pinecone environment (or set PINECONE_ENVIRONMENT env var, default: us-east-1)')
     parser.add_argument('--ionq-api-key', type=str,
                         help='IonQ API key (or set IONQ_API_KEY env var)')
-    parser.add_argument('--ionq-target', type=str, default='simulator',
-                        help='IonQ target: simulator, ionq_simulator, ionq_qpu (default: simulator)')
+    parser.add_argument('--ionq-target', type=str,
+                        help='IonQ target: simulator, ionq_simulator, ionq_qpu (or set IONQ_TARGET env var, default: simulator)')
 
     args = parser.parse_args()
 
-    # Set global configuration
+    # Set global configuration - prioritize command line args, then env vars, then defaults
     USE_MOCK = not args.no_mock
     PINECONE_API_KEY = args.pinecone_api_key or os.getenv('PINECONE_API_KEY')
     PINECONE_ENVIRONMENT = args.pinecone_env or os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')

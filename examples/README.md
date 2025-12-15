@@ -104,7 +104,12 @@ nano .env  # or vim, code, etc.
 PINECONE_API_KEY=your_actual_key_here
 PINECONE_ENVIRONMENT=us-east-1
 IONQ_API_KEY=your_ionq_key_here  # Optional
+
+# Verify configuration
+python show_config.py
 ```
+
+The `show_config.py` script will display your current configuration and guide you on next steps.
 
 ## 📚 Available Examples
 
@@ -159,13 +164,19 @@ Complete quantum ML training demonstrations:
 python src/q_store_examples/examples_v3_2.py
 
 # Run with real Pinecone and IonQ backends
+# Option 1: Using .env file (recommended)
+# Make sure your .env file has PINECONE_API_KEY and IONQ_API_KEY set
+python src/q_store_examples/examples_v3_2.py --no-mock
+
+# Option 2: Using environment variables
 export PINECONE_API_KEY="your-pinecone-key"
 export IONQ_API_KEY="your-ionq-key"
 export PINECONE_ENVIRONMENT="us-east-1"
+export IONQ_TARGET="simulator"
 
 python src/q_store_examples/examples_v3_2.py --no-mock
 
-# Or specify keys via command line
+# Option 3: Using command-line arguments (overrides .env)
 python src/q_store_examples/examples_v3_2.py --no-mock \
   --pinecone-api-key YOUR_PINECONE_KEY \
   --pinecone-env us-east-1 \
@@ -178,6 +189,8 @@ python src/q_store_examples/examples_v3_2.py --no-mock \
 # - qpu.aria-1 (requires credits)
 # - qpu.forte-1 (requires credits)
 ```
+
+**Priority Order:** Command-line args → Environment variables → .env file → Defaults
 
 ### 4. ML Training Example (`ml_training_example.py`)
 
@@ -196,14 +209,16 @@ python ml_training_example.py
 Verify Pinecone and IonQ connections:
 
 ```bash
-# Set your API keys first
+# Option 1: Using .env file (recommended)
+# Ensure your .env has PINECONE_API_KEY and IONQ_API_KEY set
+python test_pinecone_ionq_connection.py
+python test_cirq_adapter_fix.py
+
+# Option 2: Set environment variables explicitly
 export PINECONE_API_KEY="your-key"
 export IONQ_API_KEY="your-key"
 
-# Run comprehensive connection test
 python test_pinecone_ionq_connection.py
-
-# Run quick Cirq adapter test (faster)
 python test_cirq_adapter_fix.py
 ```
 
@@ -265,6 +280,7 @@ examples/
 ├── verify_react_integration.py    # Integration tests
 ├── verify_tinyllama_example.py    # TinyLlama verification
 │
+├── show_config.py                    # Display current configuration
 ├── test_pinecone_ionq_connection.py  # Connection tests
 ├── test_cirq_adapter_fix.py          # Cirq adapter test
 ├── CONNECTION_FIX_SUMMARY.md         # Connection fix docs
@@ -321,6 +337,9 @@ config = TrainingConfig(
 ```bash
 # Test Q-Store installation
 python verify_installation.py
+
+# Check your configuration (.env file)
+python show_config.py
 
 # Test React integration
 python verify_react_integration.py
@@ -481,10 +500,19 @@ MIT License - see parent repository for details
 
 ---
 
-**Ready to start?** Run the verification script:
+**Ready to start?** Check your configuration:
 
 ```bash
-python verify_installation.py
+python show_config.py
 ```
 
 If all checks pass, you're ready to explore quantum-enhanced machine learning! 🚀
+
+**Quick Start:**
+```bash
+# With mock backends (safe, no API calls)
+python src/q_store_examples/examples_v3_2.py
+
+# With real Pinecone + IonQ (uses your .env configuration)
+python src/q_store_examples/examples_v3_2.py --no-mock
+```
