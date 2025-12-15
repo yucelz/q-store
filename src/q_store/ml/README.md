@@ -231,22 +231,92 @@ for name, encoder in encoders.items():
 
 ## 🧪 Testing
 
-Run the verification script to test all components:
+### Run Verification Scripts
 
+Test all v3.2 components:
 ```bash
+cd /path/to/q-store
 python verify_v3_2.py
 ```
 
-Run the quickstart guide:
-
+Test installation and imports:
 ```bash
+cd /path/to/q-store
+python verify_installation.py
+```
+
+### Run Quickstart Guide
+
+Basic quickstart:
+```bash
+cd /path/to/q-store
 python quickstart_v3_2.py
 ```
 
-Run comprehensive examples:
+### Run ML Training Examples
 
+Run with mock backends (no API keys needed):
 ```bash
-python -m q_store_examples.examples_v3_2
+cd /path/to/q-store/examples
+python src/q_store_examples/examples_v3_2.py
+```
+
+Run with real Pinecone and IonQ backends:
+```bash
+cd /path/to/q-store/examples
+
+# Set your API keys first (or use .env file)
+export PINECONE_API_KEY="your-pinecone-key"
+export IONQ_API_KEY="your-ionq-key"
+export PINECONE_ENVIRONMENT="us-east-1"
+
+# Run with real backends
+python src/q_store_examples/examples_v3_2.py --no-mock
+```
+
+Command-line options for examples:
+```bash
+# Use specific API keys
+python src/q_store_examples/examples_v3_2.py --no-mock \
+  --pinecone-api-key YOUR_PINECONE_KEY \
+  --pinecone-env us-east-1 \
+  --ionq-api-key YOUR_IONQ_KEY \
+  --ionq-target simulator
+
+# Available IonQ targets:
+# - simulator (free)
+# - ionq_simulator 
+# - qpu.aria-1 (requires credits)
+# - qpu.forte-1 (requires credits)
+```
+
+### Test Pinecone and IonQ Connections
+
+Verify that Pinecone indexes are created and IonQ backend connects:
+```bash
+cd /path/to/q-store/examples
+
+# Set your API keys
+export PINECONE_API_KEY="your-key"
+export IONQ_API_KEY="your-key"
+
+# Run full connection test (comprehensive)
+python test_pinecone_ionq_connection.py
+
+# Or run quick Cirq adapter test (faster)
+python test_cirq_adapter_fix.py
+```
+
+The connection test will:
+- ✅ Initialize Pinecone client
+- ✅ Create a test Pinecone index
+- ✅ Configure IonQ backend
+- ✅ Run a small training session
+- ✅ Verify Pinecone index creation during training
+
+**Note:** The Cirq IonQ adapter has been fixed to handle `SimulatorResult` objects correctly. If you encounter measurement-related errors, ensure you have the latest version of `cirq-ionq` installed:
+```bash
+pip install --upgrade cirq-ionq
 ```
 
 ## 📖 Documentation

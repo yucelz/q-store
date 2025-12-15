@@ -27,6 +27,7 @@ class TrainingConfig:
     # Database config
     pinecone_api_key: str
     pinecone_environment: str = "us-east-1"
+    pinecone_index_name: str = "quantum-ml-training"
 
     # Quantum backend
     quantum_sdk: str = "mock"  # 'cirq', 'qiskit', 'mock'
@@ -191,6 +192,51 @@ class QuantumTrainer:
 
         # Loss function
         self.loss_function = self._default_loss_function
+
+        # Pinecone connection (optional for checkpointing/storage)
+        self._pinecone_client = None
+        self._pinecone_initialized = False
+
+    async def _init_pinecone(self):
+        """Initialize Pinecone connection for model checkpointing"""
+        if self._pinecone_initialized:
+            return
+
+        try:
+            from pinecone.grpc import PineconeGRPC as Pinecone
+            from pinecone import ServerlessSpec
+
+            if not self.config.pinecone_api_key or self.config.pinecone_api_key == "mock-key":
+                logger.info("Skipping Pinecone initialization (mock mode or no API key)")
+                return
+
+            pc = Pinecone(api_key=self.config.pinecone_api_key)
+
+            # Create index if it doesn't exist
+            existing_indexes = [index.name for index in pc.list_indexes()]
+            if self.config.pinecone_index_name not in existing_indexes:
+                logger.info(f"Creating Pinecone index: {self.config.pinecone_index_name}")
+                pc.create_index(
+                    name=self.config.pinecone_index_name,
+                    dimension=768,  # Default dimension for embeddings
+                    metric="cosine",
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region=self.config.pinecone_environment
+                    )
+                )
+                logger.info(f"Pinecone index '{self.config.pinecone_index_name}' created successfully")
+            else:
+                logger.info(f"Using existing Pinecone index: {self.config.pinecone_index_name}")
+
+            self._pinecone_client = pc.Index(self.config.pinecone_index_name)
+            self._pinecone_initialized = True
+            logger.info("Pinecone connection established for model checkpointing")
+
+        except ImportError:
+            logger.warning("Pinecone package not installed. Checkpointing to Pinecone disabled.")
+        except Exception as e:
+            logger.warning(f"Failed to initialize Pinecone: {e}. Continuing without Pinecone.")
 
     def _initialize_optimizer(self) -> Dict[str, Any]:
         """Initialize optimizer state"""
@@ -457,6 +503,9 @@ class QuantumTrainer:
             epochs: Number of epochs (uses config if None)
         """
         epochs = epochs or self.config.epochs
+
+        # Initialize Pinecone if configured
+        await self._init_pinecone()
 
         logger.info(f"Starting training for {epochs} epochs")
         logger.info(f"Model: {model.n_qubits} qubits, depth {model.depth}")

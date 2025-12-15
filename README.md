@@ -1016,7 +1016,7 @@ If you use Q-Store in your research, please cite:
 
 ```bibtex
 @software{qstore2025,
-  title={Q-Store: Quantum-Native Database Architecture v2.0},
+  title={Q-Store: Quantum-Native Database Architecture v3.2},
   author={Yucel Zengin},
   year={2025},
   url={https://github.com/yucelz/q-store}

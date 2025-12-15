@@ -144,6 +144,41 @@ Comprehensive tutorial covering:
 python quantum_db_quickstart.py
 ```
 
+### 4. V3.2 ML Training Examples (`src/q_store_examples/examples_v3_2.py`)
+
+Complete quantum ML training demonstrations:
+- Basic quantum neural network training
+- Quantum data encoding strategies
+- Transfer learning with quantum models
+- Multiple backend comparison
+- Database-ML integration
+- Quantum autoencoder
+
+```bash
+# Run with mock backends (no API keys needed)
+python src/q_store_examples/examples_v3_2.py
+
+# Run with real Pinecone and IonQ backends
+export PINECONE_API_KEY="your-pinecone-key"
+export IONQ_API_KEY="your-ionq-key"
+export PINECONE_ENVIRONMENT="us-east-1"
+
+python src/q_store_examples/examples_v3_2.py --no-mock
+
+# Or specify keys via command line
+python src/q_store_examples/examples_v3_2.py --no-mock \
+  --pinecone-api-key YOUR_PINECONE_KEY \
+  --pinecone-env us-east-1 \
+  --ionq-api-key YOUR_IONQ_KEY \
+  --ionq-target simulator
+
+# Available IonQ targets:
+# - simulator (free, default)
+# - ionq_simulator 
+# - qpu.aria-1 (requires credits)
+# - qpu.forte-1 (requires credits)
+```
+
 ### 4. ML Training Example (`ml_training_example.py`)
 
 Machine learning integration:
@@ -155,6 +190,29 @@ Machine learning integration:
 ```bash
 python ml_training_example.py
 ```
+
+### 5. Connection Tests
+
+Verify Pinecone and IonQ connections:
+
+```bash
+# Set your API keys first
+export PINECONE_API_KEY="your-key"
+export IONQ_API_KEY="your-key"
+
+# Run comprehensive connection test
+python test_pinecone_ionq_connection.py
+
+# Run quick Cirq adapter test (faster)
+python test_cirq_adapter_fix.py
+```
+
+These tests will:
+- ✅ Initialize Pinecone client and create test indexes
+- ✅ Configure IonQ backend (simulator and QPU)
+- ✅ Execute quantum circuits on IonQ
+- ✅ Run small training session with real backends
+- ✅ Verify Pinecone index creation during training
 
 ### 5. TinyLlama React Training (`tinyllama_react_training.py`)
 
@@ -207,6 +265,18 @@ examples/
 ├── verify_react_integration.py    # Integration tests
 ├── verify_tinyllama_example.py    # TinyLlama verification
 │
+├── test_pinecone_ionq_connection.py  # Connection tests
+├── test_cirq_adapter_fix.py          # Cirq adapter test
+├── CONNECTION_FIX_SUMMARY.md         # Connection fix docs
+│
+├── src/
+│   └── q_store_examples/
+│       ├── __init__.py
+│       ├── examples_v3_2.py          # V3.2 ML training examples
+│       ├── examples_v31.py           # V3.1 examples
+│       ├── quantum_db_quickstart.py  # Alternative location
+│       └── [Other examples...]
+│
 └── [Documentation files...]
 ```
 
@@ -257,6 +327,21 @@ python verify_react_integration.py
 
 # Test TinyLlama setup
 python verify_tinyllama_example.py
+
+# Verify v3.2 components
+cd ..
+python verify_v3_2.py
+cd examples
+```
+
+### Test Quantum Backends
+
+```bash
+# Quick Cirq adapter test
+python test_cirq_adapter_fix.py
+
+# Comprehensive Pinecone + IonQ test
+python test_pinecone_ionq_connection.py
 ```
 
 ### Run Unit Tests
@@ -322,6 +407,8 @@ pip install -e .
 | `ImportError: transformers` | Install ML dependencies: `pip install -r requirements.txt` |
 | `CUDA out of memory` | Reduce batch size or use CPU |
 | `Dataset file not found` | Run dataset generator first |
+| `'list' object has no attribute 'measurements'` | Fixed in latest version - Cirq adapter updated |
+| `Pinecone index not created` | Ensure API key is valid, check `--no-mock` flag |
 
 ### Debug Mode
 

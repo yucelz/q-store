@@ -6,7 +6,13 @@ Comprehensive examples of quantum ML training with hardware abstraction
 import asyncio
 import numpy as np
 import logging
+import os
+import argparse
 from typing import List, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Import v3.2 components
 from q_store.core import QuantumDatabase, DatabaseConfig
@@ -22,6 +28,13 @@ from q_store.backends import BackendManager, create_default_backend_manager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Global configuration
+PINECONE_API_KEY = None
+PINECONE_ENVIRONMENT = None
+IONQ_API_KEY = None
+IONQ_TARGET = None
+USE_MOCK = True
 
 
 # ============================================================================
@@ -46,11 +59,16 @@ async def example_1_basic_training():
     y_train = np.random.randint(0, 2, n_samples)  # Binary classification
 
     # Configure training
+    quantum_sdk = "mock" if USE_MOCK else "ionq"
+    quantum_target = "simulator" if USE_MOCK else (IONQ_TARGET or "simulator")
+
     config = TrainingConfig(
-        pinecone_api_key="mock-key",
-        pinecone_environment="us-east-1",
-        quantum_sdk="mock",
-        quantum_target="simulator",
+        pinecone_api_key=PINECONE_API_KEY or "mock-key",
+        pinecone_environment=PINECONE_ENVIRONMENT or "us-east-1",
+        pinecone_index_name="quantum-ml-training",
+        quantum_sdk=quantum_sdk,
+        quantum_target=quantum_target,
+        quantum_api_key=IONQ_API_KEY if not USE_MOCK else None,
         learning_rate=0.01,
         batch_size=10,
         epochs=5,
@@ -59,8 +77,25 @@ async def example_1_basic_training():
         entanglement='linear'
     )
 
+    print(f"Configuration: SDK={quantum_sdk}, Target={quantum_target}")
+    print(f"Pinecone: {PINECONE_API_KEY[:10] + '...' if PINECONE_API_KEY else 'mock'}")
+    if not USE_MOCK and IONQ_API_KEY:
+        print(f"IonQ: {IONQ_API_KEY[:10] + '...'}\n")
+
     # Create backend manager
     backend_manager = create_default_backend_manager()
+
+    # Configure IonQ backend if not using mock
+    if not USE_MOCK and IONQ_API_KEY:
+        from q_store.backends import setup_ionq_backends
+        backend_manager = await setup_ionq_backends(
+            backend_manager,
+            api_key=IONQ_API_KEY,
+            use_cirq=True
+        )
+        # Set IonQ simulator as default
+        backend_manager.set_default_backend('ionq_sim_cirq')
+        print("✓ IonQ backend configured")
 
     # Create trainer
     trainer = QuantumTrainer(config, backend_manager)
@@ -159,15 +194,31 @@ async def example_3_transfer_learning():
     # Create backend
     backend_manager = create_default_backend_manager()
 
+    # Configure IonQ backend if not using mock
+    if not USE_MOCK and IONQ_API_KEY:
+        from q_store.backends import setup_ionq_backends
+        backend_manager = await setup_ionq_backends(
+            backend_manager,
+            api_key=IONQ_API_KEY,
+            use_cirq=True
+        )
+        backend_manager.set_default_backend('ionq_sim_cirq')
+
     # Task 1: Pre-training data
     print("Phase 1: Pre-training on Task A")
     X_pretrain = np.random.randn(50, 8)
     y_pretrain = np.random.randint(0, 2, 50)
 
+    quantum_sdk = "mock" if USE_MOCK else "ionq"
+    quantum_target = "simulator" if USE_MOCK else (IONQ_TARGET or "simulator")
+
     pretrain_config = TrainingConfig(
-        pinecone_api_key="mock-key",
-        pinecone_environment="us-east-1",
-        quantum_sdk="mock",
+        pinecone_api_key=PINECONE_API_KEY or "mock-key",
+        pinecone_environment=PINECONE_ENVIRONMENT or "us-east-1",
+        pinecone_index_name="quantum-transfer-learning",
+        quantum_sdk=quantum_sdk,
+        quantum_target=quantum_target,
+        quantum_api_key=IONQ_API_KEY if not USE_MOCK else None,
         learning_rate=0.01,
         batch_size=10,
         epochs=3,
@@ -285,10 +336,16 @@ async def example_4_backend_comparison():
         backend_manager.set_default_backend(backend_name)
 
         # Configure
+        quantum_sdk = "mock" if USE_MOCK else "ionq"
+        quantum_target = "simulator" if USE_MOCK else (IONQ_TARGET or "simulator")
+
         config = TrainingConfig(
-            pinecone_api_key="mock-key",
-            pinecone_environment="us-east-1",
-            quantum_sdk="mock",
+            pinecone_api_key=PINECONE_API_KEY or "mock-key",
+            pinecone_environment=PINECONE_ENVIRONMENT or "us-east-1",
+            pinecone_index_name=f"quantum-backend-{backend_name}",
+            quantum_sdk=quantum_sdk,
+            quantum_target=quantum_target,
+            quantum_api_key=IONQ_API_KEY if not USE_MOCK else None,
             learning_rate=0.01,
             batch_size=10,
             epochs=3,
@@ -370,6 +427,16 @@ async def example_6_quantum_autoencoder():
 
     backend_manager = create_default_backend_manager()
 
+    # Configure IonQ backend if not using mock
+    if not USE_MOCK and IONQ_API_KEY:
+        from q_store.backends import setup_ionq_backends
+        backend_manager = await setup_ionq_backends(
+            backend_manager,
+            api_key=IONQ_API_KEY,
+            use_cirq=True
+        )
+        backend_manager.set_default_backend('ionq_sim_cirq')
+
     # High-dimensional input
     input_dim = 16
     latent_dim = 4
@@ -432,4 +499,44 @@ async def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run Q-Store v3.2 Examples')
+    parser.add_argument('--no-mock', action='store_true',
+                        help='Use real backends (IonQ, Pinecone) instead of mock')
+    parser.add_argument('--pinecone-api-key', type=str,
+                        help='Pinecone API key (or set PINECONE_API_KEY env var)')
+    parser.add_argument('--pinecone-env', type=str, default='us-east-1',
+                        help='Pinecone environment (default: us-east-1)')
+    parser.add_argument('--ionq-api-key', type=str,
+                        help='IonQ API key (or set IONQ_API_KEY env var)')
+    parser.add_argument('--ionq-target', type=str, default='simulator',
+                        help='IonQ target: simulator, ionq_simulator, ionq_qpu (default: simulator)')
+
+    args = parser.parse_args()
+
+    # Set global configuration
+    USE_MOCK = not args.no_mock
+    PINECONE_API_KEY = args.pinecone_api_key or os.getenv('PINECONE_API_KEY')
+    PINECONE_ENVIRONMENT = args.pinecone_env or os.getenv('PINECONE_ENVIRONMENT', 'us-east-1')
+    IONQ_API_KEY = args.ionq_api_key or os.getenv('IONQ_API_KEY')
+    IONQ_TARGET = args.ionq_target or os.getenv('IONQ_TARGET', 'simulator')
+
+    if not USE_MOCK:
+        print("\n" + "="*70)
+        print("Running with REAL backends (not mock)")
+        print("="*70)
+        print(f"Pinecone API Key: {'✓ Set' if PINECONE_API_KEY else '✗ Missing'}")
+        print(f"Pinecone Environment: {PINECONE_ENVIRONMENT}")
+        print(f"IonQ API Key: {'✓ Set' if IONQ_API_KEY else '✗ Missing'}")
+        print(f"IonQ Target: {IONQ_TARGET}")
+        print("="*70 + "\n")
+
+        if not PINECONE_API_KEY:
+            print("WARNING: PINECONE_API_KEY not set. Examples may fail.")
+        if not IONQ_API_KEY:
+            print("WARNING: IONQ_API_KEY not set. Quantum features may not work.")
+    else:
+        print("\n" + "="*70)
+        print("Running with MOCK backends (for testing)")
+        print("="*70 + "\n")
+
     asyncio.run(main())

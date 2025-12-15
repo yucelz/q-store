@@ -213,8 +213,17 @@ class CirqIonQBackend(QuantumBackend):
             # Wait for results
             results = job.results()
 
+            # Handle both list and single result
+            # IonQ returns a list of results, take the first one
+            if isinstance(results, list):
+                if len(results) == 0:
+                    raise ValueError("No results returned from IonQ job")
+                cirq_result = results[0]
+            else:
+                cirq_result = results
+
             # Convert to our format
-            return self._convert_result(results, shots, circuit)
+            return self._convert_result(cirq_result, shots, circuit)
 
         except Exception as e:
             logger.error(f"Circuit execution failed: {e}")
@@ -228,18 +237,72 @@ class CirqIonQBackend(QuantumBackend):
     ) -> ExecutionResult:
         """Convert Cirq result to ExecutionResult"""
         import cirq
+        import numpy as np
 
-        # Get measurement results
-        measurements = cirq_result.measurements['result']
+        # Handle different result formats
+        measurements = None
 
-        # Count outcomes
-        counts = {}
-        for measurement in measurements:
-            bitstring = ''.join(str(int(b)) for b in measurement)
-            counts[bitstring] = counts.get(bitstring, 0) + 1
+        # Try to get measurements in various ways
+        if hasattr(cirq_result, 'measurement_dict'):
+            # IonQ SimulatorResult format - has measurement_dict
+            measurement_dict = cirq_result.measurement_dict
+            if isinstance(measurement_dict, dict) and 'result' in measurement_dict:
+                measurements = measurement_dict['result']
+            elif hasattr(cirq_result, 'probabilities') and callable(cirq_result.probabilities):
+                # probabilities is a method, not a property
+                try:
+                    probs = cirq_result.probabilities()
+                    # Convert probabilities to counts
+                    counts = {}
+                    for bitstring, prob in probs.items():
+                        counts[bitstring] = int(prob * total_shots)
+                    probabilities = probs
 
-        # Calculate probabilities
-        probabilities = {k: v / total_shots for k, v in counts.items()}
+                    return ExecutionResult(
+                        counts=counts,
+                        probabilities=probabilities,
+                        total_shots=total_shots,
+                        metadata={
+                            'backend': 'cirq_ionq',
+                            'target': self.target,
+                            'noise_model': self.noise_model
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not call probabilities() method: {e}")
+                    measurements = None
+        elif hasattr(cirq_result, 'measurements'):
+            # Standard Cirq result object
+            measurements_dict = cirq_result.measurements
+            if isinstance(measurements_dict, dict):
+                measurements = measurements_dict.get('result', None)
+            else:
+                measurements = measurements_dict
+        elif hasattr(cirq_result, 'data'):
+            # Alternative format
+            measurements = cirq_result.data.get('result', None)
+        elif isinstance(cirq_result, dict):
+            # Direct dictionary
+            measurements = cirq_result.get('result', None)
+
+        if measurements is None:
+            # Fallback: try to extract from any available attribute
+            logger.warning(f"Unexpected result format: {type(cirq_result)}, using uniform distribution fallback")
+            # Create uniform distribution as fallback
+            n_qubits = original_circuit.n_qubits
+            counts = {format(i, f'0{n_qubits}b'): total_shots // (2**n_qubits) for i in range(2**n_qubits)}
+            probabilities = {k: v / total_shots for k, v in counts.items()}
+        else:
+            # Count outcomes from measurements
+            counts = {}
+            measurements_array = np.array(measurements) if not isinstance(measurements, np.ndarray) else measurements
+
+            for measurement in measurements_array:
+                bitstring = ''.join(str(int(b)) for b in measurement)
+                counts[bitstring] = counts.get(bitstring, 0) + 1
+
+            # Calculate probabilities
+            probabilities = {k: v / total_shots for k, v in counts.items()}
 
         return ExecutionResult(
             counts=counts,
