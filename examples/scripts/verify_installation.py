@@ -1,210 +1,152 @@
 #!/usr/bin/env python3
 """
-Q-Store Examples - Installation Verification Script
-Checks that all dependencies are properly installed and configured
+Quick verification script to test Q-Store installation
+Run this after completing the installation steps
 """
 
 import sys
 import os
-from pathlib import Path
 
-def print_header(text: str):
-    """Print section header"""
-    print("\n" + "=" * 70)
-    print(f"  {text}")
-    print("=" * 70)
-
-def print_status(check_name: str, passed: bool, details: str = ""):
-    """Print check status with formatting"""
-    status = "✓" if passed else "✗"
-    color = "\033[92m" if passed else "\033[91m"
-    reset = "\033[0m"
+def check_imports():
+    """Check if all required packages can be imported"""
+    print("Checking imports...")
     
-    print(f"{color}{status}{reset} {check_name}")
-    if details:
-        print(f"  {details}")
-
-def check_python_version():
-    """Check Python version"""
-    version = sys.version_info
-    required = (3, 8)
-    passed = version >= required
+    required = [
+        ('numpy', 'NumPy'),
+        ('scipy', 'SciPy'),
+        ('cirq', 'Cirq'),
+        ('cirq_ionq', 'Cirq-IonQ'),
+        ('pinecone', 'Pinecone'),
+        ('dotenv', 'python-dotenv'),
+    ]
     
-    details = f"Python {version.major}.{version.minor}.{version.micro}"
-    if not passed:
-        details += f" (requires >= {required[0]}.{required[1]})"
+    optional = [
+        ('q_store', 'Q-Store'),
+    ]
     
-    return passed, details
+    all_good = True
+    
+    for module, name in required:
+        try:
+            __import__(module)
+            print(f"  ✓ {name}")
+        except ImportError as e:
+            print(f"  ✗ {name} - NOT INSTALLED")
+            print(f"    Error: {e}")
+            all_good = False
+    
+    for module, name in optional:
+        try:
+            __import__(module)
+            print(f"  ✓ {name}")
+        except ImportError as e:
+            print(f"  ⚠ {name} - Install with: pip install -e .")
+    
+    return all_good
 
-def check_package(package_name: str, import_name: str = None):
-    """Check if a package is installed"""
-    if import_name is None:
-        import_name = package_name
+def check_env_file():
+    """Check if .env file exists and has required keys"""
+    print("\nChecking .env file...")
+    
+    if not os.path.exists('.env'):
+        print("  ✗ .env file not found")
+        print("    Create one with: cp .env.example .env")
+        return False
+    
+    print("  ✓ .env file exists")
+    
+    # Load .env
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    pinecone_key = os.getenv('PINECONE_API_KEY')
+    pinecone_env = os.getenv('PINECONE_ENVIRONMENT')
+    ionq_key = os.getenv('IONQ_API_KEY')
+    
+    if pinecone_key:
+        print(f"  ✓ PINECONE_API_KEY set ({pinecone_key[:8]}...)")
+    else:
+        print("  ✗ PINECONE_API_KEY not set")
+        return False
+    
+    if pinecone_env:
+        print(f"  ✓ PINECONE_ENVIRONMENT set ({pinecone_env})")
+    else:
+        print("  ⚠ PINECONE_ENVIRONMENT not set (using default: us-east-1)")
+    
+    if ionq_key:
+        print(f"  ✓ IONQ_API_KEY set ({ionq_key[:8]}...)")
+    else:
+        print("  ⚠ IONQ_API_KEY not set (quantum features will be disabled)")
+    
+    return True
+
+def test_basic_functionality():
+    """Test basic Q-Store functionality"""
+    print("\nTesting basic functionality...")
     
     try:
-        __import__(import_name)
-        return True, f"{package_name} installed"
-    except ImportError:
-        return False, f"{package_name} not found"
-
-def check_environment():
-    """Check environment variables"""
-    env_file = Path(".env")
-    if not env_file.exists():
-        return False, ".env file not found (copy from .env.example)"
-    
-    # Try to load .env
-    try:
+        import numpy as np
+        from q_store import QuantumDatabase, DatabaseConfig
         from dotenv import load_dotenv
+        
         load_dotenv()
         
-        # Check required keys
-        pinecone_key = os.getenv("PINECONE_API_KEY")
-        if not pinecone_key or pinecone_key == "your_pinecone_api_key_here":
-            return False, ".env exists but PINECONE_API_KEY not set"
+        # Create minimal config
+        config = DatabaseConfig(
+            pinecone_api_key=os.getenv('PINECONE_API_KEY'),
+            pinecone_environment=os.getenv('PINECONE_ENVIRONMENT', 'us-east-1'),
+            pinecone_index_name='test-verification',
+            pinecone_dimension=128,
+            ionq_api_key=os.getenv('IONQ_API_KEY'),
+        )
         
-        return True, f".env configured with API keys"
+        print("  ✓ DatabaseConfig created")
+        
+        db = QuantumDatabase(config)
+        print("  ✓ QuantumDatabase instantiated")
+        
+        return True
+        
     except Exception as e:
-        return False, f"Error loading .env: {e}"
+        print(f"  ✗ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 def main():
-    """Main verification function"""
-    print_header("Q-Store Examples - Installation Verification")
+    """Run all verification checks"""
+    print("="*60)
+    print("Q-Store Installation Verification")
+    print("="*60 + "\n")
     
-    checks_passed = 0
-    checks_total = 0
+    # Check imports
+    imports_ok = check_imports()
     
-    # Check Python version
-    print("\n📋 System Requirements")
-    checks_total += 1
-    passed, details = check_python_version()
-    if passed:
-        checks_passed += 1
-    print_status("Python version", passed, details)
+    # Check .env
+    env_ok = check_env_file()
     
-    # Check core dependencies
-    print("\n📦 Core Dependencies")
-    
-    core_packages = [
-        ("q-store", "q_store"),
-        ("numpy", "numpy"),
-        ("python-dotenv", "dotenv"),
-        ("pandas", "pandas"),
-    ]
-    
-    for pkg_name, import_name in core_packages:
-        checks_total += 1
-        passed, details = check_package(pkg_name, import_name)
-        if passed:
-            checks_passed += 1
-        print_status(pkg_name, passed, details)
-    
-    # Check ML dependencies (optional)
-    print("\n🤖 ML Dependencies (Optional)")
-    
-    ml_packages = [
-        ("torch", "torch"),
-        ("transformers", "transformers"),
-        ("datasets", "datasets"),
-        ("peft", "peft"),
-    ]
-    
-    ml_available = True
-    for pkg_name, import_name in ml_packages:
-        passed, details = check_package(pkg_name, import_name)
-        print_status(pkg_name, passed, details)
-        if not passed:
-            ml_available = False
-    
-    if not ml_available:
-        print("\n  ℹ️  ML packages not installed. Install with:")
-        print("     pip install -r requirements.txt")
-    
-    # Check environment configuration
-    print("\n🔑 Environment Configuration")
-    checks_total += 1
-    passed, details = check_environment()
-    if passed:
-        checks_passed += 1
-    print_status("Environment variables", passed, details)
-    
-    # Check Q-Store connection
-    print("\n🔮 Q-Store Connectivity")
-    checks_total += 1
-    
-    try:
-        from q_store import QuantumDatabase
-        print_status("Q-Store import", True, "Successfully imported QuantumDatabase")
-        checks_passed += 1
-        
-        # Try to get version
-        try:
-            import q_store
-            version = getattr(q_store, "__version__", "unknown")
-            print(f"  Q-Store version: {version}")
-        except:
-            pass
-            
-    except Exception as e:
-        print_status("Q-Store import", False, str(e))
-    
-    # Check example files
-    print("\n📁 Example Files")
-    checks_total += 1
-    
-    required_files = [
-        "src/q_store_examples/basic_example.py",
-        "src/q_store_examples/financial_example.py",
-        "src/q_store_examples/quantum_db_quickstart.py",
-        "src/q_store_examples/tinyllama_react_training.py",
-        "src/q_store_examples/react_dataset_generator.py",
-    ]
-    
-    all_exist = all(Path(f).exists() for f in required_files)
-    if all_exist:
-        checks_passed += 1
-        print_status("Example files", True, f"{len(required_files)} files found")
+    # Test basic functionality
+    if imports_ok and env_ok:
+        func_ok = test_basic_functionality()
     else:
-        missing = [f for f in required_files if not Path(f).exists()]
-        print_status("Example files", False, f"Missing: {', '.join(missing)}")
+        func_ok = False
     
-    # Summary
-    print_header("Summary")
-    
-    percentage = (checks_passed / checks_total * 100) if checks_total > 0 else 0
-    print(f"\n✅ Passed: {checks_passed}/{checks_total} checks ({percentage:.0f}%)\n")
-    
-    if checks_passed == checks_total:
-        print("🎉 Installation verified! You're ready to run the examples.")
-        print("\nTry running:")
-        print("  python -m q_store_examples.basic_example")
-        print("  python -m q_store_examples.quantum_db_quickstart")
-        if ml_available:
-            print("  python -m q_store_examples.tinyllama_react_training")
-        print()
+    print("\n" + "="*60)
+    if imports_ok and env_ok and func_ok:
+        print("✓ All checks passed!")
+        print("="*60)
+        print("\nNext steps:")
+        print("  1. Run the quickstart: python examples/quantum_db_quickstart.py")
+        print("  2. Read QUICKSTART.md for your first program")
+        print("  3. Explore examples/ directory")
         return 0
     else:
-        print("⚠️  Some checks failed. Please review the issues above.\n")
-        print("Common fixes:")
-        
-        if not Path(".env").exists():
-            print("  1. Create .env file:")
-            print("     cp .env.example .env")
-            print("     # Edit .env and add your API keys")
-        
-        print("\n  2. Install Q-Store:")
-        print("     cd ..")
-        print("     pip install -e .")
-        print("     cd examples")
-        
-        print("\n  3. Install dependencies:")
-        print("     pip install -r requirements.txt")
-        
-        print("\n  4. For minimal installation (no ML):")
-        print("     pip install -r requirements-minimal.txt")
-        
-        print()
+        print("✗ Some checks failed")
+        print("="*60)
+        print("\nPlease fix the issues above and try again.")
+        print("See QUICKSTART.md for detailed installation instructions.")
         return 1
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())
