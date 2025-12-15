@@ -81,6 +81,7 @@ react_train.jsonl
 *.log
 logs/
 wandb/
+LOG/
 
 # Cache
 .cache/

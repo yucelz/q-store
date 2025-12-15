@@ -144,10 +144,19 @@ async def example_1_basic_training():
     print(f"Final loss: {trainer.training_history[-1].loss:.4f}")
     print(f"Total epochs: {len(trainer.training_history)}")
 
+    # Show Pinecone integration stats
+    pinecone_stats = trainer.get_pinecone_stats()
+    print(f"\nPinecone Integration:")
+    print(f"  Enabled: {pinecone_stats['enabled']}")
+    print(f"  Vectors stored: {pinecone_stats['vectors_stored']}")
+    if pinecone_stats['index_name']:
+        print(f"  Index name: {pinecone_stats['index_name']}")
+
     if EXAMPLE_LOGGER:
         EXAMPLE_LOGGER.end_step(status="completed",
                                 result={"final_loss": float(trainer.training_history[-1].loss),
-                                        "epochs": len(trainer.training_history)})
+                                        "epochs": len(trainer.training_history),
+                                        "pinecone_vectors_stored": pinecone_stats['vectors_stored']})
 
 
 # ============================================================================

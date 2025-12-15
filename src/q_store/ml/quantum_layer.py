@@ -197,6 +197,9 @@ class QuantumLayer:
         output = np.zeros(self.n_qubits)
 
         for bitstring, count in result.counts.items():
+            # Convert bitstring to string if it's an integer (from some backends)
+            if isinstance(bitstring, int):
+                bitstring = format(bitstring, 'b')
             # Pad bitstring to n_qubits
             bitstring = bitstring.zfill(self.n_qubits)
             # Compute expectation: +1 for |0⟩, -1 for |1⟩

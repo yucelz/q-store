@@ -195,7 +195,12 @@ class QuantumTrainer:
 
         # Pinecone connection (optional for checkpointing/storage)
         self._pinecone_client = None
+        self._pinecone_index = None
         self._pinecone_initialized = False
+
+        # Training data storage tracking
+        self._training_vectors_stored = 0
+        self._enable_vector_storage = False
 
     async def _init_pinecone(self):
         """Initialize Pinecone connection for model checkpointing"""
@@ -229,9 +234,11 @@ class QuantumTrainer:
             else:
                 logger.info(f"Using existing Pinecone index: {self.config.pinecone_index_name}")
 
-            self._pinecone_client = pc.Index(self.config.pinecone_index_name)
+            self._pinecone_index = pc.Index(self.config.pinecone_index_name)
+            self._pinecone_client = pc
             self._pinecone_initialized = True
-            logger.info("Pinecone connection established for model checkpointing")
+            self._enable_vector_storage = True
+            logger.info("Pinecone connection established for model checkpointing and vector storage")
 
         except ImportError:
             logger.warning("Pinecone package not installed. Checkpointing to Pinecone disabled.")
@@ -305,6 +312,10 @@ class QuantumTrainer:
             total_circuit_executions += batch_metrics['n_circuits']
             total_circuit_time += batch_metrics['circuit_time_ms']
             batch_count += 1
+
+            # Store training vectors to Pinecone if enabled
+            if self._enable_vector_storage and self._pinecone_index is not None:
+                await self._store_training_batch_to_pinecone(batch_x, batch_y, epoch, batch_count)
 
             # Log progress
             if batch_count % self.config.log_interval == 0:
@@ -648,6 +659,69 @@ class QuantumTrainer:
 
         logger.info(f"Loaded checkpoint from epoch {self.current_epoch}")
 
+    async def _store_training_batch_to_pinecone(
+        self,
+        batch_x: np.ndarray,
+        batch_y: np.ndarray,
+        epoch: int,
+        batch_num: int
+    ):
+        """
+        Store training batch vectors to Pinecone
+
+        Args:
+            batch_x: Input batch
+            batch_y: Target batch
+            epoch: Current epoch
+            batch_num: Current batch number
+        """
+        try:
+            vectors_to_upsert = []
+
+            for idx, (x, y) in enumerate(zip(batch_x, batch_y)):
+                # Create unique ID for this training sample
+                vector_id = f"train_e{epoch}_b{batch_num}_s{idx}"
+
+                # Pad or truncate to match index dimension (768)
+                vector = x.flatten()
+                if len(vector) < 768:
+                    vector = np.pad(vector, (0, 768 - len(vector)), 'constant')
+                elif len(vector) > 768:
+                    vector = vector[:768]
+
+                # Prepare metadata
+                metadata = {
+                    'epoch': epoch,
+                    'batch': batch_num,
+                    'sample_idx': idx,
+                    'label': str(y.tolist() if isinstance(y, np.ndarray) else y),
+                    'type': 'training_data'
+                }
+
+                vectors_to_upsert.append({
+                    'id': vector_id,
+                    'values': vector.tolist(),
+                    'metadata': metadata
+                })
+
+            # Upsert to Pinecone
+            if vectors_to_upsert:
+                self._pinecone_index.upsert(vectors=vectors_to_upsert)
+                self._training_vectors_stored += len(vectors_to_upsert)
+                logger.debug(f"Stored {len(vectors_to_upsert)} training vectors to Pinecone")
+
+        except Exception as e:
+            logger.warning(f"Failed to store training vectors to Pinecone: {e}")
+
     def get_training_history(self) -> List[TrainingMetrics]:
         """Get training history"""
         return self.training_history
+
+    def get_pinecone_stats(self) -> Dict[str, Any]:
+        """Get Pinecone storage statistics"""
+        return {
+            'enabled': self._enable_vector_storage,
+            'initialized': self._pinecone_initialized,
+            'vectors_stored': self._training_vectors_stored,
+            'index_name': self.config.pinecone_index_name if self._pinecone_initialized else None
+        }
