@@ -25,11 +25,19 @@ except ImportError:
     # ML dependencies not installed
     pass
 
+# v3.2: Quantum ML Training Examples
+try:
+    from . import examples_v3_2
+except ImportError:
+    # v3.2 examples not available
+    pass
+
 __all__ = [
     "basic_example",
-    "financial_example", 
+    "financial_example",
     "quantum_db_quickstart",
     "ml_training_example",
     "tinyllama_react_training",
     "react_dataset_generator",
+    "examples_v3_2",
 ]

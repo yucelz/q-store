@@ -1,13 +1,15 @@
 """
-Quantum-Native (Q-Store) Database Architecture v3.1
-A novel database architecture leveraging quantum mechanical properties with hardware abstraction.
+Quantum-Native (Q-Store) Database Architecture v3.2
+A novel database architecture leveraging quantum mechanical properties with hardware abstraction
+and complete ML training capabilities.
 
 Key Features:
 - Hardware-agnostic quantum backend interface
 - Support for multiple quantum SDKs (Cirq, Qiskit, Mock)
 - Plugin architecture for easy backend addition
+- Quantum ML training with gradient computation
 - Production-ready with comprehensive error handling
-- Backward compatible with v2.0
+- Backward compatible with v3.1
 """
 
 # Core database components
@@ -51,7 +53,25 @@ from .core.state_manager import StateManager, QuantumState, StateStatus
 from .core.entanglement_registry import EntanglementRegistry
 from .core.tunneling_engine import TunnelingEngine
 
-__version__ = "3.1.0"
+# ML Training Components (v3.2)
+from .ml import (
+    QuantumLayer,
+    QuantumConvolutionalLayer,
+    QuantumPoolingLayer,
+    LayerConfig,
+    QuantumGradientComputer,
+    FiniteDifferenceGradient,
+    NaturalGradientComputer,
+    GradientResult,
+    QuantumDataEncoder,
+    QuantumFeatureMap,
+    QuantumTrainer,
+    QuantumModel,
+    TrainingConfig,
+    TrainingMetrics,
+)
+
+__version__ = "3.2.0"
 __all__ = [
     # Core database
     "QuantumDatabase",
@@ -90,4 +110,20 @@ __all__ = [
     "StateStatus",
     "EntanglementRegistry",
     "TunnelingEngine",
+    
+    # ML Training (v3.2)
+    "QuantumLayer",
+    "QuantumConvolutionalLayer",
+    "QuantumPoolingLayer",
+    "LayerConfig",
+    "QuantumGradientComputer",
+    "FiniteDifferenceGradient",
+    "NaturalGradientComputer",
+    "GradientResult",
+    "QuantumDataEncoder",
+    "QuantumFeatureMap",
+    "QuantumTrainer",
+    "QuantumModel",
+    "TrainingConfig",
+    "TrainingMetrics",
 ]
