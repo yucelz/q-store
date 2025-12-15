@@ -1,0 +1,43 @@
+{
+  "example_name": "test_example",
+  "start_time": "2025-12-15T21:39:14.914285",
+  "end_time": "2025-12-15T21:39:15.087497",
+  "total_duration_ms": 171.966796875,
+  "steps": [
+    {
+      "name": "Step 1: Setup",
+      "start_time": "2025-12-15T21:39:14.914980",
+      "start_time_ms": 1765834754914.9893,
+      "end_time": "2025-12-15T21:39:15.015299",
+      "end_time_ms": 1765834755015.296,
+      "duration_ms": 100.306640625,
+      "status": "completed",
+      "metadata": {
+        "task": "initialization"
+      },
+      "result": {
+        "items_created": 5
+      }
+    },
+    {
+      "name": "Step 2: Processing",
+      "start_time": "2025-12-15T21:39:15.015796",
+      "start_time_ms": 1765834755015.805,
+      "end_time": "2025-12-15T21:39:15.066362",
+      "end_time_ms": 1765834755066.357,
+      "duration_ms": 50.552001953125,
+      "status": "completed",
+      "metadata": {}
+    },
+    {
+      "name": "Step 3: Finalization",
+      "start_time": "2025-12-15T21:39:15.066713",
+      "start_time_ms": 1765834755066.7195,
+      "end_time": "2025-12-15T21:39:15.086959",
+      "end_time_ms": 1765834755086.956,
+      "duration_ms": 20.236572265625,
+      "status": "completed",
+      "metadata": {}
+    }
+  ]
+}

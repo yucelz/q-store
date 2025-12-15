@@ -1,0 +1,296 @@
+"""
+Generic utility classes for Q-Store examples
+Provides logging and benchmarking functionality
+"""
+
+import json
+import logging
+import os
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+from contextlib import contextmanager
+import time
+
+
+class ExampleLogger:
+    """
+    Comprehensive logging and benchmarking utility for Q-Store examples
+
+    Features:
+    - Creates LOG directory with timestamped log files
+    - JSON benchmark tracking with start/finish times for all steps
+    - Context manager for timing operations
+    - Thread-safe logging
+    """
+
+    def __init__(self,
+                 log_dir: str = "LOG",
+                 base_dir: Optional[str] = None,
+                 example_name: str = "example"):
+        """
+        Initialize the example logger
+
+        Args:
+            log_dir: Directory name for logs (default: "LOG")
+            base_dir: Base directory for logs (default: current working directory)
+            example_name: Name of the example for file naming
+        """
+        self.base_dir = Path(base_dir) if base_dir else Path.cwd()
+        self.log_dir = self.base_dir / log_dir
+        self.example_name = example_name
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Create LOG directory
+        self.log_dir.mkdir(exist_ok=True)
+
+        # Setup log file
+        self.log_file = self.log_dir / f"log-{self.timestamp}.txt"
+
+        # Setup benchmark file
+        self.benchmark_file = self.log_dir / f"benchmark-{self.example_name}-{self.timestamp}.json"
+
+        # Benchmark data structure
+        self.benchmarks: Dict[str, Any] = {
+            "example_name": example_name,
+            "start_time": datetime.now().isoformat(),
+            "end_time": None,
+            "total_duration_ms": None,
+            "steps": []
+        }
+
+        # Setup logger
+        self._setup_logger()
+
+        self.log_info(f"ExampleLogger initialized for '{example_name}'")
+        self.log_info(f"Log directory: {self.log_dir}")
+        self.log_info(f"Log file: {self.log_file}")
+        self.log_info(f"Benchmark file: {self.benchmark_file}")
+
+    def _setup_logger(self):
+        """Configure the Python logger"""
+        # Create a unique logger for this instance
+        self.logger = logging.getLogger(f"q_store_examples.{self.example_name}.{self.timestamp}")
+        self.logger.setLevel(logging.DEBUG)
+
+        # Remove existing handlers to avoid duplicates
+        self.logger.handlers.clear()
+
+        # File handler
+        file_handler = logging.FileHandler(self.log_file, mode='w')
+        file_handler.setLevel(logging.DEBUG)
+
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+
+        # Formatter
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add handlers
+        self.logger.addHandler(file_handler)
+        self.logger.addHandler(console_handler)
+
+    def log_info(self, message: str):
+        """Log an info message"""
+        self.logger.info(message)
+
+    def log_debug(self, message: str):
+        """Log a debug message"""
+        self.logger.debug(message)
+
+    def log_warning(self, message: str):
+        """Log a warning message"""
+        self.logger.warning(message)
+
+    def log_error(self, message: str, exc_info: bool = False):
+        """Log an error message"""
+        self.logger.error(message, exc_info=exc_info)
+
+    def start_step(self, step_name: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Start timing a benchmark step
+
+        Args:
+            step_name: Name of the step
+            metadata: Optional metadata to store with the step
+        """
+        step_data = {
+            "name": step_name,
+            "start_time": datetime.now().isoformat(),
+            "start_time_ms": time.time() * 1000,
+            "end_time": None,
+            "end_time_ms": None,
+            "duration_ms": None,
+            "status": "running",
+            "metadata": metadata or {}
+        }
+        self.benchmarks["steps"].append(step_data)
+        self.log_info(f"Started step: {step_name}")
+
+        return len(self.benchmarks["steps"]) - 1  # Return step index
+
+    def end_step(self, step_index: Optional[int] = None,
+                 status: str = "completed",
+                 result: Optional[Dict[str, Any]] = None):
+        """
+        End timing a benchmark step
+
+        Args:
+            step_index: Index of the step (default: last step)
+            status: Status of the step completion ("completed", "failed", "skipped")
+            result: Optional result data to store
+        """
+        if step_index is None:
+            step_index = len(self.benchmarks["steps"]) - 1
+
+        if step_index < 0 or step_index >= len(self.benchmarks["steps"]):
+            self.log_warning(f"Invalid step index: {step_index}")
+            return
+
+        step = self.benchmarks["steps"][step_index]
+        end_time_ms = time.time() * 1000
+
+        step["end_time"] = datetime.now().isoformat()
+        step["end_time_ms"] = end_time_ms
+        step["duration_ms"] = end_time_ms - step["start_time_ms"]
+        step["status"] = status
+
+        if result:
+            step["result"] = result
+
+        self.log_info(f"Ended step: {step['name']} - Status: {status} - Duration: {step['duration_ms']:.2f}ms")
+
+        # Save benchmark after each step
+        self._save_benchmark()
+
+    @contextmanager
+    def benchmark_step(self, step_name: str, metadata: Optional[Dict[str, Any]] = None):
+        """
+        Context manager for benchmarking a step
+
+        Usage:
+            with logger.benchmark_step("training"):
+                # Your code here
+                pass
+        """
+        step_index = self.start_step(step_name, metadata)
+        try:
+            yield
+            self.end_step(step_index, status="completed")
+        except Exception as e:
+            self.log_error(f"Step '{step_name}' failed: {e}", exc_info=True)
+            self.end_step(step_index, status="failed", result={"error": str(e)})
+            raise
+
+    def finalize(self):
+        """Finalize the benchmark and save final data"""
+        self.benchmarks["end_time"] = datetime.now().isoformat()
+
+        # Calculate total duration
+        if self.benchmarks["steps"]:
+            start_ms = self.benchmarks["steps"][0]["start_time_ms"]
+            end_ms = self.benchmarks["steps"][-1]["end_time_ms"]
+            self.benchmarks["total_duration_ms"] = end_ms - start_ms if end_ms else None
+
+        # Save final benchmark
+        self._save_benchmark()
+
+        self.log_info(f"Example '{self.example_name}' finalized")
+        self.log_info(f"Total duration: {self.benchmarks['total_duration_ms']:.2f}ms")
+        self.log_info(f"Benchmark saved to: {self.benchmark_file}")
+
+    def _save_benchmark(self):
+        """Save benchmark data to JSON file"""
+        try:
+            with open(self.benchmark_file, 'w') as f:
+                json.dump(self.benchmarks, f, indent=2)
+        except Exception as e:
+            self.log_error(f"Failed to save benchmark: {e}")
+
+    def get_step_summary(self) -> List[Dict[str, Any]]:
+        """Get a summary of all benchmark steps"""
+        summary = []
+        for step in self.benchmarks["steps"]:
+            summary.append({
+                "name": step["name"],
+                "duration_ms": step.get("duration_ms"),
+                "status": step.get("status", "unknown")
+            })
+        return summary
+
+    def print_summary(self):
+        """Print a formatted summary of benchmarks"""
+        print("\n" + "="*70)
+        print(f"Benchmark Summary: {self.example_name}")
+        print("="*70)
+
+        for i, step in enumerate(self.benchmarks["steps"], 1):
+            duration = step.get("duration_ms", 0)
+            status = step.get("status", "unknown")
+            print(f"{i}. {step['name']}")
+            print(f"   Status: {status}")
+            if duration:
+                print(f"   Duration: {duration:.2f}ms")
+
+        if self.benchmarks.get("total_duration_ms"):
+            print(f"\nTotal Duration: {self.benchmarks['total_duration_ms']:.2f}ms")
+
+        print("="*70 + "\n")
+
+
+class BenchmarkCollector:
+    """
+    Collects benchmarks from multiple examples
+    Useful for comparing performance across different runs
+    """
+
+    def __init__(self, log_dir: str = "LOG"):
+        """Initialize the benchmark collector"""
+        self.log_dir = Path(log_dir)
+        self.benchmarks: List[Dict[str, Any]] = []
+
+    def load_all_benchmarks(self):
+        """Load all benchmark JSON files from the LOG directory"""
+        if not self.log_dir.exists():
+            return
+
+        for file in self.log_dir.glob("benchmark-*.json"):
+            try:
+                with open(file, 'r') as f:
+                    data = json.load(f)
+                    self.benchmarks.append(data)
+            except Exception as e:
+                print(f"Error loading {file}: {e}")
+
+    def compare_examples(self, example_name: Optional[str] = None):
+        """
+        Compare benchmarks, optionally filtered by example name
+
+        Args:
+            example_name: Filter by specific example name
+        """
+        filtered = self.benchmarks
+        if example_name:
+            filtered = [b for b in self.benchmarks if b.get("example_name") == example_name]
+
+        if not filtered:
+            print("No benchmarks found")
+            return
+
+        print("\n" + "="*70)
+        print("Benchmark Comparison")
+        print("="*70)
+
+        for benchmark in filtered:
+            print(f"\nExample: {benchmark.get('example_name')}")
+            print(f"Date: {benchmark.get('start_time')}")
+            print(f"Total Duration: {benchmark.get('total_duration_ms', 0):.2f}ms")
+            print(f"Steps: {len(benchmark.get('steps', []))}")
+
+        print("="*70 + "\n")

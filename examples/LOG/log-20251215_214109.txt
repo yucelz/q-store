@@ -1,0 +1,23 @@
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - ExampleLogger initialized for 'demo'
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - Log directory: /home/yucelz/yz_code/q-store/examples/LOG
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - Log file: /home/yucelz/yz_code/q-store/examples/LOG/log-20251215_214109.txt
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - Benchmark file: /home/yucelz/yz_code/q-store/examples/LOG/benchmark-demo-20251215_214109.json
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - Running Example 1: Data Preparation
+2025-12-15 21:41:09 - q_store_examples.demo.20251215_214109 - INFO - Started step: Example 1: Data Preparation
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Generated 100 training samples
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Ended step: Example 1: Data Preparation - Status: completed - Duration: 50.79ms
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Running Example 2: Model Training
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Started step: Example 2: Model Training
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Training completed
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Ended step: Example 2: Model Training - Status: completed - Duration: 101.05ms
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Running Example 3: Evaluation
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Started step: Example 3: Evaluation
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Model evaluated on test set
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Ended step: Example 3: Evaluation - Status: completed - Duration: 30.97ms
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Running Example 4: Error Handling Demo
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Started step: Example 4: Error Handling Demo
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - WARNING - This is a simulated warning
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Ended step: Example 4: Error Handling Demo - Status: completed - Duration: 20.47ms
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Example 'demo' finalized
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Total duration: 210.80ms
+2025-12-15 21:41:10 - q_store_examples.demo.20251215_214109 - INFO - Benchmark saved to: /home/yucelz/yz_code/q-store/examples/LOG/benchmark-demo-20251215_214109.json

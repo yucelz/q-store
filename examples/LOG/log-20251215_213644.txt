@@ -1,0 +1,5 @@
+2025-12-15 21:36:44 - q_store_examples.examples_v3_2.20251215_213644 - INFO - ExampleLogger initialized for 'examples_v3_2'
+2025-12-15 21:36:44 - q_store_examples.examples_v3_2.20251215_213644 - INFO - Log directory: /home/yucelz/yz_code/q-store/examples/LOG
+2025-12-15 21:36:44 - q_store_examples.examples_v3_2.20251215_213644 - INFO - Log file: /home/yucelz/yz_code/q-store/examples/LOG/log-20251215_213644.txt
+2025-12-15 21:36:44 - q_store_examples.examples_v3_2.20251215_213644 - INFO - Benchmark file: /home/yucelz/yz_code/q-store/examples/LOG/benchmark-examples_v3_2-20251215_213644.json
+2025-12-15 21:36:44 - q_store_examples.examples_v3_2.20251215_213644 - INFO - Started step: example_1_basic_training

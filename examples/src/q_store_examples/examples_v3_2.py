@@ -25,6 +25,7 @@ from q_store.ml import (
     QuantumFeatureMap
 )
 from q_store.backends import BackendManager, create_default_backend_manager
+from q_store_examples.utils import ExampleLogger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +36,9 @@ PINECONE_ENVIRONMENT = None
 IONQ_API_KEY = None
 IONQ_TARGET = None
 USE_MOCK = True
+
+# Global logger instance
+EXAMPLE_LOGGER = None
 
 
 # ============================================================================
@@ -49,6 +53,10 @@ async def example_1_basic_training():
     print("\n" + "="*70)
     print("Example 1: Basic Quantum Neural Network Training")
     print("="*70 + "\n")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_1_basic_training",
+                                   metadata={"description": "Basic quantum neural network training"})
 
     # Create synthetic dataset
     np.random.seed(42)
@@ -136,6 +144,11 @@ async def example_1_basic_training():
     print(f"Final loss: {trainer.training_history[-1].loss:.4f}")
     print(f"Total epochs: {len(trainer.training_history)}")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed",
+                                result={"final_loss": float(trainer.training_history[-1].loss),
+                                        "epochs": len(trainer.training_history)})
+
 
 # ============================================================================
 # Example 2: Quantum Data Encoding Strategies
@@ -148,6 +161,10 @@ async def example_2_data_encoding():
     print("\n" + "="*70)
     print("Example 2: Quantum Data Encoding Strategies")
     print("="*70 + "\n")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_2_data_encoding",
+                                   metadata={"description": "Quantum data encoding strategies"})
 
     # Sample data
     data = np.array([0.5, 0.3, 0.8, 0.2, 0.6, 0.1, 0.9, 0.4])
@@ -178,6 +195,9 @@ async def example_2_data_encoding():
 
     print("\nEncoding strategies showcase complete!")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed")
+
 
 # ============================================================================
 # Example 3: Transfer Learning with Quantum Models
@@ -190,6 +210,10 @@ async def example_3_transfer_learning():
     print("\n" + "="*70)
     print("Example 3: Transfer Learning with Quantum Models")
     print("="*70 + "\n")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_3_transfer_learning",
+                                   metadata={"description": "Transfer learning with quantum models"})
 
     # Create backend
     backend_manager = create_default_backend_manager()
@@ -280,6 +304,11 @@ async def example_3_transfer_learning():
     print(f"Fine-tuning complete. Final loss: {finetune_trainer.training_history[-1].loss:.4f}")
     print("\nTransfer learning example complete!")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed",
+                                result={"pretrain_loss": float(trainer.training_history[-1].loss),
+                                        "finetune_loss": float(finetune_trainer.training_history[-1].loss)})
+
 
 # ============================================================================
 # Example 4: Multiple Backend Comparison
@@ -292,6 +321,10 @@ async def example_4_backend_comparison():
     print("\n" + "="*70)
     print("Example 4: Multiple Backend Comparison")
     print("="*70 + "\n")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_4_backend_comparison",
+                                   metadata={"description": "Multiple backend comparison"})
 
     # Create backend manager with multiple backends
     backend_manager = BackendManager()
@@ -389,6 +422,9 @@ async def example_4_backend_comparison():
         print(f"  Loss: {metrics['final_loss']:.4f}")
         print(f"  Time: {metrics['avg_epoch_time']:.2f}ms")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed", result=results)
+
 
 # ============================================================================
 # Example 5: Quantum Database with ML Training Integration
@@ -402,6 +438,10 @@ async def example_5_database_ml_integration():
     print("Example 5: Quantum Database with ML Training Integration")
     print("="*70 + "\n")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_5_database_ml_integration",
+                                   metadata={"description": "Database ML integration"})
+
     # Note: This is a simplified example showing the integration pattern
     # Full implementation requires a configured Pinecone instance
 
@@ -411,6 +451,9 @@ async def example_5_database_ml_integration():
     print("3. Track model checkpoints in database")
     print("4. Version control for quantum circuits")
     print("\nFor full database functionality, configure Pinecone credentials.")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed")
 
 
 # ============================================================================
@@ -424,6 +467,10 @@ async def example_6_quantum_autoencoder():
     print("\n" + "="*70)
     print("Example 6: Quantum Autoencoder")
     print("="*70 + "\n")
+
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.start_step("example_6_quantum_autoencoder",
+                                   metadata={"description": "Quantum autoencoder"})
 
     backend_manager = create_default_backend_manager()
 
@@ -467,6 +514,10 @@ async def example_6_quantum_autoencoder():
     print("\nAutoencoder architecture defined!")
     print("Training would minimize reconstruction loss: ||x - decoder(encoder(x))||²")
 
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.end_step(status="completed",
+                                result={"input_dim": input_dim, "latent_dim": latent_dim})
+
 
 # ============================================================================
 # Main: Run All Examples
@@ -474,6 +525,15 @@ async def example_6_quantum_autoencoder():
 
 async def main():
     """Run all examples"""
+    global EXAMPLE_LOGGER
+
+    # Initialize logger
+    EXAMPLE_LOGGER = ExampleLogger(
+        log_dir="LOG",
+        base_dir="/home/yucelz/yz_code/q-store/examples",
+        example_name="examples_v3_2"
+    )
+
     print("\n" + "="*70)
     print("Quantum-Native Database v3.2 - ML Training Examples")
     print("="*70)
@@ -492,6 +552,13 @@ async def main():
             await example_func()
         except Exception as e:
             logger.error(f"Example '{name}' failed: {e}", exc_info=True)
+            if EXAMPLE_LOGGER:
+                EXAMPLE_LOGGER.log_error(f"Example '{name}' failed: {e}", exc_info=True)
+
+    # Finalize logging and benchmarking
+    if EXAMPLE_LOGGER:
+        EXAMPLE_LOGGER.finalize()
+        EXAMPLE_LOGGER.print_summary()
 
     print("\n" + "="*70)
     print("All examples complete!")
