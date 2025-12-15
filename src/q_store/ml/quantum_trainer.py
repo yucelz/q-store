@@ -18,6 +18,14 @@ from .gradient_computer import QuantumGradientComputer, GradientResult
 from .quantum_layer import QuantumLayer
 from .data_encoder import QuantumDataEncoder
 
+# v3.3 imports
+from .spsa_gradient_estimator import SPSAGradientEstimator
+from .circuit_batch_manager import CircuitBatchManager
+from .circuit_cache import QuantumCircuitCache
+from .quantum_layer_v2 import HardwareEfficientQuantumLayer
+from .adaptive_optimizer import AdaptiveGradientOptimizer
+from .performance_tracker import PerformanceTracker
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,7 +54,7 @@ class TrainingConfig:
 
     # Optimization
     optimizer: str = 'adam'  # 'adam', 'sgd', 'natural_gradient'
-    gradient_method: str = 'parameter_shift'  # or 'finite_diff'
+    gradient_method: str = 'parameter_shift'  # or 'finite_diff', 'spsa', 'adaptive'
     momentum: float = 0.9
     weight_decay: float = 0.0
 
@@ -63,6 +71,21 @@ class TrainingConfig:
     # Monitoring
     log_interval: int = 10
     track_gradients: bool = True
+
+    # v3.3 NEW: Performance optimizations
+    enable_circuit_cache: bool = True
+    enable_batch_execution: bool = True
+    cache_size: int = 1000
+    batch_timeout: float = 60.0
+    hardware_efficient_ansatz: bool = True
+
+    # v3.3 NEW: SPSA parameters
+    spsa_c_initial: float = 0.1
+    spsa_a_initial: float = 0.01
+
+    # v3.3 NEW: Performance tracking
+    enable_performance_tracking: bool = True
+    performance_log_dir: Optional[str] = None
 
 
 @dataclass
@@ -89,7 +112,8 @@ class QuantumModel:
         n_qubits: int,
         output_dim: int,
         backend,
-        depth: int = 4
+        depth: int = 4,
+        hardware_efficient: bool = False
     ):
         """
         Initialize quantum model
@@ -100,19 +124,29 @@ class QuantumModel:
             output_dim: Output dimension
             backend: Quantum backend
             depth: Circuit depth
+            hardware_efficient: Use v3.3 hardware-efficient layer
         """
         self.input_dim = input_dim
         self.n_qubits = n_qubits
         self.output_dim = output_dim
         self.backend = backend
         self.depth = depth
+        self.hardware_efficient = hardware_efficient
 
-        # Quantum layer
-        self.quantum_layer = QuantumLayer(
-            n_qubits=n_qubits,
-            depth=depth,
-            backend=backend
-        )
+        # Quantum layer (v3.3: hardware-efficient option)
+        if hardware_efficient:
+            self.quantum_layer = HardwareEfficientQuantumLayer(
+                n_qubits=n_qubits,
+                depth=depth,
+                backend=backend
+            )
+            logger.info(f"Using hardware-efficient layer with {self.quantum_layer.n_parameters} parameters")
+        else:
+            self.quantum_layer = QuantumLayer(
+                n_qubits=n_qubits,
+                depth=depth,
+                backend=backend
+            )
 
         # Parameters are managed by quantum layer
         self.parameters = self.quantum_layer.parameters
@@ -179,8 +213,42 @@ class QuantumTrainer:
         # Get quantum backend
         self.backend = backend_manager.get_backend()
 
-        # Initialize components
-        self.gradient_computer = QuantumGradientComputer(self.backend)
+        # Initialize components (v3.3 enhanced)
+        if config.gradient_method == 'adaptive':
+            self.gradient_computer = AdaptiveGradientOptimizer(
+                self.backend,
+                enable_adaptation=True
+            )
+            logger.info("Using adaptive gradient optimizer (v3.3)")
+        elif config.gradient_method == 'spsa':
+            self.gradient_computer = SPSAGradientEstimator(
+                self.backend,
+                c_initial=config.spsa_c_initial,
+                a_initial=config.spsa_a_initial
+            )
+            logger.info("Using SPSA gradient estimator (v3.3)")
+        else:
+            # Default to parameter shift
+            self.gradient_computer = QuantumGradientComputer(self.backend)
+            logger.info("Using parameter shift gradient computation")
+
+        # v3.3 NEW: Circuit optimization infrastructure
+        self.circuit_cache = QuantumCircuitCache(
+            max_compiled_circuits=config.cache_size,
+            max_results=config.cache_size * 5
+        ) if config.enable_circuit_cache else None
+
+        self.batch_manager = CircuitBatchManager(
+            self.backend,
+            timeout=config.batch_timeout
+        ) if config.enable_batch_execution else None
+
+        # v3.3 NEW: Performance monitoring
+        self.performance_tracker = PerformanceTracker(
+            log_dir=config.performance_log_dir,
+            save_interval=config.log_interval
+        ) if config.enable_performance_tracking else None
+
         self.data_encoder = QuantumDataEncoder()
 
         # Optimizer state
@@ -349,7 +417,7 @@ class QuantumTrainer:
         batch_y: np.ndarray
     ) -> Dict[str, float]:
         """
-        Train on a single batch
+        Train on a single batch (v3.3 optimized)
 
         Args:
             model: Model to train
@@ -360,6 +428,10 @@ class QuantumTrainer:
             Batch metrics
         """
         batch_start = time.time()
+
+        # v3.3 OPTIMIZATION: Batch gradient computation
+        # Instead of computing gradients for each sample separately,
+        # compute them for the entire batch at once
 
         # Average over batch
         batch_loss = 0.0
@@ -383,12 +455,24 @@ class QuantumTrainer:
                     output = output[:model.output_dim]
                 return self.loss_function(output, y)
 
-            grad_result = await self.gradient_computer.compute_gradients(
-                circuit_builder=circuit_builder,
-                loss_function=loss_from_result,
-                parameters=model.quantum_layer.parameters,
-                frozen_indices=list(model.quantum_layer._frozen_params)
-            )
+            # v3.3: Use appropriate gradient method
+            if hasattr(self.gradient_computer, 'estimate_gradient'):
+                # SPSA or adaptive optimizer
+                grad_result = await self.gradient_computer.estimate_gradient(
+                    circuit_builder=circuit_builder,
+                    loss_function=loss_from_result,
+                    parameters=model.quantum_layer.parameters,
+                    frozen_indices=model.quantum_layer._frozen_params,
+                    shots=self.config.shots_per_circuit
+                )
+            else:
+                # Standard parameter shift
+                grad_result = await self.gradient_computer.compute_gradients(
+                    circuit_builder=circuit_builder,
+                    loss_function=loss_from_result,
+                    parameters=model.quantum_layer.parameters,
+                    frozen_indices=list(model.quantum_layer._frozen_params)
+                )
 
             batch_loss += grad_result.function_value
             n_circuits += grad_result.n_circuit_executions
@@ -416,6 +500,23 @@ class QuantumTrainer:
         model.quantum_layer.update_parameters(new_params)
 
         batch_time = (time.time() - batch_start) * 1000
+
+        # v3.3 NEW: Track performance
+        if self.performance_tracker:
+            cache_stats = self.circuit_cache.get_stats() if self.circuit_cache else None
+            method_used = getattr(grad_result, 'method', None)
+
+            self.performance_tracker.log_batch(
+                batch_idx=self.current_epoch,
+                epoch=self.current_epoch,
+                loss=batch_loss / len(batch_x),
+                gradient_norm=np.linalg.norm(batch_gradients),
+                n_circuits=n_circuits,
+                time_ms=batch_time,
+                learning_rate=self.config.learning_rate,
+                cache_stats=cache_stats,
+                method_used=method_used
+            )
 
         return {
             'loss': batch_loss / len(batch_x),

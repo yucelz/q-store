@@ -392,3 +392,160 @@ class CirqIonQBackend(QuantumBackend):
             # Simplified estimate
             n_gates = len([g for g in circuit.gates if g.gate_type != GateType.MEASURE])
             return (n_gates * shots) * 0.00001  # $0.01 per 1000 gate-shots
+
+    # v3.3 NEW: Async job submission methods
+    async def submit_job_async(
+        self,
+        circuit: QuantumCircuit,
+        shots: int = 1000,
+        **kwargs
+    ) -> str:
+        """
+        Submit job without waiting for completion (v3.3)
+
+        Args:
+            circuit: QuantumCircuit to execute
+            shots: Number of measurement shots
+            **kwargs: Additional options
+
+        Returns:
+            Job ID for later retrieval
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        import cirq
+
+        # Convert to Cirq circuit
+        cirq_circuit = self._convert_to_cirq(circuit)
+
+        # Add measurements
+        qubits = cirq.LineQubit.range(circuit.n_qubits)
+        cirq_circuit.append(cirq.measure(*qubits, key='result'))
+
+        try:
+            # Create job (non-blocking)
+            job = self._service.create_job(
+                circuit=cirq_circuit,
+                repetitions=shots,
+                target=self.target,
+                name=kwargs.get('name', f'quantum_ml_{asyncio.current_task().get_name()}')
+            )
+
+            # Return job ID immediately (don't wait)
+            job_id = job.job_id()
+            logger.debug(f"Submitted job: {job_id}")
+
+            return job_id
+
+        except Exception as e:
+            logger.error(f"Job submission failed: {e}")
+            raise
+
+    async def check_job_status(self, job_id: str) -> str:
+        """
+        Check job status without fetching results (v3.3)
+
+        Args:
+            job_id: Job identifier
+
+        Returns:
+            Status string ('submitted', 'running', 'completed', 'failed')
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        try:
+            job = self._service.get_job(job_id)
+
+            # Get status (should be fast)
+            status = job.execution_status()
+
+            # Map IonQ status to our status
+            if hasattr(status, 'value'):
+                ionq_status = status.value.lower()
+            else:
+                ionq_status = str(status).lower()
+
+            if 'complete' in ionq_status or 'success' in ionq_status:
+                return 'completed'
+            elif 'fail' in ionq_status or 'error' in ionq_status or 'cancel' in ionq_status:
+                return 'failed'
+            elif 'running' in ionq_status:
+                return 'running'
+            else:
+                return 'submitted'
+
+        except Exception as e:
+            logger.error(f"Error checking job status: {e}")
+            return 'failed'
+
+    async def get_job_result(
+        self,
+        job_id: str,
+        original_circuit: Optional[QuantumCircuit] = None
+    ) -> ExecutionResult:
+        """
+        Fetch result for a completed job (v3.3)
+
+        Args:
+            job_id: Job identifier
+            original_circuit: Original circuit (for metadata)
+
+        Returns:
+            ExecutionResult with measurements
+        """
+        if not self._initialized:
+            await self.initialize()
+
+        try:
+            job = self._service.get_job(job_id)
+
+            # This will wait if job not complete
+            results = job.results()
+
+            # Handle both list and single result
+            if isinstance(results, list):
+                if len(results) == 0:
+                    raise ValueError("No results returned from IonQ job")
+                cirq_result = results[0]
+            else:
+                cirq_result = results
+
+            # Get shots from job metadata if available
+            shots = 1000  # default
+            if hasattr(job, 'repetitions'):
+                shots = job.repetitions()
+
+            # Convert to our format
+            return self._convert_result(cirq_result, shots, original_circuit)
+
+        except Exception as e:
+            logger.error(f"Error fetching job result: {e}")
+            raise
+
+    def execute_circuit_sync(
+        self,
+        circuit,
+        shots: int = 1000
+    ) -> ExecutionResult:
+        """
+        Synchronous circuit execution (for batch manager fallback)
+
+        Args:
+            circuit: Native Cirq circuit or QuantumCircuit
+            shots: Number of shots
+
+        Returns:
+            ExecutionResult
+        """
+        # Run async method in sync context
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if isinstance(circuit, QuantumCircuit):
+            return loop.run_until_complete(self.execute_circuit(circuit, shots))
+        else:
+            # Already native format - convert back
+            # This is a simplified fallback
+            logger.warning("Sync execution with native circuit - may not work correctly")
+            raise NotImplementedError("Sync execution with native circuit not fully supported")
