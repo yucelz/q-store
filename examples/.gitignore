@@ -118,3 +118,8 @@ Temporary Items
 tmp/
 temp/
 *.tmp
+
+# Project specific
+docs/sphinx/
+*.log
+.ionq_cache/

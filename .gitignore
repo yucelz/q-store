@@ -100,3 +100,8 @@ Thumbs.db
 # Project specific
 *.log
 .ionq_cache/
+
+# Project specific
+docs/sphinx/
+*.log
+.ionq_cache/
