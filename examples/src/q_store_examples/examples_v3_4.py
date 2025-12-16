@@ -34,9 +34,15 @@ from typing import Dict, List
 import aiohttp
 import numpy as np
 from dotenv import load_dotenv
+import pytest
 
-# Load environment variables
+# Load environment variables and set default mock mode if keys are missing
 load_dotenv()
+USE_MOCK = os.getenv("USE_MOCK", "true").lower() == "true"
+if not os.getenv("IONQ_API_KEY"):
+    USE_MOCK = True
+if not os.getenv("PINECONE_API_KEY"):
+    USE_MOCK = True
 
 # Import v3.4 components
 from q_store.core import DatabaseConfig, QuantumDatabase
@@ -64,7 +70,7 @@ PINECONE_API_KEY = None
 PINECONE_ENVIRONMENT = None
 IONQ_API_KEY = None
 IONQ_TARGET = None
-USE_MOCK = True
+# USE_MOCK already determined from environment above
 
 # Global logger instance
 EXAMPLE_LOGGER = None

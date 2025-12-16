@@ -57,6 +57,18 @@ A hardware-agnostic database architecture that leverages quantum mechanical prop
 - **Framework Integration**: PyTorch, TensorFlow, and JAX support
 
 ## Overview
+## 📚 Documentation
+
+Build local Sphinx docs:
+
+```bash
+pip install -e .[docs]
+cd docs/sphinx
+make html  # or: sphinx-build -b html . _build/html
+```
+
+Open `_build/html/index.html` in your browser.
+
 
 Q-Store provides a hardware-agnostic hybrid classical-quantum database architecture that:
 - **Stores data in quantum superposition** for context-aware retrieval

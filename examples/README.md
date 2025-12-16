@@ -19,18 +19,21 @@ Standalone example projects demonstrating Q-Store quantum database capabilities 
 git clone https://github.com/yucelz/q-store.git
 cd q-store
 
-# 2. Install Q-Store core package
-pip install -e .
+# 2. Install Q-Store from PyPI
+pip install q-store
 
 # 3. Navigate to examples directory
 cd examples
 
 # 4. Install example dependencies
-pip install -r requirements.txt
+pip install -r requirements-minimal.txt  # start minimal
+# For full ML/backends, use:
+# pip install -r requirements.txt
 
-# 5. Set up environment variables
-cp .env.example .env
+# 5. Optional: Set up environment variables for real backends
+# cp .env.example .env
 # Edit .env and add your API keys
+# Without keys, examples run in mock mode
 
 # 6. Verify installation
 python verify_installation.py

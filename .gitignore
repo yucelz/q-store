@@ -98,5 +98,6 @@ dmypy.json
 Thumbs.db
 
 # Project specific
+docs/sphinx/
 *.log
 .ionq_cache/

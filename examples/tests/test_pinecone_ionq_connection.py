@@ -4,6 +4,7 @@ Test script to verify Pinecone and IonQ connection setup
 import asyncio
 import os
 import logging
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,6 +12,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+@pytest.mark.integration
 async def test_pinecone_connection():
     """Test Pinecone connection and index creation"""
     print("\n" + "="*70)
@@ -19,8 +21,7 @@ async def test_pinecone_connection():
 
     pinecone_key = os.getenv('PINECONE_API_KEY')
     if not pinecone_key or pinecone_key.startswith('mock'):
-        print("⚠️  PINECONE_API_KEY not set or is mock - skipping test")
-        return False
+        pytest.skip("PINECONE_API_KEY not set or is mock - skipping")
 
     try:
         from pinecone.grpc import PineconeGRPC as Pinecone
@@ -66,6 +67,7 @@ async def test_pinecone_connection():
         return False
 
 
+@pytest.mark.integration
 async def test_ionq_connection():
     """Test IonQ backend configuration"""
     print("\n" + "="*70)
@@ -74,8 +76,7 @@ async def test_ionq_connection():
 
     ionq_key = os.getenv('IONQ_API_KEY')
     if not ionq_key:
-        print("⚠️  IONQ_API_KEY not set - skipping test")
-        return False
+        pytest.skip("IONQ_API_KEY not set - skipping")
 
     try:
         from q_store.backends import BackendManager, setup_ionq_backends
