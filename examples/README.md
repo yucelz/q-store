@@ -192,7 +192,42 @@ python src/q_store_examples/examples_v3_2.py --no-mock \
 
 **Priority Order:** Command-line args → Environment variables → .env file → Defaults
 
-### 4. ML Training Example (`ml_training_example.py`)
+### 5. V3.3 High-Performance ML Training Examples (`src/q_store_examples/examples_v3_3.py`)
+
+**NEW** - 24-48x faster training with algorithmic optimization:
+- SPSA gradient estimation (2 circuits instead of 96)
+- Hardware-efficient quantum layers (33% fewer parameters)
+- Adaptive gradient optimization
+- Circuit caching and batching
+- Performance tracking and comparison
+- Real-time speedup analysis
+
+```bash
+# With mock backends (default - for testing)
+python src/q_store_examples/examples_v3_3.py
+
+# With real IonQ/Pinecone backends
+python src/q_store_examples/examples_v3_3.py --no-mock
+
+# With specific credentials
+python src/q_store_examples/examples_v3_3.py --no-mock \
+  --ionq-api-key YOUR_KEY \
+  --pinecone-api-key YOUR_KEY
+
+# See all options
+python src/q_store_examples/examples_v3_3.py --help
+```
+
+**Performance Improvements:**
+- 🚀 **48x fewer circuits** with SPSA (2 vs 96 per batch)
+- ⚡ **33% fewer parameters** with hardware-efficient ansatz
+- 💾 **Circuit caching** eliminates redundant compilations
+- 🔄 **Batch execution** enables parallel quantum jobs
+- 📊 **Performance tracking** shows real-time speedup metrics
+
+**Priority Order:** Command-line args → Environment variables → .env file → Defaults
+
+### 6. ML Training Example (`ml_training_example.py`)
 
 Machine learning integration:
 - Model embedding storage
@@ -204,7 +239,7 @@ Machine learning integration:
 python ml_training_example.py
 ```
 
-### 5. Connection Tests
+### 7. Connection Tests
 
 Verify Pinecone and IonQ connections:
 
@@ -229,7 +264,7 @@ These tests will:
 - ✅ Run small training session with real backends
 - ✅ Verify Pinecone index creation during training
 
-### 5. TinyLlama React Training (`tinyllama_react_training.py`)
+### 8. TinyLlama React Training (`tinyllama_react_training.py`)
 
 Complete LLM fine-tuning workflow:
 - React code dataset generation
@@ -289,6 +324,7 @@ examples/
 │   └── q_store_examples/
 │       ├── __init__.py
 │       ├── examples_v3_2.py          # V3.2 ML training examples
+│       ├── examples_v3_3.py          # V3.3 high-performance examples (NEW)
 │       ├── examples_v31.py           # V3.1 examples
 │       ├── quantum_db_quickstart.py  # Alternative location
 │       └── [Other examples...]
@@ -510,9 +546,17 @@ If all checks pass, you're ready to explore quantum-enhanced machine learning! �
 
 **Quick Start:**
 ```bash
+# V3.2 - Standard quantum ML training
 # With mock backends (safe, no API calls)
 python src/q_store_examples/examples_v3_2.py
 
 # With real Pinecone + IonQ (uses your .env configuration)
 python src/q_store_examples/examples_v3_2.py --no-mock
+
+# V3.3 - High-performance quantum ML training (24-48x faster!)
+# With mock backends (safe, no API calls)
+python src/q_store_examples/examples_v3_3.py
+
+# With real Pinecone + IonQ (uses your .env configuration)
+python src/q_store_examples/examples_v3_3.py --no-mock
 ```

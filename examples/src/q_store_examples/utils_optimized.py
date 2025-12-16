@@ -33,12 +33,12 @@ class TeeStream:
                 self.streams[0].write(data)
             except Exception:
                 pass
-        
+
         # Buffer writes to file to reduce I/O
         if len(self.streams) > 1:
             self._buffer.append(data)
             self._buffer_size += len(data)
-            
+
             # Flush if buffer is large or ends with newline
             if self._buffer_size >= self._max_buffer or data.endswith('\n'):
                 self._flush_buffer()
@@ -54,7 +54,7 @@ class TeeStream:
     def _flush_buffer(self):
         if not self._buffer or len(self.streams) <= 1:
             return
-        
+
         try:
             combined = ''.join(self._buffer)
             for stream in self.streams[1:]:
@@ -77,7 +77,7 @@ class ExampleLogger:
     - Context manager for timing operations
     - Thread-safe logging
     - Optional stdout/stderr capture with buffering
-    
+
     Performance optimizations:
     - Buffered I/O (8KB buffer)
     - Batch benchmark saves (every 5 steps instead of every step)
@@ -151,7 +151,7 @@ class ExampleLogger:
         self.logger.handlers.clear()
 
         # File handler with buffering for better performance
-        file_handler = logging.FileHandler(self.log_file, mode="w")
+        file_handler = logging.FileHandler(self.log_file, mode='w', buffering=8192)
         file_handler.setLevel(logging.INFO)
 
         # Console handler - only for warnings and errors to reduce noise
@@ -175,7 +175,7 @@ class ExampleLogger:
         try:
             # Open log file in append mode with buffering
             self._log_file_handle = open(self.log_file, 'a', buffering=8192)
-            
+
             # Create tee stream that writes to both console and file
             sys.stdout = TeeStream(self._original_stdout, self._log_file_handle)
             sys.stderr = TeeStream(self._original_stderr, self._log_file_handle)
@@ -190,11 +190,11 @@ class ExampleLogger:
                 sys.stdout._flush_buffer()
             if hasattr(sys.stderr, '_flush_buffer'):
                 sys.stderr._flush_buffer()
-            
+
             # Restore original streams
             sys.stdout = self._original_stdout
             sys.stderr = self._original_stderr
-            
+
             # Close file handle
             if self._log_file_handle:
                 self._log_file_handle.flush()
@@ -316,7 +316,7 @@ class ExampleLogger:
         self.log_info(f"Example '{self.example_name}' finalized")
         self.log_info(f"Total duration: {self.benchmarks['total_duration_ms']:.2f}ms")
         self.log_info(f"Benchmark saved to: {self.benchmark_file}")
-        
+
         # Stop capturing stdout/stderr
         if self.capture_stdout:
             self._stop_capture()

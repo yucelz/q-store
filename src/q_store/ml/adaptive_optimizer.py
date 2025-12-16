@@ -104,8 +104,7 @@ class AdaptiveGradientOptimizer:
                 circuit_builder,
                 loss_function,
                 parameters,
-                frozen_indices=frozen_indices,
-                shots=shots
+                frozen_indices=frozen_indices
             )
 
         # Track method usage
