@@ -6,17 +6,14 @@ KEY FIX: Computes gradient of BATCH LOSS, not per-sample average
 """
 
 import asyncio
-import time
-import numpy as np
 import logging
-from typing import Callable, Optional, List, Dict, Any
+import time
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
 
-from ..backends.quantum_backend_interface import (
-    QuantumBackend,
-    QuantumCircuit,
-    ExecutionResult
-)
+import numpy as np
+
+from ..backends.quantum_backend_interface import ExecutionResult, QuantumBackend, QuantumCircuit
 from .circuit_batch_manager import CircuitBatchManager
 
 logger = logging.getLogger(__name__)
@@ -25,11 +22,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GradientResult:
     """Result from gradient computation"""
+
     gradients: np.ndarray
     function_value: float
     n_circuit_executions: int
     computation_time_ms: float
-    method: str = 'spsa_parallel_batch'
+    method: str = "spsa_parallel_batch"
     metadata: Dict[str, Any] = None
 
 
@@ -54,7 +52,7 @@ class ParallelSPSAEstimator:
         c_decay: float = 0.101,
         a_decay: float = 0.602,
         c_initial: float = 0.1,
-        a_initial: float = 0.01
+        a_initial: float = 0.01,
     ):
         """
         Initialize parallel SPSA estimator
@@ -82,8 +80,8 @@ class ParallelSPSAEstimator:
     def get_gain_parameters(self, iteration: int) -> tuple:
         """Compute SPSA gain parameters"""
         k = iteration + 1
-        c_k = self.c_initial / (k ** self.c_decay)
-        a_k = self.a_initial / (k ** self.a_decay)
+        c_k = self.c_initial / (k**self.c_decay)
+        a_k = self.a_initial / (k**self.a_decay)
         return c_k, a_k
 
     async def estimate_batch_gradient(
@@ -92,7 +90,7 @@ class ParallelSPSAEstimator:
         batch_x: np.ndarray,
         batch_y: np.ndarray,
         loss_function: Callable,
-        shots: int = 1000
+        shots: int = 1000,
     ) -> GradientResult:
         """
         Estimate gradient over ENTIRE BATCH
@@ -125,7 +123,7 @@ class ParallelSPSAEstimator:
         self._current_full_model = model
 
         # Get quantum layer for circuit building
-        quantum_layer = model.quantum_layer if hasattr(model, 'quantum_layer') else model
+        quantum_layer = model.quantum_layer if hasattr(model, "quantum_layer") else model
 
         # Get current parameters
         params = quantum_layer.parameters.copy()
@@ -167,9 +165,7 @@ class ParallelSPSAEstimator:
 
         # Execute all circuits in parallel (single API call to backend)
         results = await self.batch_manager.execute_batch(
-            circuits=all_circuits,
-            shots=shots,
-            wait_for_results=True
+            circuits=all_circuits, shots=shots, wait_for_results=True
         )
 
         # Split results
@@ -219,35 +215,37 @@ class ParallelSPSAEstimator:
             function_value=avg_loss,
             n_circuit_executions=len(all_circuits),
             computation_time_ms=computation_time,
-            method='spsa_parallel_batch',
+            method="spsa_parallel_batch",
             metadata={
-                'iteration': self.iteration,
-                'c_k': c_k,
-                'a_k': a_k,
-                'batch_size': batch_size,
-                'loss_plus': loss_plus,
-                'loss_minus': loss_minus,
-                'perturbation_norm': np.linalg.norm(delta)
-            }
+                "iteration": self.iteration,
+                "c_k": c_k,
+                "a_k": a_k,
+                "batch_size": batch_size,
+                "loss_plus": loss_plus,
+                "loss_minus": loss_minus,
+                "perturbation_norm": np.linalg.norm(delta),
+            },
         )
 
     def _process_result(self, model, result: ExecutionResult) -> np.ndarray:
         """Process measurement result to get model output"""
         # Use stored full model if available (for output projection)
-        full_model = getattr(self, '_current_full_model', model)
+        full_model = getattr(self, "_current_full_model", model)
 
         # Get quantum layer for processing
-        quantum_layer = full_model.quantum_layer if hasattr(full_model, 'quantum_layer') else full_model
+        quantum_layer = (
+            full_model.quantum_layer if hasattr(full_model, "quantum_layer") else full_model
+        )
 
         # Process measurements
-        if hasattr(quantum_layer, '_process_measurements'):
+        if hasattr(quantum_layer, "_process_measurements"):
             output = quantum_layer._process_measurements(result)
-        elif hasattr(result, 'counts'):
+        elif hasattr(result, "counts"):
             # Fallback: extract probabilities from measurements
             counts = result.counts
             total = sum(counts.values())
             n_qubits = len(next(iter(counts.keys())))
-            output = np.zeros(2 ** n_qubits)
+            output = np.zeros(2**n_qubits)
             for bitstring, count in counts.items():
                 idx = int(bitstring, 2)
                 output[idx] = count / total
@@ -255,8 +253,8 @@ class ParallelSPSAEstimator:
             raise ValueError("Cannot process result without counts or _process_measurements method")
 
         # Project to output dimension if full model specifies it
-        if hasattr(full_model, 'output_dim') and len(output) != full_model.output_dim:
-            output = output[:full_model.output_dim]
+        if hasattr(full_model, "output_dim") and len(output) != full_model.output_dim:
+            output = output[: full_model.output_dim]
 
         return output
 
@@ -280,7 +278,7 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
         backend: QuantumBackend,
         batch_manager: Optional[CircuitBatchManager] = None,
         subsample_size: int = 5,
-        **kwargs
+        **kwargs,
     ):
         """
         Initialize subsampled SPSA
@@ -300,7 +298,7 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
         batch_x: np.ndarray,
         batch_y: np.ndarray,
         loss_function: Callable,
-        shots: int = 1000
+        shots: int = 1000,
     ) -> GradientResult:
         """
         Estimate batch gradient using random subsample
@@ -317,18 +315,13 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
 
         # === Randomly subsample ===
         actual_subsample = min(self.subsample_size, batch_size)
-        indices = np.random.choice(
-            batch_size,
-            size=actual_subsample,
-            replace=False
-        )
+        indices = np.random.choice(batch_size, size=actual_subsample, replace=False)
 
         subset_x = batch_x[indices]
         subset_y = batch_y[indices]
 
         logger.debug(
-            f"Subsampled {actual_subsample}/{batch_size} samples "
-            f"for gradient estimation"
+            f"Subsampled {actual_subsample}/{batch_size} samples " f"for gradient estimation"
         )
 
         # Get parameters and perturbation
@@ -336,7 +329,7 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
         self._current_full_model = model
 
         # Get quantum layer for circuit building
-        quantum_layer = model.quantum_layer if hasattr(model, 'quantum_layer') else model
+        quantum_layer = model.quantum_layer if hasattr(model, "quantum_layer") else model
 
         params = quantum_layer.parameters.copy()
         c_k, a_k = self.get_gain_parameters(self.iteration)
@@ -366,23 +359,27 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
             f"(subsample={actual_subsample}/{batch_size})"
         )
 
-        results = await self.batch_manager.execute_batch(
-            all_circuits, shots=shots
-        )
+        results = await self.batch_manager.execute_batch(all_circuits, shots=shots)
 
         results_plus = results[:actual_subsample]
         results_minus = results[actual_subsample:]
 
         # Compute losses on subset
-        loss_plus = sum(
-            loss_function(self._process_result(model, r), y)
-            for r, y in zip(results_plus, subset_y)
-        ) / actual_subsample
+        loss_plus = (
+            sum(
+                loss_function(self._process_result(model, r), y)
+                for r, y in zip(results_plus, subset_y)
+            )
+            / actual_subsample
+        )
 
-        loss_minus = sum(
-            loss_function(self._process_result(model, r), y)
-            for r, y in zip(results_minus, subset_y)
-        ) / actual_subsample
+        loss_minus = (
+            sum(
+                loss_function(self._process_result(model, r), y)
+                for r, y in zip(results_minus, subset_y)
+            )
+            / actual_subsample
+        )
 
         # SPSA gradient
         gradient = ((loss_plus - loss_minus) / (2 * c_k)) * delta
@@ -406,22 +403,18 @@ class SubsampledSPSAEstimator(ParallelSPSAEstimator):
             function_value=avg_loss,
             n_circuit_executions=len(all_circuits),
             computation_time_ms=computation_time,
-            method='spsa_subsampled',
+            method="spsa_subsampled",
             metadata={
-                'iteration': self.iteration,
-                'subsample_size': actual_subsample,
-                'full_batch_size': batch_size,
-                'subsample_ratio': actual_subsample / batch_size,
-                'c_k': c_k,
-                'a_k': a_k
-            }
+                "iteration": self.iteration,
+                "subsample_size": actual_subsample,
+                "full_batch_size": batch_size,
+                "subsample_ratio": actual_subsample / batch_size,
+                "c_k": c_k,
+                "a_k": a_k,
+            },
         )
 
-    def adjust_subsample_size(
-        self,
-        gradient_variance: float,
-        target_variance: float = 0.1
-    ):
+    def adjust_subsample_size(self, gradient_variance: float, target_variance: float = 0.1):
         """
         Dynamically adjust subsample size based on gradient variance
 

@@ -15,22 +15,24 @@ import logging
 import os
 import time
 import uuid
-import numpy as np
-from typing import List, Dict, Optional, Tuple, Any, Union
-from dataclasses import dataclass, field
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+
+from ..backends.backend_manager import BackendManager, MockQuantumBackend
 
 # Import abstraction layer
 from ..backends.quantum_backend_interface import (
-    QuantumCircuit,
     CircuitBuilder,
     ExecutionResult,
-    amplitude_encode_to_circuit
+    QuantumCircuit,
+    amplitude_encode_to_circuit,
 )
-from ..backends.backend_manager import BackendManager, MockQuantumBackend
-from .state_manager import StateManager, QuantumState, StateStatus
 from .entanglement_registry import EntanglementRegistry
+from .state_manager import QuantumState, StateManager, StateStatus
 from .tunneling_engine import TunnelingEngine
 
 # Configure logging
@@ -42,8 +44,10 @@ logger = logging.getLogger(__name__)
 # Configuration and Types
 # ============================================================================
 
+
 class QueryMode(Enum):
     """Query execution modes"""
+
     PRECISE = "precise"
     BALANCED = "balanced"
     EXPLORATORY = "exploratory"
@@ -52,6 +56,7 @@ class QueryMode(Enum):
 @dataclass
 class DatabaseConfig:
     """Comprehensive database configuration"""
+
     # Pinecone configuration
     pinecone_api_key: str
     pinecone_environment: Optional[str] = None
@@ -105,6 +110,7 @@ class DatabaseConfig:
 @dataclass
 class QueryResult:
     """Enhanced query result with metadata"""
+
     id: str
     vector: np.ndarray
     score: float
@@ -117,6 +123,7 @@ class QueryResult:
 @dataclass
 class Metrics:
     """Performance and operational metrics"""
+
     total_queries: int = 0
     quantum_queries: int = 0
     cache_hits: int = 0
@@ -132,6 +139,7 @@ class Metrics:
 # ============================================================================
 # Connection Pool Manager
 # ============================================================================
+
 
 class ConnectionPool:
     """Manages connections to classical and quantum backends"""
@@ -157,17 +165,21 @@ class ConnectionPool:
     async def _init_pinecone(self):
         """Initialize Pinecone connection"""
         try:
-            from pinecone.grpc import PineconeGRPC as Pinecone
             from pinecone import ServerlessSpec
+            from pinecone.grpc import PineconeGRPC as Pinecone
 
             # Get environment from config or environment variable
-            environment = self.config.pinecone_environment or os.getenv('PINECONE_ENVIRONMENT')
+            environment = self.config.pinecone_environment or os.getenv("PINECONE_ENVIRONMENT")
 
             if not self.config.pinecone_api_key:
-                raise ValueError("PINECONE_API_KEY is required. Please set it in your .env file or DatabaseConfig.")
+                raise ValueError(
+                    "PINECONE_API_KEY is required. Please set it in your .env file or DatabaseConfig."
+                )
 
             if not environment:
-                raise ValueError("PINECONE_ENVIRONMENT is required. Please set it in your .env file or DatabaseConfig.")
+                raise ValueError(
+                    "PINECONE_ENVIRONMENT is required. Please set it in your .env file or DatabaseConfig."
+                )
 
             # Initialize Pinecone (new API)
             pc = Pinecone(api_key=self.config.pinecone_api_key)
@@ -182,12 +194,11 @@ class ConnectionPool:
                     name=self.config.pinecone_index_name,
                     dimension=self.config.pinecone_dimension,
                     metric=self.config.pinecone_metric,
-                    spec=ServerlessSpec(
-                        cloud='aws',
-                        region=environment
-                    )
+                    spec=ServerlessSpec(cloud="aws", region=environment),
                 )
-                logger.info(f"Pinecone index '{self.config.pinecone_index_name}' created successfully")
+                logger.info(
+                    f"Pinecone index '{self.config.pinecone_index_name}' created successfully"
+                )
             else:
                 logger.info(f"Using existing Pinecone index: {self.config.pinecone_index_name}")
 
@@ -205,7 +216,11 @@ class ConnectionPool:
         try:
             # Handle backward compatibility with ionq_api_key
             api_key = self.config.quantum_api_key or self.config.ionq_api_key
-            target = self.config.quantum_target if self.config.quantum_target != "simulator" else self.config.ionq_target
+            target = (
+                self.config.quantum_target
+                if self.config.quantum_target != "simulator"
+                else self.config.ionq_target
+            )
             sdk = self.config.quantum_sdk
 
             if sdk == "mock" or not api_key:
@@ -216,12 +231,13 @@ class ConnectionPool:
                 # Use Cirq adapter
                 try:
                     from ..backends.cirq_ionq_adapter import CirqIonQBackend
+
                     cirq_backend = CirqIonQBackend(api_key=api_key, target=target)
                     self.backend_manager.register_backend(
                         "ionq_cirq",
                         cirq_backend,
                         set_as_default=True,
-                        metadata={'description': f'IonQ {target} via Cirq'}
+                        metadata={"description": f"IonQ {target} via Cirq"},
                     )
                     await cirq_backend.initialize()
                     logger.info(f"Initialized Cirq-IonQ backend: {target}")
@@ -232,12 +248,13 @@ class ConnectionPool:
                 # Use Qiskit adapter
                 try:
                     from ..backends.qiskit_ionq_adapter import QiskitIonQBackend
+
                     qiskit_backend = QiskitIonQBackend(api_key=api_key, target=target)
                     self.backend_manager.register_backend(
                         "ionq_qiskit",
                         qiskit_backend,
                         set_as_default=True,
-                        metadata={'description': f'IonQ {target} via Qiskit'}
+                        metadata={"description": f"IonQ {target} via Qiskit"},
                     )
                     await qiskit_backend.initialize()
                     logger.info(f"Initialized Qiskit-IonQ backend: {target}")
@@ -259,7 +276,7 @@ class ConnectionPool:
             "mock_simulator",
             mock_backend,
             set_as_default=True,
-            metadata={'description': 'Mock simulator for testing'}
+            metadata={"description": "Mock simulator for testing"},
         )
         await mock_backend.initialize()
 
@@ -283,6 +300,7 @@ class ConnectionPool:
 # ============================================================================
 # Main Database Class
 # ============================================================================
+
 
 class QuantumDatabase:
     """Production-ready quantum database with hardware abstraction"""
@@ -346,7 +364,7 @@ class QuantumDatabase:
         vector: np.ndarray,
         contexts: Optional[List[Tuple[str, float]]] = None,
         coherence_time: Optional[float] = None,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ):
         """Insert vector with optional quantum features"""
         if not self._initialized:
@@ -358,11 +376,7 @@ class QuantumDatabase:
             # Insert into classical store (Pinecone)
             pinecone_client = self.pool.get_pinecone_client()
 
-            vector_dict = {
-                'id': id,
-                'values': vector.tolist(),
-                'metadata': metadata or {}
-            }
+            vector_dict = {"id": id, "values": vector.tolist(), "metadata": metadata or {}}
 
             pinecone_client.upsert(vectors=[vector_dict])
 
@@ -378,7 +392,7 @@ class QuantumDatabase:
                     state_id=id,
                     vectors=context_vectors,
                     contexts=context_names,
-                    coherence_time=coherence
+                    coherence_time=coherence,
                 )
 
             duration_ms = (time.time() - start_time) * 1000
@@ -389,10 +403,7 @@ class QuantumDatabase:
             logger.error(f"Failed to insert {id}: {e}")
             raise
 
-    async def insert_batch(
-        self,
-        vectors: List[Dict[str, Any]]
-    ):
+    async def insert_batch(self, vectors: List[Dict[str, Any]]):
         """Batch insert for efficiency"""
         if not self._initialized:
             await self.initialize()
@@ -407,16 +418,14 @@ class QuantumDatabase:
             quantum_states = []
 
             for vec_data in vectors:
-                vector_id = vec_data['id']
-                vector = vec_data['vector']
-                metadata = vec_data.get('metadata', {})
-                contexts = vec_data.get('contexts')
+                vector_id = vec_data["id"]
+                vector = vec_data["vector"]
+                metadata = vec_data.get("metadata", {})
+                contexts = vec_data.get("contexts")
 
-                pinecone_vectors.append({
-                    'id': vector_id,
-                    'values': vector.tolist(),
-                    'metadata': metadata
-                })
+                pinecone_vectors.append(
+                    {"id": vector_id, "values": vector.tolist(), "metadata": metadata}
+                )
 
                 if contexts and self.config.enable_superposition:
                     quantum_states.append((vector_id, vector, contexts))
@@ -428,9 +437,7 @@ class QuantumDatabase:
             for state_id, vector, contexts in quantum_states:
                 context_names = [c[0] for c in contexts]
                 await self.state_manager.create_superposition(
-                    state_id=state_id,
-                    vectors=[vector] * len(contexts),
-                    contexts=context_names
+                    state_id=state_id, vectors=[vector] * len(contexts), contexts=context_names
                 )
 
             duration_ms = (time.time() - start_time) * 1000
@@ -448,7 +455,7 @@ class QuantumDatabase:
         mode: QueryMode = QueryMode.BALANCED,
         enable_tunneling: Optional[bool] = None,
         top_k: int = 10,
-        timeout_ms: Optional[int] = None
+        timeout_ms: Optional[int] = None,
     ) -> List[QueryResult]:
         """Query with quantum enhancements"""
         if not self._initialized:
@@ -498,21 +505,13 @@ class QuantumDatabase:
             logger.error(f"Query failed: {e}")
             raise
 
-    async def _classical_query(
-        self,
-        vector: np.ndarray,
-        top_k: int
-    ) -> List[Dict]:
+    async def _classical_query(self, vector: np.ndarray, top_k: int) -> List[Dict]:
         """Execute classical similarity search"""
         pinecone_client = self.pool.get_pinecone_client()
 
-        results = pinecone_client.query(
-            vector=vector.tolist(),
-            top_k=top_k,
-            include_metadata=True
-        )
+        results = pinecone_client.query(vector=vector.tolist(), top_k=top_k, include_metadata=True)
 
-        return results.get('matches', [])
+        return results.get("matches", [])
 
     async def _quantum_refined_query(
         self,
@@ -520,71 +519,70 @@ class QuantumDatabase:
         candidates: List[Dict],
         context: Optional[str],
         mode: QueryMode,
-        top_k: int
+        top_k: int,
     ) -> List[QueryResult]:
         """Apply quantum refinement to candidates"""
         results = []
 
         for candidate in candidates[:top_k]:
-            candidate_id = candidate['id']
-            candidate_vector = np.array(candidate.get('values', []))
+            candidate_id = candidate["id"]
+            candidate_vector = np.array(candidate.get("values", []))
 
             # Try quantum measurement
-            quantum_vector = await self.state_manager.measure_with_context(
-                candidate_id, context
-            )
+            quantum_vector = await self.state_manager.measure_with_context(candidate_id, context)
 
             if quantum_vector is not None:
                 # Use quantum-enhanced vector
                 score = self._calculate_similarity(query_vector, quantum_vector)
-                results.append(QueryResult(
-                    id=candidate_id,
-                    vector=quantum_vector,
-                    score=score,
-                    metadata=candidate.get('metadata', {}),
-                    quantum_enhanced=True,
-                    source="quantum"
-                ))
+                results.append(
+                    QueryResult(
+                        id=candidate_id,
+                        vector=quantum_vector,
+                        score=score,
+                        metadata=candidate.get("metadata", {}),
+                        quantum_enhanced=True,
+                        source="quantum",
+                    )
+                )
             else:
                 # Fall back to classical
-                score = candidate.get('score', 0.0)
-                results.append(QueryResult(
-                    id=candidate_id,
-                    vector=candidate_vector,
-                    score=score,
-                    metadata=candidate.get('metadata', {}),
-                    quantum_enhanced=False,
-                    source="classical"
-                ))
+                score = candidate.get("score", 0.0)
+                results.append(
+                    QueryResult(
+                        id=candidate_id,
+                        vector=candidate_vector,
+                        score=score,
+                        metadata=candidate.get("metadata", {}),
+                        quantum_enhanced=False,
+                        source="classical",
+                    )
+                )
 
         return results
 
     def _rank_results(
-        self,
-        candidates: List[Dict],
-        query_vector: np.ndarray,
-        top_k: int
+        self, candidates: List[Dict], query_vector: np.ndarray, top_k: int
     ) -> List[QueryResult]:
         """Rank and return top-k results"""
         results = []
 
         for candidate in candidates:
-            results.append(QueryResult(
-                id=candidate['id'],
-                vector=np.array(candidate.get('values', [])),
-                score=candidate.get('score', 0.0),
-                metadata=candidate.get('metadata', {}),
-                quantum_enhanced=False,
-                source="classical"
-            ))
+            results.append(
+                QueryResult(
+                    id=candidate["id"],
+                    vector=np.array(candidate.get("values", [])),
+                    score=candidate.get("score", 0.0),
+                    metadata=candidate.get("metadata", {}),
+                    quantum_enhanced=False,
+                    source="classical",
+                )
+            )
 
         results.sort(key=lambda r: r.score, reverse=True)
         return results[:top_k]
 
     def _post_process_results(
-        self,
-        results: List[QueryResult],
-        query_vector: np.ndarray
+        self, results: List[QueryResult], query_vector: np.ndarray
     ) -> List[QueryResult]:
         """Post-process and deduplicate results"""
         # Remove duplicates by ID
@@ -598,11 +596,7 @@ class QuantumDatabase:
 
         return unique_results
 
-    def _calculate_similarity(
-        self,
-        v1: np.ndarray,
-        v2: np.ndarray
-    ) -> float:
+    def _calculate_similarity(self, v1: np.ndarray, v2: np.ndarray) -> float:
         """Calculate cosine similarity"""
         dot_product = np.dot(v1, v2)
         norm_product = np.linalg.norm(v1) * np.linalg.norm(v2)
@@ -636,8 +630,7 @@ class QuantumDatabase:
         # Simplified exponential moving average
         alpha = 0.1
         self.metrics.avg_latency_ms = (
-            alpha * duration_ms +
-            (1 - alpha) * self.metrics.avg_latency_ms
+            alpha * duration_ms + (1 - alpha) * self.metrics.avg_latency_ms
         )
 
     def get_metrics(self) -> Metrics:
@@ -648,29 +641,24 @@ class QuantumDatabase:
     def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive database statistics"""
         return {
-            'total_vectors': 'N/A',  # Would query Pinecone
-            'quantum_states': self.state_manager.get_active_count(),
-            'metrics': {
-                'total_queries': self.metrics.total_queries,
-                'quantum_queries': self.metrics.quantum_queries,
-                'cache_hit_rate': (
-                    self.metrics.cache_hits / max(1, self.metrics.total_queries)
-                ),
-                'avg_latency_ms': self.metrics.avg_latency_ms,
-                'error_count': self.metrics.error_count
+            "total_vectors": "N/A",  # Would query Pinecone
+            "quantum_states": self.state_manager.get_active_count(),
+            "metrics": {
+                "total_queries": self.metrics.total_queries,
+                "quantum_queries": self.metrics.quantum_queries,
+                "cache_hit_rate": (self.metrics.cache_hits / max(1, self.metrics.total_queries)),
+                "avg_latency_ms": self.metrics.avg_latency_ms,
+                "error_count": self.metrics.error_count,
             },
-            'config': {
-                'quantum_enabled': self.config.enable_quantum,
-                'superposition_enabled': self.config.enable_superposition,
-                'tunneling_enabled': self.config.enable_tunneling
-            }
+            "config": {
+                "quantum_enabled": self.config.enable_quantum,
+                "superposition_enabled": self.config.enable_superposition,
+                "tunneling_enabled": self.config.enable_tunneling,
+            },
         }
 
     def create_entangled_group(
-        self,
-        group_id: str,
-        entity_ids: List[str],
-        correlation_strength: float = 0.85
+        self, group_id: str, entity_ids: List[str], correlation_strength: float = 0.85
     ):
         """
         Create an entangled group of entities
@@ -681,9 +669,7 @@ class QuantumDatabase:
             correlation_strength: Strength of correlation (0-1)
         """
         return self.entanglement_registry.create_entangled_group(
-            group_id=group_id,
-            entity_ids=entity_ids,
-            correlation_strength=correlation_strength
+            group_id=group_id, entity_ids=entity_ids, correlation_strength=correlation_strength
         )
 
     def list_backends(self) -> List[Dict[str, Any]]:
@@ -704,6 +690,7 @@ class QuantumDatabase:
 # Mock Backend for Testing
 # ============================================================================
 
+
 class MockPineconeIndex:
     """Mock Pinecone index for testing without real backend"""
 
@@ -713,19 +700,18 @@ class MockPineconeIndex:
     def upsert(self, vectors: List[Dict]):
         """Store vectors"""
         for v in vectors:
-            self.vectors[v['id']] = v
+            self.vectors[v["id"]] = v
 
-    def query(self, vector: List[float], top_k: int,
-             include_metadata: bool = True) -> Dict:
+    def query(self, vector: List[float], top_k: int, include_metadata: bool = True) -> Dict:
         """Mock query"""
         # Return random matches for testing
         matches = [
             {
-                'id': f'vec_{i}',
-                'score': 0.9 - i * 0.05,
-                'values': [0.1] * len(vector),
-                'metadata': {}
+                "id": f"vec_{i}",
+                "score": 0.9 - i * 0.05,
+                "values": [0.1] * len(vector),
+                "metadata": {},
             }
             for i in range(min(top_k, max(5, len(self.vectors))))
         ]
-        return {'matches': matches}
+        return {"matches": matches}

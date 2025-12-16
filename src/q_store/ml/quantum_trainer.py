@@ -4,27 +4,28 @@ Orchestrates quantum ML training with hardware abstraction
 """
 
 import asyncio
-import time
 import json
-import os
-import numpy as np
 import logging
-from typing import Optional, Dict, Any, List, Callable
+import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 from ..backends.backend_manager import BackendManager
-from .gradient_computer import QuantumGradientComputer, GradientResult
-from .quantum_layer import QuantumLayer
+from .adaptive_optimizer import AdaptiveGradientOptimizer
+from .circuit_batch_manager import CircuitBatchManager
+from .circuit_cache import QuantumCircuitCache
 from .data_encoder import QuantumDataEncoder
+from .gradient_computer import GradientResult, QuantumGradientComputer
+from .performance_tracker import PerformanceTracker
+from .quantum_layer import QuantumLayer
+from .quantum_layer_v2 import HardwareEfficientQuantumLayer
 
 # v3.3 imports
 from .spsa_gradient_estimator import SPSAGradientEstimator
-from .circuit_batch_manager import CircuitBatchManager
-from .circuit_cache import QuantumCircuitCache
-from .quantum_layer_v2 import HardwareEfficientQuantumLayer
-from .adaptive_optimizer import AdaptiveGradientOptimizer
-from .performance_tracker import PerformanceTracker
 
 # v3.4 imports
 try:
@@ -32,6 +33,7 @@ try:
     from .ionq_batch_client import IonQBatchClient
     from .ionq_native_gate_compiler import IonQNativeGateCompiler
     from .smart_circuit_cache import SmartCircuitCache
+
     V3_4_AVAILABLE = True
 except ImportError:
     V3_4_AVAILABLE = False
@@ -43,6 +45,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TrainingConfig:
     """Configuration for quantum training"""
+
     # Database config
     pinecone_api_key: str
     pinecone_environment: str = "us-east-1"
@@ -61,11 +64,13 @@ class TrainingConfig:
     # Model architecture
     n_qubits: int = 10
     circuit_depth: int = 4
-    entanglement: str = 'linear'
+    entanglement: str = "linear"
 
     # Optimization
-    optimizer: str = 'adam'  # 'adam', 'sgd', 'natural_gradient'
-    gradient_method: str = 'spsa_subsampled'  # 'parameter_shift', 'finite_diff', 'spsa', 'spsa_parallel', 'spsa_subsampled', 'adaptive'
+    optimizer: str = "adam"  # 'adam', 'sgd', 'natural_gradient'
+    gradient_method: str = (
+        "spsa_subsampled"  # 'parameter_shift', 'finite_diff', 'spsa', 'spsa_parallel', 'spsa_subsampled', 'adaptive'
+    )
     momentum: float = 0.9
     weight_decay: float = 0.0
 
@@ -77,7 +82,7 @@ class TrainingConfig:
 
     # Checkpointing
     checkpoint_interval: int = 10
-    checkpoint_directory: str = './checkpoints'
+    checkpoint_directory: str = "./checkpoints"
 
     # Monitoring
     log_interval: int = 10
@@ -130,6 +135,7 @@ class TrainingConfig:
 @dataclass
 class TrainingMetrics:
     """Metrics tracked during training"""
+
     epoch: int
     loss: float
     accuracy: Optional[float] = None
@@ -152,7 +158,7 @@ class QuantumModel:
         output_dim: int,
         backend,
         depth: int = 4,
-        hardware_efficient: bool = False
+        hardware_efficient: bool = False,
     ):
         """
         Initialize quantum model
@@ -175,17 +181,13 @@ class QuantumModel:
         # Quantum layer (v3.3: hardware-efficient option)
         if hardware_efficient:
             self.quantum_layer = HardwareEfficientQuantumLayer(
-                n_qubits=n_qubits,
-                depth=depth,
-                backend=backend
+                n_qubits=n_qubits, depth=depth, backend=backend
             )
-            logger.info(f"Using hardware-efficient layer with {self.quantum_layer.n_parameters} parameters")
+            logger.info(
+                f"Using hardware-efficient layer with {self.quantum_layer.n_parameters} parameters"
+            )
         else:
-            self.quantum_layer = QuantumLayer(
-                n_qubits=n_qubits,
-                depth=depth,
-                backend=backend
-            )
+            self.quantum_layer = QuantumLayer(n_qubits=n_qubits, depth=depth, backend=backend)
 
         # Parameters are managed by quantum layer
         self.parameters = self.quantum_layer.parameters
@@ -207,25 +209,25 @@ class QuantumModel:
         # Project to output dimension if needed
         if len(output) != self.output_dim:
             # Simple projection: take first output_dim elements
-            output = output[:self.output_dim]
+            output = output[: self.output_dim]
 
         return output
 
     def save_state(self) -> Dict[str, Any]:
         """Save model state"""
         return {
-            'config': {
-                'input_dim': self.input_dim,
-                'n_qubits': self.n_qubits,
-                'output_dim': self.output_dim,
-                'depth': self.depth
+            "config": {
+                "input_dim": self.input_dim,
+                "n_qubits": self.n_qubits,
+                "output_dim": self.output_dim,
+                "depth": self.depth,
             },
-            'quantum_layer': self.quantum_layer.save_state()
+            "quantum_layer": self.quantum_layer.save_state(),
         }
 
     def load_state(self, state: Dict[str, Any]):
         """Load model state"""
-        self.quantum_layer.load_state(state['quantum_layer'])
+        self.quantum_layer.load_state(state["quantum_layer"])
         self.parameters = self.quantum_layer.parameters
 
 
@@ -234,11 +236,7 @@ class QuantumTrainer:
     Quantum ML trainer with hardware abstraction
     """
 
-    def __init__(
-        self,
-        config: TrainingConfig,
-        backend_manager: BackendManager
-    ):
+    def __init__(self, config: TrainingConfig, backend_manager: BackendManager):
         """
         Initialize trainer
 
@@ -253,43 +251,46 @@ class QuantumTrainer:
         self.backend = backend_manager.get_backend()
 
         # v3.3.1: Circuit batch manager (always needed for new gradient methods)
-        self.batch_manager = CircuitBatchManager(
-            self.backend,
-            max_batch_size=config.max_parallel_circuits,
-            timeout=config.batch_submission_timeout
-        ) if config.enable_circuit_batching else None
+        self.batch_manager = (
+            CircuitBatchManager(
+                self.backend,
+                max_batch_size=config.max_parallel_circuits,
+                timeout=config.batch_submission_timeout,
+            )
+            if config.enable_circuit_batching
+            else None
+        )
 
         # Initialize gradient computer based on method (v3.3.1 updated)
-        if config.gradient_method == 'spsa_parallel':
+        if config.gradient_method == "spsa_parallel":
             from .parallel_spsa_estimator import ParallelSPSAEstimator
+
             self.gradient_computer = ParallelSPSAEstimator(
                 backend=self.backend,
                 batch_manager=self.batch_manager,
                 c_initial=config.spsa_c_initial,
-                a_initial=config.spsa_a_initial
+                a_initial=config.spsa_a_initial,
             )
             logger.info("Using parallel SPSA gradient estimator (v3.3.1)")
-        elif config.gradient_method == 'spsa_subsampled':
+        elif config.gradient_method == "spsa_subsampled":
             from .parallel_spsa_estimator import SubsampledSPSAEstimator
+
             self.gradient_computer = SubsampledSPSAEstimator(
                 backend=self.backend,
                 batch_manager=self.batch_manager,
                 subsample_size=config.gradient_subsample_size,
                 c_initial=config.spsa_c_initial,
-                a_initial=config.spsa_a_initial
+                a_initial=config.spsa_a_initial,
             )
-            logger.info(f"Using subsampled SPSA gradient estimator (v3.3.1, subsample={config.gradient_subsample_size})")
-        elif config.gradient_method == 'adaptive':
-            self.gradient_computer = AdaptiveGradientOptimizer(
-                self.backend,
-                enable_adaptation=True
+            logger.info(
+                f"Using subsampled SPSA gradient estimator (v3.3.1, subsample={config.gradient_subsample_size})"
             )
+        elif config.gradient_method == "adaptive":
+            self.gradient_computer = AdaptiveGradientOptimizer(self.backend, enable_adaptation=True)
             logger.info("Using adaptive gradient optimizer (v3.3)")
-        elif config.gradient_method == 'spsa':
+        elif config.gradient_method == "spsa":
             self.gradient_computer = SPSAGradientEstimator(
-                self.backend,
-                c_initial=config.spsa_c_initial,
-                a_initial=config.spsa_a_initial
+                self.backend, c_initial=config.spsa_c_initial, a_initial=config.spsa_a_initial
             )
             logger.info("Using SPSA gradient estimator (v3.3)")
         else:
@@ -298,16 +299,22 @@ class QuantumTrainer:
             logger.info("Using parameter shift gradient computation")
 
         # v3.3 NEW: Circuit optimization infrastructure
-        self.circuit_cache = QuantumCircuitCache(
-            max_compiled_circuits=config.cache_size,
-            max_results=config.cache_size * 5
-        ) if config.enable_circuit_cache else None
+        self.circuit_cache = (
+            QuantumCircuitCache(
+                max_compiled_circuits=config.cache_size, max_results=config.cache_size * 5
+            )
+            if config.enable_circuit_cache
+            else None
+        )
 
         # v3.3 NEW: Performance monitoring
-        self.performance_tracker = PerformanceTracker(
-            log_dir=config.performance_log_dir,
-            save_interval=config.log_interval
-        ) if config.enable_performance_tracking else None
+        self.performance_tracker = (
+            PerformanceTracker(
+                log_dir=config.performance_log_dir, save_interval=config.log_interval
+            )
+            if config.enable_performance_tracking
+            else None
+        )
 
         self.data_encoder = QuantumDataEncoder()
 
@@ -336,8 +343,8 @@ class QuantumTrainer:
             return
 
         try:
-            from pinecone.grpc import PineconeGRPC as Pinecone
             from pinecone import ServerlessSpec
+            from pinecone.grpc import PineconeGRPC as Pinecone
 
             if not self.config.pinecone_api_key or self.config.pinecone_api_key == "mock-key":
                 logger.info("Skipping Pinecone initialization (mock mode or no API key)")
@@ -353,12 +360,11 @@ class QuantumTrainer:
                     name=self.config.pinecone_index_name,
                     dimension=768,  # Default dimension for embeddings
                     metric="cosine",
-                    spec=ServerlessSpec(
-                        cloud='aws',
-                        region=self.config.pinecone_environment
-                    )
+                    spec=ServerlessSpec(cloud="aws", region=self.config.pinecone_environment),
                 )
-                logger.info(f"Pinecone index '{self.config.pinecone_index_name}' created successfully")
+                logger.info(
+                    f"Pinecone index '{self.config.pinecone_index_name}' created successfully"
+                )
             else:
                 logger.info(f"Using existing Pinecone index: {self.config.pinecone_index_name}")
 
@@ -366,7 +372,9 @@ class QuantumTrainer:
             self._pinecone_client = pc
             self._pinecone_initialized = True
             self._enable_vector_storage = True
-            logger.info("Pinecone connection established for model checkpointing and vector storage")
+            logger.info(
+                "Pinecone connection established for model checkpointing and vector storage"
+            )
 
         except ImportError:
             logger.warning("Pinecone package not installed. Checkpointing to Pinecone disabled.")
@@ -375,44 +383,29 @@ class QuantumTrainer:
 
     def _initialize_optimizer(self) -> Dict[str, Any]:
         """Initialize optimizer state"""
-        if self.config.optimizer == 'adam':
+        if self.config.optimizer == "adam":
             return {
-                'm': None,  # First moment
-                'v': None,  # Second moment
-                't': 0,     # Time step
-                'beta1': 0.9,
-                'beta2': 0.999,
-                'epsilon': 1e-8
+                "m": None,  # First moment
+                "v": None,  # Second moment
+                "t": 0,  # Time step
+                "beta1": 0.9,
+                "beta2": 0.999,
+                "epsilon": 1e-8,
             }
-        elif self.config.optimizer == 'sgd':
-            return {
-                'velocity': None,
-                'momentum': self.config.momentum
-            }
+        elif self.config.optimizer == "sgd":
+            return {"velocity": None, "momentum": self.config.momentum}
         else:
             return {}
 
-    def _default_loss_function(
-        self,
-        predictions: np.ndarray,
-        targets: np.ndarray
-    ) -> float:
+    def _default_loss_function(self, predictions: np.ndarray, targets: np.ndarray) -> float:
         """Default MSE loss function"""
         return np.mean((predictions - targets) ** 2)
 
-    def set_loss_function(
-        self,
-        loss_fn: Callable[[np.ndarray, np.ndarray], float]
-    ):
+    def set_loss_function(self, loss_fn: Callable[[np.ndarray, np.ndarray], float]):
         """Set custom loss function"""
         self.loss_function = loss_fn
 
-    async def train_epoch(
-        self,
-        model: QuantumModel,
-        data_loader,
-        epoch: int
-    ) -> TrainingMetrics:
+    async def train_epoch(self, model: QuantumModel, data_loader, epoch: int) -> TrainingMetrics:
         """
         Train for one epoch
 
@@ -435,10 +428,10 @@ class QuantumTrainer:
             # Train on batch
             batch_metrics = await self.train_batch(model, batch_x, batch_y)
 
-            epoch_loss += batch_metrics['loss']
-            total_gradient_norm += batch_metrics['gradient_norm']
-            total_circuit_executions += batch_metrics['n_circuits']
-            total_circuit_time += batch_metrics['circuit_time_ms']
+            epoch_loss += batch_metrics["loss"]
+            total_gradient_norm += batch_metrics["gradient_norm"]
+            total_circuit_executions += batch_metrics["n_circuits"]
+            total_circuit_time += batch_metrics["circuit_time_ms"]
             batch_count += 1
 
             # Store training vectors to Pinecone if enabled
@@ -463,7 +456,7 @@ class QuantumTrainer:
             learning_rate=self.config.learning_rate,
             circuit_execution_time_ms=total_circuit_time / batch_count if batch_count > 0 else 0.0,
             epoch_time_ms=epoch_time,
-            n_circuit_executions=total_circuit_executions
+            n_circuit_executions=total_circuit_executions,
         )
 
         self.training_history.append(metrics)
@@ -471,10 +464,7 @@ class QuantumTrainer:
         return metrics
 
     async def train_batch(
-        self,
-        model: QuantumModel,
-        batch_x: np.ndarray,
-        batch_y: np.ndarray
+        self, model: QuantumModel, batch_x: np.ndarray, batch_y: np.ndarray
     ) -> Dict[str, float]:
         """
         Train on a single batch (v3.3.1 CORRECTED)
@@ -490,7 +480,7 @@ class QuantumTrainer:
         batch_start = time.time()
 
         # v3.3.1 FIX: Use batch gradient methods for parallel/subsampled SPSA
-        if hasattr(self.gradient_computer, 'estimate_batch_gradient'):
+        if hasattr(self.gradient_computer, "estimate_batch_gradient"):
             # NEW v3.3.1: True batch gradient computation
             # Computes gradient of BATCH LOSS, not per-sample average
             grad_result = await self.gradient_computer.estimate_batch_gradient(
@@ -498,7 +488,7 @@ class QuantumTrainer:
                 batch_x=batch_x,
                 batch_y=batch_y,
                 loss_function=self.loss_function,
-                shots=self.config.shots_per_circuit
+                shots=self.config.shots_per_circuit,
             )
 
             batch_gradients = grad_result.gradients
@@ -526,18 +516,18 @@ class QuantumTrainer:
                     # Extract output from execution result
                     output = model.quantum_layer._process_measurements(result)
                     if len(output) != model.output_dim:
-                        output = output[:model.output_dim]
+                        output = output[: model.output_dim]
                     return self.loss_function(output, y)
 
                 # v3.3: Use appropriate gradient method
-                if hasattr(self.gradient_computer, 'estimate_gradient'):
+                if hasattr(self.gradient_computer, "estimate_gradient"):
                     # SPSA or adaptive optimizer
                     grad_result = await self.gradient_computer.estimate_gradient(
                         circuit_builder=circuit_builder,
                         loss_function=loss_from_result,
                         parameters=model.quantum_layer.parameters,
                         frozen_indices=model.quantum_layer._frozen_params,
-                        shots=self.config.shots_per_circuit
+                        shots=self.config.shots_per_circuit,
                     )
                 else:
                     # Standard parameter shift
@@ -545,7 +535,7 @@ class QuantumTrainer:
                         circuit_builder=circuit_builder,
                         loss_function=loss_from_result,
                         parameters=model.quantum_layer.parameters,
-                        frozen_indices=list(model.quantum_layer._frozen_params)
+                        frozen_indices=list(model.quantum_layer._frozen_params),
                     )
 
                 batch_loss += grad_result.function_value
@@ -567,10 +557,7 @@ class QuantumTrainer:
                 batch_gradients = batch_gradients * (self.config.gradient_clip_value / grad_norm)
 
         # Update parameters
-        new_params = self._optimizer_step(
-            model.quantum_layer.parameters,
-            batch_gradients
-        )
+        new_params = self._optimizer_step(model.quantum_layer.parameters, batch_gradients)
         model.quantum_layer.update_parameters(new_params)
 
         batch_time = (time.time() - batch_start) * 1000
@@ -578,7 +565,7 @@ class QuantumTrainer:
         # v3.3 NEW: Track performance
         if self.performance_tracker:
             cache_stats = self.circuit_cache.get_stats() if self.circuit_cache else None
-            method_used = getattr(grad_result, 'method', None)
+            method_used = getattr(grad_result, "method", None)
 
             self.performance_tracker.log_batch(
                 batch_idx=self.current_epoch,
@@ -589,21 +576,17 @@ class QuantumTrainer:
                 time_ms=batch_time,
                 learning_rate=self.config.learning_rate,
                 cache_stats=cache_stats,
-                method_used=method_used
+                method_used=method_used,
             )
 
         return {
-            'loss': batch_loss / len(batch_x),
-            'gradient_norm': np.linalg.norm(batch_gradients),
-            'n_circuits': n_circuits,
-            'circuit_time_ms': batch_time
+            "loss": batch_loss / len(batch_x),
+            "gradient_norm": np.linalg.norm(batch_gradients),
+            "n_circuits": n_circuits,
+            "circuit_time_ms": batch_time,
         }
 
-    def _optimizer_step(
-        self,
-        parameters: np.ndarray,
-        gradients: np.ndarray
-    ) -> np.ndarray:
+    def _optimizer_step(self, parameters: np.ndarray, gradients: np.ndarray) -> np.ndarray:
         """
         Perform optimizer step
 
@@ -614,70 +597,57 @@ class QuantumTrainer:
         Returns:
             Updated parameters
         """
-        if self.config.optimizer == 'adam':
+        if self.config.optimizer == "adam":
             return self._adam_step(parameters, gradients)
-        elif self.config.optimizer == 'sgd':
+        elif self.config.optimizer == "sgd":
             return self._sgd_step(parameters, gradients)
         else:
             # Simple gradient descent
             return parameters - self.config.learning_rate * gradients
 
-    def _adam_step(
-        self,
-        parameters: np.ndarray,
-        gradients: np.ndarray
-    ) -> np.ndarray:
+    def _adam_step(self, parameters: np.ndarray, gradients: np.ndarray) -> np.ndarray:
         """Adam optimizer step"""
         state = self.optimizer_state
 
         # Initialize moments if needed
-        if state['m'] is None:
-            state['m'] = np.zeros_like(parameters)
-            state['v'] = np.zeros_like(parameters)
+        if state["m"] is None:
+            state["m"] = np.zeros_like(parameters)
+            state["v"] = np.zeros_like(parameters)
 
-        state['t'] += 1
+        state["t"] += 1
 
         # Update biased first moment
-        state['m'] = state['beta1'] * state['m'] + (1 - state['beta1']) * gradients
+        state["m"] = state["beta1"] * state["m"] + (1 - state["beta1"]) * gradients
 
         # Update biased second moment
-        state['v'] = state['beta2'] * state['v'] + (1 - state['beta2']) * (gradients ** 2)
+        state["v"] = state["beta2"] * state["v"] + (1 - state["beta2"]) * (gradients**2)
 
         # Bias correction
-        m_hat = state['m'] / (1 - state['beta1'] ** state['t'])
-        v_hat = state['v'] / (1 - state['beta2'] ** state['t'])
+        m_hat = state["m"] / (1 - state["beta1"] ** state["t"])
+        v_hat = state["v"] / (1 - state["beta2"] ** state["t"])
 
         # Update parameters
-        update = self.config.learning_rate * m_hat / (np.sqrt(v_hat) + state['epsilon'])
+        update = self.config.learning_rate * m_hat / (np.sqrt(v_hat) + state["epsilon"])
 
         return parameters - update
 
-    def _sgd_step(
-        self,
-        parameters: np.ndarray,
-        gradients: np.ndarray
-    ) -> np.ndarray:
+    def _sgd_step(self, parameters: np.ndarray, gradients: np.ndarray) -> np.ndarray:
         """SGD with momentum"""
         state = self.optimizer_state
 
-        if state['velocity'] is None:
-            state['velocity'] = np.zeros_like(parameters)
+        if state["velocity"] is None:
+            state["velocity"] = np.zeros_like(parameters)
 
         # Update velocity
-        state['velocity'] = (
-            state['momentum'] * state['velocity'] +
-            self.config.learning_rate * gradients
+        state["velocity"] = (
+            state["momentum"] * state["velocity"] + self.config.learning_rate * gradients
         )
 
         # Update parameters
-        return parameters - state['velocity']
+        return parameters - state["velocity"]
 
     async def train(
-        self,
-        model: QuantumModel,
-        train_loader,
-        val_loader=None,
-        epochs: Optional[int] = None
+        self, model: QuantumModel, train_loader, val_loader=None, epochs: Optional[int] = None
     ):
         """
         Train the model
@@ -721,11 +691,7 @@ class QuantumTrainer:
 
         logger.info("Training complete!")
 
-    async def validate(
-        self,
-        model: QuantumModel,
-        val_loader
-    ) -> Dict[str, float]:
+    async def validate(self, model: QuantumModel, val_loader) -> Dict[str, float]:
         """
         Validate the model
 
@@ -746,17 +712,9 @@ class QuantumTrainer:
                 total_loss += loss
                 count += 1
 
-        return {
-            'loss': total_loss / count if count > 0 else 0.0,
-            'count': count
-        }
+        return {"loss": total_loss / count if count > 0 else 0.0, "count": count}
 
-    async def save_checkpoint(
-        self,
-        model: QuantumModel,
-        epoch: int,
-        metrics: TrainingMetrics
-    ):
+    async def save_checkpoint(self, model: QuantumModel, epoch: int, metrics: TrainingMetrics):
         """
         Save training checkpoint
 
@@ -771,19 +729,19 @@ class QuantumTrainer:
         checkpoint_path = checkpoint_dir / f"checkpoint_epoch_{epoch}.json"
 
         checkpoint = {
-            'epoch': epoch,
-            'model_state': model.save_state(),
-            'optimizer_state': self.optimizer_state,
-            'metrics': {
-                'loss': metrics.loss,
-                'gradient_norm': metrics.gradient_norm,
-                'learning_rate': metrics.learning_rate
+            "epoch": epoch,
+            "model_state": model.save_state(),
+            "optimizer_state": self.optimizer_state,
+            "metrics": {
+                "loss": metrics.loss,
+                "gradient_norm": metrics.gradient_norm,
+                "learning_rate": metrics.learning_rate,
             },
-            'config': {
-                'learning_rate': self.config.learning_rate,
-                'optimizer': self.config.optimizer,
-                'batch_size': self.config.batch_size
-            }
+            "config": {
+                "learning_rate": self.config.learning_rate,
+                "optimizer": self.config.optimizer,
+                "batch_size": self.config.batch_size,
+            },
         }
 
         # Convert numpy arrays to lists for JSON serialization
@@ -798,16 +756,12 @@ class QuantumTrainer:
 
         checkpoint = convert_arrays(checkpoint)
 
-        with open(checkpoint_path, 'w') as f:
+        with open(checkpoint_path, "w") as f:
             json.dump(checkpoint, f, indent=2)
 
         logger.info(f"Saved checkpoint to {checkpoint_path}")
 
-    async def load_checkpoint(
-        self,
-        checkpoint_path: str,
-        model: QuantumModel
-    ):
+    async def load_checkpoint(self, checkpoint_path: str, model: QuantumModel):
         """
         Load training checkpoint
 
@@ -815,11 +769,11 @@ class QuantumTrainer:
             checkpoint_path: Path to checkpoint file
             model: Model to load state into
         """
-        with open(checkpoint_path, 'r') as f:
+        with open(checkpoint_path, "r") as f:
             checkpoint = json.load(f)
 
         # Load model state
-        model.load_state(checkpoint['model_state'])
+        model.load_state(checkpoint["model_state"])
 
         # Load optimizer state
         def convert_to_arrays(obj):
@@ -829,17 +783,13 @@ class QuantumTrainer:
                 return np.array(obj)
             return obj
 
-        self.optimizer_state = convert_to_arrays(checkpoint['optimizer_state'])
-        self.current_epoch = checkpoint['epoch']
+        self.optimizer_state = convert_to_arrays(checkpoint["optimizer_state"])
+        self.current_epoch = checkpoint["epoch"]
 
         logger.info(f"Loaded checkpoint from epoch {self.current_epoch}")
 
     async def _store_training_batch_to_pinecone(
-        self,
-        batch_x: np.ndarray,
-        batch_y: np.ndarray,
-        epoch: int,
-        batch_num: int
+        self, batch_x: np.ndarray, batch_y: np.ndarray, epoch: int, batch_num: int
     ):
         """
         Store training batch vectors to Pinecone
@@ -860,24 +810,22 @@ class QuantumTrainer:
                 # Pad or truncate to match index dimension (768)
                 vector = x.flatten()
                 if len(vector) < 768:
-                    vector = np.pad(vector, (0, 768 - len(vector)), 'constant')
+                    vector = np.pad(vector, (0, 768 - len(vector)), "constant")
                 elif len(vector) > 768:
                     vector = vector[:768]
 
                 # Prepare metadata
                 metadata = {
-                    'epoch': epoch,
-                    'batch': batch_num,
-                    'sample_idx': idx,
-                    'label': str(y.tolist() if isinstance(y, np.ndarray) else y),
-                    'type': 'training_data'
+                    "epoch": epoch,
+                    "batch": batch_num,
+                    "sample_idx": idx,
+                    "label": str(y.tolist() if isinstance(y, np.ndarray) else y),
+                    "type": "training_data",
                 }
 
-                vectors_to_upsert.append({
-                    'id': vector_id,
-                    'values': vector.tolist(),
-                    'metadata': metadata
-                })
+                vectors_to_upsert.append(
+                    {"id": vector_id, "values": vector.tolist(), "metadata": metadata}
+                )
 
             # Upsert to Pinecone
             if vectors_to_upsert:
@@ -895,8 +843,8 @@ class QuantumTrainer:
     def get_pinecone_stats(self) -> Dict[str, Any]:
         """Get Pinecone storage statistics"""
         return {
-            'enabled': self._enable_vector_storage,
-            'initialized': self._pinecone_initialized,
-            'vectors_stored': self._training_vectors_stored,
-            'index_name': self.config.pinecone_index_name if self._pinecone_initialized else None
+            "enabled": self._enable_vector_storage,
+            "initialized": self._pinecone_initialized,
+            "vectors_stored": self._training_vectors_stored,
+            "index_name": self.config.pinecone_index_name if self._pinecone_initialized else None,
         }

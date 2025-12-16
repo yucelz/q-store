@@ -7,13 +7,14 @@ Key Innovation: Optimal speed/accuracy tradeoff throughout training
 
 import asyncio
 import logging
-from typing import Callable, Optional, Dict, Any, List
+from typing import Any, Callable, Dict, List, Optional
+
 import numpy as np
 
 from ..backends.backend_manager import BackendManager
 from ..backends.quantum_backend_interface import QuantumBackend
-from .spsa_gradient_estimator import SPSAGradientEstimator, GradientResult
 from .gradient_computer import QuantumGradientComputer
+from .spsa_gradient_estimator import GradientResult, SPSAGradientEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +29,7 @@ class AdaptiveGradientOptimizer:
     """
 
     def __init__(
-        self,
-        backend: QuantumBackend,
-        initial_method: str = 'spsa',
-        enable_adaptation: bool = True
+        self, backend: QuantumBackend, initial_method: str = "spsa", enable_adaptation: bool = True
     ):
         """
         Initialize adaptive gradient optimizer
@@ -46,8 +44,8 @@ class AdaptiveGradientOptimizer:
 
         # Available gradient methods
         self.methods = {
-            'spsa': SPSAGradientEstimator(backend),
-            'parameter_shift': QuantumGradientComputer(backend),
+            "spsa": SPSAGradientEstimator(backend),
+            "parameter_shift": QuantumGradientComputer(backend),
         }
 
         self.current_method = initial_method
@@ -66,7 +64,7 @@ class AdaptiveGradientOptimizer:
         loss_function: Callable,
         parameters: np.ndarray,
         frozen_indices: Optional[set] = None,
-        shots: int = 1000
+        shots: int = 1000,
     ) -> GradientResult:
         """
         Compute gradients with adaptive method selection
@@ -91,20 +89,17 @@ class AdaptiveGradientOptimizer:
         estimator = self.methods[method]
 
         # Compute gradients
-        if method == 'spsa':
+        if method == "spsa":
             result = await estimator.estimate_gradient(
                 circuit_builder,
                 loss_function,
                 parameters,
                 shots=shots,
-                frozen_indices=frozen_indices
+                frozen_indices=frozen_indices,
             )
         else:  # parameter_shift
             result = await estimator.compute_gradients(
-                circuit_builder,
-                loss_function,
-                parameters,
-                frozen_indices=frozen_indices
+                circuit_builder, loss_function, parameters, frozen_indices=frozen_indices
             )
 
         # Track method usage
@@ -135,25 +130,25 @@ class AdaptiveGradientOptimizer:
         """
         # Early training: use fast SPSA
         if self.iteration < 10:
-            return 'spsa'
+            return "spsa"
 
         # Periodic refinement with accurate gradients
         if self.iteration % 10 == 0:
             logger.info(f"Iteration {self.iteration}: Using parameter shift for accuracy check")
-            return 'parameter_shift'
+            return "parameter_shift"
 
         # Check convergence
         if self._is_converging_slowly():
             logger.info("Slow convergence detected, switching to parameter shift")
-            return 'parameter_shift'
+            return "parameter_shift"
 
         # Check if gradients are too noisy
         if self._gradients_too_noisy():
             logger.info("High gradient variance, using parameter shift")
-            return 'parameter_shift'
+            return "parameter_shift"
 
         # Default: continue with SPSA
-        return 'spsa'
+        return "spsa"
 
     def _is_converging_slowly(self, window: int = 5) -> bool:
         """
@@ -237,15 +232,16 @@ class AdaptiveGradientOptimizer:
             method_counts[method] = method_counts.get(method, 0) + 1
 
         return {
-            'iteration': self.iteration,
-            'current_method': self.current_method,
-            'method_counts': method_counts,
-            'convergence_rate': self._estimate_convergence_rate(),
-            'gradient_variance': (
+            "iteration": self.iteration,
+            "current_method": self.current_method,
+            "method_counts": method_counts,
+            "convergence_rate": self._estimate_convergence_rate(),
+            "gradient_variance": (
                 np.mean(self.gradient_variance_history[-10:])
-                if self.gradient_variance_history else 0
+                if self.gradient_variance_history
+                else 0
             ),
-            'adaptation_enabled': self.enable_adaptation
+            "adaptation_enabled": self.enable_adaptation,
         }
 
     def _estimate_convergence_rate(self) -> float:
@@ -280,7 +276,7 @@ class AdaptiveGradientOptimizer:
 
         # Reset individual estimators
         for estimator in self.methods.values():
-            if hasattr(estimator, 'reset'):
+            if hasattr(estimator, "reset"):
                 estimator.reset()
 
         logger.info("Reset adaptive optimizer")
@@ -313,11 +309,7 @@ class GradientMethodScheduler:
     More deterministic than adaptive selection
     """
 
-    def __init__(
-        self,
-        backend: QuantumBackend,
-        schedule: Optional[List[tuple]] = None
-    ):
+    def __init__(self, backend: QuantumBackend, schedule: Optional[List[tuple]] = None):
         """
         Initialize scheduler
 
@@ -330,9 +322,9 @@ class GradientMethodScheduler:
         # Default schedule
         if schedule is None:
             schedule = [
-                (0, 'spsa'),      # Start with SPSA
-                (50, 'parameter_shift'),  # Switch to accurate gradients
-                (100, 'spsa'),    # Back to SPSA for fine-tuning
+                (0, "spsa"),  # Start with SPSA
+                (50, "parameter_shift"),  # Switch to accurate gradients
+                (100, "spsa"),  # Back to SPSA for fine-tuning
             ]
 
         self.schedule = sorted(schedule)
@@ -340,16 +332,12 @@ class GradientMethodScheduler:
 
         # Gradient computers
         self.methods = {
-            'spsa': SPSAGradientEstimator(backend),
-            'parameter_shift': QuantumGradientComputer(backend),
+            "spsa": SPSAGradientEstimator(backend),
+            "parameter_shift": QuantumGradientComputer(backend),
         }
 
     async def compute_gradients(
-        self,
-        circuit_builder: Callable,
-        loss_function: Callable,
-        parameters: np.ndarray,
-        **kwargs
+        self, circuit_builder: Callable, loss_function: Callable, parameters: np.ndarray, **kwargs
     ) -> GradientResult:
         """Compute gradients using scheduled method"""
 
@@ -363,7 +351,7 @@ class GradientMethodScheduler:
         # Compute gradients
         estimator = self.methods[method]
 
-        if method == 'spsa':
+        if method == "spsa":
             result = await estimator.estimate_gradient(
                 circuit_builder, loss_function, parameters, **kwargs
             )

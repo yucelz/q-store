@@ -6,17 +6,14 @@ Key Innovation: Estimates ALL gradients with just 2 circuit evaluations
 """
 
 import asyncio
-import time
-import numpy as np
 import logging
-from typing import Callable, Optional, Dict, Any
+import time
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, Optional
 
-from ..backends.quantum_backend_interface import (
-    QuantumBackend,
-    QuantumCircuit,
-    ExecutionResult
-)
+import numpy as np
+
+from ..backends.quantum_backend_interface import ExecutionResult, QuantumBackend, QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +21,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GradientResult:
     """Result from gradient computation"""
+
     gradients: np.ndarray
     function_value: float
     n_circuit_executions: int
     computation_time_ms: float
-    method: str = 'spsa'
+    method: str = "spsa"
     metadata: Dict[str, Any] = None
 
 
@@ -70,7 +68,7 @@ class SPSAGradientEstimator:
         a_decay: float = 0.602,
         c_initial: float = 0.1,
         a_initial: float = 0.01,
-        min_perturbation: float = 1e-4
+        min_perturbation: float = 1e-4,
     ):
         """
         Initialize SPSA gradient estimator
@@ -115,8 +113,8 @@ class SPSAGradientEstimator:
         """
         k = iteration + 1  # Avoid division by zero
 
-        c_k = self.c_initial / (k ** self.c_decay)
-        a_k = self.a_initial / (k ** self.a_decay)
+        c_k = self.c_initial / (k**self.c_decay)
+        a_k = self.a_initial / (k**self.a_decay)
 
         # Enforce minimum perturbation
         c_k = max(c_k, self.min_perturbation)
@@ -129,7 +127,7 @@ class SPSAGradientEstimator:
         loss_function: Callable[[ExecutionResult], float],
         parameters: np.ndarray,
         shots: int = 1000,
-        frozen_indices: Optional[set] = None
+        frozen_indices: Optional[set] = None,
     ) -> GradientResult:
         """
         Estimate gradient using SPSA
@@ -191,7 +189,7 @@ class SPSAGradientEstimator:
 
         results = await asyncio.gather(
             self.backend.execute_circuit(circuit_plus, shots=shots),
-            self.backend.execute_circuit(circuit_minus, shots=shots)
+            self.backend.execute_circuit(circuit_minus, shots=shots),
         )
 
         result_plus, result_minus = results
@@ -225,16 +223,16 @@ class SPSAGradientEstimator:
             function_value=avg_loss,
             n_circuit_executions=2,  # 🔥 Only 2 circuits!
             computation_time_ms=computation_time,
-            method='spsa',
+            method="spsa",
             metadata={
-                'iteration': self.iteration,
-                'c_k': c_k,
-                'a_k': a_k,
-                'loss_plus': loss_plus,
-                'loss_minus': loss_minus,
-                'perturbation_norm': np.linalg.norm(delta),
-                'total_circuits': self.total_circuits_executed
-            }
+                "iteration": self.iteration,
+                "c_k": c_k,
+                "a_k": a_k,
+                "loss_plus": loss_plus,
+                "loss_minus": loss_minus,
+                "perturbation_norm": np.linalg.norm(delta),
+                "total_circuits": self.total_circuits_executed,
+            },
         )
 
     async def estimate_gradient_with_momentum(
@@ -243,7 +241,7 @@ class SPSAGradientEstimator:
         loss_function: Callable[[ExecutionResult], float],
         parameters: np.ndarray,
         momentum: float = 0.9,
-        shots: int = 1000
+        shots: int = 1000,
     ) -> GradientResult:
         """
         SPSA with momentum accumulation
@@ -258,16 +256,11 @@ class SPSAGradientEstimator:
             GradientResult with momentum-smoothed gradient
         """
         # Get SPSA gradient
-        result = await self.estimate_gradient(
-            circuit_builder, loss_function, parameters, shots
-        )
+        result = await self.estimate_gradient(circuit_builder, loss_function, parameters, shots)
 
         # Apply momentum if this isn't first iteration
-        if hasattr(self, '_momentum_buffer'):
-            smoothed_gradient = (
-                momentum * self._momentum_buffer +
-                (1 - momentum) * result.gradients
-            )
+        if hasattr(self, "_momentum_buffer"):
+            smoothed_gradient = momentum * self._momentum_buffer + (1 - momentum) * result.gradients
             result.gradients = smoothed_gradient
 
         # Update momentum buffer
@@ -280,21 +273,20 @@ class SPSAGradientEstimator:
         self.iteration = 0
         self.total_circuits_executed = 0
         self.total_time_ms = 0.0
-        if hasattr(self, '_momentum_buffer'):
-            delattr(self, '_momentum_buffer')
+        if hasattr(self, "_momentum_buffer"):
+            delattr(self, "_momentum_buffer")
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get SPSA statistics"""
         return {
-            'iteration': self.iteration,
-            'total_circuits_executed': self.total_circuits_executed,
-            'total_time_ms': self.total_time_ms,
-            'avg_time_per_gradient_ms': (
-                self.total_time_ms / self.iteration
-                if self.iteration > 0 else 0
+            "iteration": self.iteration,
+            "total_circuits_executed": self.total_circuits_executed,
+            "total_time_ms": self.total_time_ms,
+            "avg_time_per_gradient_ms": (
+                self.total_time_ms / self.iteration if self.iteration > 0 else 0
             ),
-            'current_c_k': self.get_gain_parameters(self.iteration)[0],
-            'current_a_k': self.get_gain_parameters(self.iteration)[1]
+            "current_c_k": self.get_gain_parameters(self.iteration)[0],
+            "current_a_k": self.get_gain_parameters(self.iteration)[1],
         }
 
 
@@ -308,11 +300,7 @@ class SPSAOptimizerWithAdaptiveGains:
     - Parameter sensitivity
     """
 
-    def __init__(
-        self,
-        backend: QuantumBackend,
-        adapt_every: int = 10
-    ):
+    def __init__(self, backend: QuantumBackend, adapt_every: int = 10):
         self.backend = backend
         self.adapt_every = adapt_every
 
@@ -324,11 +312,7 @@ class SPSAOptimizerWithAdaptiveGains:
         self.loss_history = []
 
     async def estimate_gradient(
-        self,
-        circuit_builder: Callable,
-        loss_function: Callable,
-        parameters: np.ndarray,
-        **kwargs
+        self, circuit_builder: Callable, loss_function: Callable, parameters: np.ndarray, **kwargs
     ) -> GradientResult:
         """Estimate gradient with adaptive gains"""
 
@@ -395,8 +379,10 @@ class SPSAOptimizerWithAdaptiveGains:
     def get_statistics(self) -> Dict[str, Any]:
         """Get optimizer statistics"""
         stats = self.spsa.get_statistics()
-        stats.update({
-            'gradient_history_length': len(self.gradient_history),
-            'loss_history_length': len(self.loss_history)
-        })
+        stats.update(
+            {
+                "gradient_history_length": len(self.gradient_history),
+                "loss_history_length": len(self.loss_history),
+            }
+        )
         return stats

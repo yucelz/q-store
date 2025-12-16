@@ -4,17 +4,14 @@ Computes gradients for quantum circuits using parameter shift rule
 """
 
 import asyncio
-import time
-import numpy as np
 import logging
-from typing import Callable, Optional, List, Dict, Any
+import time
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional
 
-from ..backends.quantum_backend_interface import (
-    QuantumBackend,
-    QuantumCircuit,
-    ExecutionResult
-)
+import numpy as np
+
+from ..backends.quantum_backend_interface import ExecutionResult, QuantumBackend, QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class GradientResult:
     """Result from gradient computation"""
+
     gradients: np.ndarray
     function_value: float
     n_circuit_executions: int
@@ -38,11 +36,7 @@ class QuantumGradientComputer:
     This requires 2 circuit executions per parameter.
     """
 
-    def __init__(
-        self,
-        backend: QuantumBackend,
-        shift_amount: float = np.pi / 2
-    ):
+    def __init__(self, backend: QuantumBackend, shift_amount: float = np.pi / 2):
         """
         Initialize gradient computer
 
@@ -59,7 +53,7 @@ class QuantumGradientComputer:
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
         parameters: np.ndarray,
-        frozen_indices: Optional[List[int]] = None
+        frozen_indices: Optional[List[int]] = None,
     ) -> GradientResult:
         """
         Compute all parameter gradients
@@ -87,9 +81,7 @@ class QuantumGradientComputer:
         for i in range(len(parameters)):
             if i not in frozen:
                 tasks.append(
-                    self._compute_single_gradient(
-                        circuit_builder, loss_function, parameters, i
-                    )
+                    self._compute_single_gradient(circuit_builder, loss_function, parameters, i)
                 )
                 param_indices.append(i)
 
@@ -118,7 +110,7 @@ class QuantumGradientComputer:
             gradients=gradients,
             function_value=current_loss,
             n_circuit_executions=n_executions,
-            computation_time_ms=computation_time
+            computation_time_ms=computation_time,
         )
 
     async def _compute_single_gradient(
@@ -126,7 +118,7 @@ class QuantumGradientComputer:
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
         parameters: np.ndarray,
-        param_idx: int
+        param_idx: int,
     ) -> tuple:
         """
         Compute gradient for a single parameter using parameter shift
@@ -160,7 +152,7 @@ class QuantumGradientComputer:
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
         parameters: np.ndarray,
-        batch_size: int = 4
+        batch_size: int = 4,
     ) -> GradientResult:
         """
         Compute gradients for a random subset of parameters
@@ -182,9 +174,7 @@ class QuantumGradientComputer:
 
         # Select random parameter subset
         indices = np.random.choice(
-            len(parameters),
-            size=min(batch_size, len(parameters)),
-            replace=False
+            len(parameters), size=min(batch_size, len(parameters)), replace=False
         )
 
         n_executions = 0
@@ -209,14 +199,14 @@ class QuantumGradientComputer:
             gradients=gradients,
             function_value=current_loss,
             n_circuit_executions=n_executions,
-            computation_time_ms=computation_time
+            computation_time_ms=computation_time,
         )
 
     async def compute_hessian_diagonal(
         self,
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
-        parameters: np.ndarray
+        parameters: np.ndarray,
     ) -> np.ndarray:
         """
         Compute diagonal elements of Hessian matrix
@@ -266,11 +256,7 @@ class FiniteDifferenceGradient:
     Fallback method when parameter shift is not applicable
     """
 
-    def __init__(
-        self,
-        backend: QuantumBackend,
-        epsilon: float = 1e-4
-    ):
+    def __init__(self, backend: QuantumBackend, epsilon: float = 1e-4):
         """
         Initialize finite difference gradient computer
 
@@ -285,7 +271,7 @@ class FiniteDifferenceGradient:
         self,
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
-        parameters: np.ndarray
+        parameters: np.ndarray,
     ) -> GradientResult:
         """
         Compute gradients using finite differences
@@ -322,7 +308,7 @@ class FiniteDifferenceGradient:
             gradients=gradients,
             function_value=base_loss,
             n_circuit_executions=n_executions,
-            computation_time_ms=computation_time
+            computation_time_ms=computation_time,
         )
 
 
@@ -332,11 +318,7 @@ class NaturalGradientComputer:
     Uses Quantum Fisher Information Matrix
     """
 
-    def __init__(
-        self,
-        backend: QuantumBackend,
-        regularization: float = 1e-8
-    ):
+    def __init__(self, backend: QuantumBackend, regularization: float = 1e-8):
         """
         Initialize natural gradient computer
 
@@ -352,7 +334,7 @@ class NaturalGradientComputer:
         self,
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         loss_function: Callable[[ExecutionResult], float],
-        parameters: np.ndarray
+        parameters: np.ndarray,
     ) -> GradientResult:
         """
         Compute natural gradients using Fisher information
@@ -394,13 +376,11 @@ class NaturalGradientComputer:
             gradients=natural_gradients,
             function_value=grad_result.function_value,
             n_circuit_executions=grad_result.n_circuit_executions,
-            computation_time_ms=computation_time
+            computation_time_ms=computation_time,
         )
 
     async def _compute_fisher_matrix(
-        self,
-        circuit_builder: Callable[[np.ndarray], QuantumCircuit],
-        parameters: np.ndarray
+        self, circuit_builder: Callable[[np.ndarray], QuantumCircuit], parameters: np.ndarray
     ) -> np.ndarray:
         """
         Compute quantum Fisher information matrix
@@ -416,9 +396,7 @@ class NaturalGradientComputer:
         for i in range(n_params):
             for j in range(i, n_params):
                 # Compute overlap approximation
-                overlap = await self._compute_parameter_overlap(
-                    circuit_builder, parameters, i, j
-                )
+                overlap = await self._compute_parameter_overlap(circuit_builder, parameters, i, j)
                 fisher[i, j] = overlap
                 fisher[j, i] = overlap
 
@@ -429,7 +407,7 @@ class NaturalGradientComputer:
         circuit_builder: Callable[[np.ndarray], QuantumCircuit],
         parameters: np.ndarray,
         i: int,
-        j: int
+        j: int,
     ) -> float:
         """
         Compute overlap between parameter-shifted states

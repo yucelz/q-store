@@ -24,65 +24,38 @@ v3.4 Performance Revolution (8-10x speedup):
 - Adaptive batch sizing and connection pooling
 """
 
-from .quantum_layer import (
-    QuantumLayer,
-    QuantumConvolutionalLayer,
-    QuantumPoolingLayer,
-    LayerConfig
-)
+from .adaptive_optimizer import AdaptiveGradientOptimizer, GradientMethodScheduler
+from .circuit_batch_manager import CircuitBatchManager
+from .circuit_cache import AdaptiveCircuitCache, QuantumCircuitCache
+from .data_encoder import QuantumDataEncoder, QuantumFeatureMap
 from .gradient_computer import (
-    QuantumGradientComputer,
     FiniteDifferenceGradient,
+    GradientResult,
     NaturalGradientComputer,
-    GradientResult
-)
-from .data_encoder import (
-    QuantumDataEncoder,
-    QuantumFeatureMap
-)
-from .quantum_trainer import (
-    QuantumTrainer,
-    QuantumModel,
-    TrainingConfig,
-    TrainingMetrics
+    QuantumGradientComputer,
 )
 
-# v3.3 NEW: Performance optimizations
-from .spsa_gradient_estimator import (
-    SPSAGradientEstimator,
-    SPSAOptimizerWithAdaptiveGains
-)
 # v3.3.1 NEW: Corrected batch gradient computation
 from .parallel_spsa_estimator import (
     ParallelSPSAEstimator,
+    SPSABatchGradientEstimator,
     SubsampledSPSAEstimator,
-    SPSABatchGradientEstimator
 )
-from .circuit_batch_manager import CircuitBatchManager
-from .circuit_cache import (
-    QuantumCircuitCache,
-    AdaptiveCircuitCache
-)
-from .quantum_layer_v2 import (
-    HardwareEfficientQuantumLayer,
-    HardwareEfficientLayerConfig
-)
-from .adaptive_optimizer import (
-    AdaptiveGradientOptimizer,
-    GradientMethodScheduler
-)
-from .performance_tracker import (
-    PerformanceTracker,
-    BatchMetrics,
-    EpochMetrics
-)
+from .performance_tracker import BatchMetrics, EpochMetrics, PerformanceTracker
+from .quantum_layer import LayerConfig, QuantumConvolutionalLayer, QuantumLayer, QuantumPoolingLayer
+from .quantum_layer_v2 import HardwareEfficientLayerConfig, HardwareEfficientQuantumLayer
+from .quantum_trainer import QuantumModel, QuantumTrainer, TrainingConfig, TrainingMetrics
+
+# v3.3 NEW: Performance optimizations
+from .spsa_gradient_estimator import SPSAGradientEstimator, SPSAOptimizerWithAdaptiveGains
 
 # v3.4 NEW: Performance revolution (8-10x speedup)
 try:
     from .circuit_batch_manager_v3_4 import CircuitBatchManagerV34
-    from .ionq_batch_client import IonQBatchClient, BatchJobResult, JobStatus
+    from .ionq_batch_client import BatchJobResult, IonQBatchClient, JobStatus
     from .ionq_native_gate_compiler import IonQNativeGateCompiler, NativeGateType
-    from .smart_circuit_cache import SmartCircuitCache, CircuitTemplate
+    from .smart_circuit_cache import CircuitTemplate, SmartCircuitCache
+
     V3_4_AVAILABLE = True
 except ImportError:
     V3_4_AVAILABLE = False

@@ -3,15 +3,12 @@ Quantum Data Encoder
 Encodes classical data into quantum states
 """
 
-import numpy as np
 import logging
 from typing import Optional
 
-from ..backends.quantum_backend_interface import (
-    QuantumCircuit,
-    CircuitBuilder,
-    GateType
-)
+import numpy as np
+
+from ..backends.quantum_backend_interface import CircuitBuilder, GateType, QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +23,7 @@ class QuantumDataEncoder:
     - Basis encoding
     """
 
-    def __init__(self, encoding_type: str = 'amplitude'):
+    def __init__(self, encoding_type: str = "amplitude"):
         """
         Initialize encoder
 
@@ -35,11 +32,7 @@ class QuantumDataEncoder:
         """
         self.encoding_type = encoding_type
 
-    def amplitude_encode(
-        self,
-        data: np.ndarray,
-        normalize: bool = True
-    ) -> QuantumCircuit:
+    def amplitude_encode(self, data: np.ndarray, normalize: bool = True) -> QuantumCircuit:
         """
         Encode data as quantum amplitudes
 
@@ -72,11 +65,7 @@ class QuantumDataEncoder:
 
         return circuit
 
-    def _build_amplitude_circuit(
-        self,
-        amplitudes: np.ndarray,
-        n_qubits: int
-    ) -> QuantumCircuit:
+    def _build_amplitude_circuit(self, amplitudes: np.ndarray, n_qubits: int) -> QuantumCircuit:
         """
         Build circuit for amplitude encoding
 
@@ -99,11 +88,7 @@ class QuantumDataEncoder:
 
         return builder.build()
 
-    def angle_encode(
-        self,
-        data: np.ndarray,
-        n_qubits: Optional[int] = None
-    ) -> QuantumCircuit:
+    def angle_encode(self, data: np.ndarray, n_qubits: Optional[int] = None) -> QuantumCircuit:
         """
         Encode data as rotation angles
 
@@ -133,11 +118,7 @@ class QuantumDataEncoder:
 
         return builder.build()
 
-    def basis_encode(
-        self,
-        data: np.ndarray,
-        threshold: float = 0.5
-    ) -> QuantumCircuit:
+    def basis_encode(self, data: np.ndarray, threshold: float = 0.5) -> QuantumCircuit:
         """
         Encode binary data in computational basis
 
@@ -163,11 +144,7 @@ class QuantumDataEncoder:
 
         return builder.build()
 
-    def encode(
-        self,
-        data: np.ndarray,
-        n_qubits: Optional[int] = None
-    ) -> QuantumCircuit:
+    def encode(self, data: np.ndarray, n_qubits: Optional[int] = None) -> QuantumCircuit:
         """
         Encode data using configured encoding type
 
@@ -178,20 +155,16 @@ class QuantumDataEncoder:
         Returns:
             QuantumCircuit with encoded data
         """
-        if self.encoding_type == 'amplitude':
+        if self.encoding_type == "amplitude":
             return self.amplitude_encode(data)
-        elif self.encoding_type == 'angle':
+        elif self.encoding_type == "angle":
             return self.angle_encode(data, n_qubits)
-        elif self.encoding_type == 'basis':
+        elif self.encoding_type == "basis":
             return self.basis_encode(data)
         else:
             raise ValueError(f"Unknown encoding type: {self.encoding_type}")
 
-    def encode_batch(
-        self,
-        batch: np.ndarray,
-        n_qubits: Optional[int] = None
-    ) -> list:
+    def encode_batch(self, batch: np.ndarray, n_qubits: Optional[int] = None) -> list:
         """
         Encode a batch of data samples
 
@@ -217,11 +190,7 @@ class QuantumFeatureMap:
     Creates high-dimensional feature spaces
     """
 
-    def __init__(
-        self,
-        n_qubits: int,
-        feature_map_type: str = 'ZZFeatureMap'
-    ):
+    def __init__(self, n_qubits: int, feature_map_type: str = "ZZFeatureMap"):
         """
         Initialize feature map
 
@@ -232,11 +201,7 @@ class QuantumFeatureMap:
         self.n_qubits = n_qubits
         self.feature_map_type = feature_map_type
 
-    def zz_feature_map(
-        self,
-        data: np.ndarray,
-        reps: int = 2
-    ) -> QuantumCircuit:
+    def zz_feature_map(self, data: np.ndarray, reps: int = 2) -> QuantumCircuit:
         """
         ZZ feature map (second-order Pauli feature map)
 
@@ -272,11 +237,7 @@ class QuantumFeatureMap:
 
         return builder.build()
 
-    def pauli_feature_map(
-        self,
-        data: np.ndarray,
-        paulis: str = 'ZZ'
-    ) -> QuantumCircuit:
+    def pauli_feature_map(self, data: np.ndarray, paulis: str = "ZZ") -> QuantumCircuit:
         """
         General Pauli feature map
 
@@ -287,7 +248,7 @@ class QuantumFeatureMap:
         Returns:
             QuantumCircuit implementing Pauli feature map
         """
-        if paulis == 'ZZ':
+        if paulis == "ZZ":
             return self.zz_feature_map(data)
 
         builder = CircuitBuilder(self.n_qubits)
@@ -312,11 +273,11 @@ class QuantumFeatureMap:
         Returns:
             QuantumCircuit with mapped features
         """
-        if self.feature_map_type == 'ZZFeatureMap':
+        if self.feature_map_type == "ZZFeatureMap":
             return self.zz_feature_map(data)
-        elif self.feature_map_type == 'PauliFeatureMap':
+        elif self.feature_map_type == "PauliFeatureMap":
             return self.pauli_feature_map(data)
         else:
             # Default to simple angle encoding
-            encoder = QuantumDataEncoder('angle')
+            encoder = QuantumDataEncoder("angle")
             return encoder.encode(data, self.n_qubits)

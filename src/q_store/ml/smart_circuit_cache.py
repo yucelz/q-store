@@ -6,14 +6,15 @@ KEY INNOVATION: Cache circuit STRUCTURE, bind parameters dynamically
 Performance Impact: 0.5s circuit building → 0.05s parameter binding (10x faster)
 """
 
-import numpy as np
-import time
 import hashlib
 import logging
-from typing import Dict, Callable, Optional, Any, List
-from dataclasses import dataclass
+import time
 from collections import OrderedDict
+from dataclasses import dataclass
 from functools import lru_cache
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class CircuitTemplate:
 
     The structure is fixed, only parameter values change
     """
+
     structure_hash: str
     gate_sequence: List[Dict]  # Gates with parameter placeholders
     n_qubits: int
@@ -56,7 +58,7 @@ class SmartCircuitCache:
         self,
         max_templates: int = 100,
         max_bound_circuits: int = 1000,
-        enable_statistics: bool = True
+        enable_statistics: bool = True,
     ):
         """
         Initialize smart circuit cache
@@ -91,7 +93,7 @@ class SmartCircuitCache:
         input_data: np.ndarray,
         builder_func: Callable,
         n_qubits: int,
-        metadata: Optional[Dict] = None
+        metadata: Optional[Dict] = None,
     ) -> Dict:
         """
         Get circuit from cache or build new
@@ -149,7 +151,7 @@ class SmartCircuitCache:
             self._add_to_bound_cache(full_key, circuit)
 
             elapsed_ms = (time.time() - start_time) * 1000
-            self.total_time_saved_ms += (25.0 - elapsed_ms)  # Assume 25ms to build from scratch
+            self.total_time_saved_ms += 25.0 - elapsed_ms  # Assume 25ms to build from scratch
 
             logger.debug(f"Cache HIT (template): {structure_key[:16]}... ({elapsed_ms:.2f}ms)")
 
@@ -163,9 +165,7 @@ class SmartCircuitCache:
         circuit = builder_func(parameters, input_data)
 
         # Extract and cache template
-        template = self._extract_template(
-            circuit, structure_key, n_qubits, parameters, metadata
-        )
+        template = self._extract_template(circuit, structure_key, n_qubits, parameters, metadata)
         self._add_to_template_cache(structure_key, template)
 
         # Cache bound circuit
@@ -176,11 +176,7 @@ class SmartCircuitCache:
 
         return circuit
 
-    def _hash_parameters(
-        self,
-        parameters: np.ndarray,
-        input_data: np.ndarray
-    ) -> str:
+    def _hash_parameters(self, parameters: np.ndarray, input_data: np.ndarray) -> str:
         """Generate hash of parameters and input data"""
         # Combine parameters and input data
         combined = np.concatenate([parameters.flatten(), input_data.flatten()])
@@ -197,7 +193,7 @@ class SmartCircuitCache:
         structure_key: str,
         n_qubits: int,
         parameters: np.ndarray,
-        metadata: Optional[Dict]
+        metadata: Optional[Dict],
     ) -> CircuitTemplate:
         """
         Extract circuit template from full circuit
@@ -236,14 +232,11 @@ class SmartCircuitCache:
             gate_sequence=gate_sequence,
             n_qubits=n_qubits,
             n_parameters=param_index,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
     def _bind_parameters(
-        self,
-        template: CircuitTemplate,
-        parameters: np.ndarray,
-        input_data: np.ndarray
+        self, template: CircuitTemplate, parameters: np.ndarray, input_data: np.ndarray
     ) -> Dict:
         """
         Bind parameters to circuit template
@@ -283,18 +276,11 @@ class SmartCircuitCache:
             circuit_gates.append(bound_gate)
 
         # Construct full circuit
-        circuit = {
-            "qubits": template.n_qubits,
-            "circuit": circuit_gates
-        }
+        circuit = {"qubits": template.n_qubits, "circuit": circuit_gates}
 
         return circuit
 
-    def _add_to_template_cache(
-        self,
-        key: str,
-        template: CircuitTemplate
-    ):
+    def _add_to_template_cache(self, key: str, template: CircuitTemplate):
         """Add template to cache with LRU eviction"""
         if key in self.template_cache:
             self._move_to_end(self.template_cache, key)
@@ -304,11 +290,7 @@ class SmartCircuitCache:
                 self.template_cache.popitem(last=False)
             self.template_cache[key] = template
 
-    def _add_to_bound_cache(
-        self,
-        key: str,
-        circuit: Dict
-    ):
+    def _add_to_bound_cache(self, key: str, circuit: Dict):
         """Add bound circuit to cache with LRU eviction"""
         if key in self.bound_cache:
             self._move_to_end(self.bound_cache, key)
@@ -339,14 +321,10 @@ class SmartCircuitCache:
         total_bound_requests = self.bound_hits + self.bound_misses
 
         template_hit_rate = (
-            self.template_hits / total_template_requests
-            if total_template_requests > 0 else 0
+            self.template_hits / total_template_requests if total_template_requests > 0 else 0
         )
 
-        bound_hit_rate = (
-            self.bound_hits / total_bound_requests
-            if total_bound_requests > 0 else 0
-        )
+        bound_hit_rate = self.bound_hits / total_bound_requests if total_bound_requests > 0 else 0
 
         # Estimate memory usage
         template_memory_kb = len(self.template_cache) * 0.1  # ~100KB per template
@@ -362,68 +340,59 @@ class SmartCircuitCache:
             "bound_misses": self.bound_misses,
             "bound_hit_rate": bound_hit_rate,
             "total_time_saved_ms": self.total_time_saved_ms,
-            "estimated_memory_kb": template_memory_kb + bound_memory_kb
+            "estimated_memory_kb": template_memory_kb + bound_memory_kb,
         }
 
     def print_stats(self):
-        """Print cache statistics"""
+        """Print cache statistics (deprecated, use log_stats)"""
+        logger.warning("print_stats() is deprecated, use log_stats() instead")
+        self.log_stats()
+
+    def log_stats(self):
+        """Log cache statistics"""
         stats = self.get_stats()
 
-        print("\n" + "="*60)
-        print("SMART CIRCUIT CACHE STATISTICS")
-        print("="*60)
-        print(f"Template Cache:")
-        print(f"  Size: {stats['template_cache_size']}/{self.max_templates}")
-        print(f"  Hits: {stats['template_hits']}")
-        print(f"  Misses: {stats['template_misses']}")
-        print(f"  Hit Rate: {stats['template_hit_rate']:.1%}")
-        print(f"\nBound Circuit Cache:")
-        print(f"  Size: {stats['bound_cache_size']}/{self.max_bound_circuits}")
-        print(f"  Hits: {stats['bound_hits']}")
-        print(f"  Misses: {stats['bound_misses']}")
-        print(f"  Hit Rate: {stats['bound_hit_rate']:.1%}")
-        print(f"\nPerformance:")
-        print(f"  Time Saved: {stats['total_time_saved_ms']:.0f}ms")
-        print(f"  Memory Usage: {stats['estimated_memory_kb']:.1f}KB")
-        print("="*60)
+        logger.info("=" * 60)
+        logger.info("SMART CIRCUIT CACHE STATISTICS")
+        logger.info("=" * 60)
+        logger.info(f"Template Cache:")
+        logger.info(f"  Size: {stats['template_cache_size']}/{self.max_templates}")
+        logger.info(f"  Hits: {stats['template_hits']}")
+        logger.info(f"  Misses: {stats['template_misses']}")
+        logger.info(f"  Hit Rate: {stats['template_hit_rate']:.1%}")
+        logger.info(f"Bound Circuit Cache:")
+        logger.info(f"  Size: {stats['bound_cache_size']}/{self.max_bound_circuits}")
+        logger.info(f"  Hits: {stats['bound_hits']}")
+        logger.info(f"  Misses: {stats['bound_misses']}")
+        logger.info(f"  Hit Rate: {stats['bound_hit_rate']:.1%}")
+        logger.info(f"Performance:")
+        logger.info(f"  Time Saved: {stats['total_time_saved_ms']:.0f}ms")
+        logger.info(f"  Memory Usage: {stats['estimated_memory_kb']:.1f}KB")
+        logger.info("=" * 60)
 
 
 # Example usage
 def example_circuit_builder(parameters: np.ndarray, input_data: np.ndarray) -> Dict:
     """Example circuit builder function"""
     n_qubits = 4
-    circuit = {
-        "qubits": n_qubits,
-        "circuit": []
-    }
+    circuit = {"qubits": n_qubits, "circuit": []}
 
     # Add parameterized gates
     for i in range(n_qubits):
-        circuit["circuit"].append({
-            "gate": "ry",
-            "target": i,
-            "rotation": parameters[i]
-        })
+        circuit["circuit"].append({"gate": "ry", "target": i, "rotation": parameters[i]})
 
     for i in range(n_qubits - 1):
-        circuit["circuit"].append({
-            "gate": "cnot",
-            "control": i,
-            "target": i + 1
-        })
+        circuit["circuit"].append({"gate": "cnot", "control": i, "target": i + 1})
 
     return circuit
 
 
 if __name__ == "__main__":
     # Demonstration
-    cache = SmartCircuitCache(
-        max_templates=10,
-        max_bound_circuits=100
-    )
+    cache = SmartCircuitCache(max_templates=10, max_bound_circuits=100)
 
     # Simulate training scenario
-    print("Simulating 20 circuits with same structure...")
+    logger.info("Simulating 20 circuits with same structure...")
 
     structure_key = "layer_0_depth_2"
     n_qubits = 4
@@ -438,13 +407,13 @@ if __name__ == "__main__":
             parameters=params,
             input_data=input_data,
             builder_func=example_circuit_builder,
-            n_qubits=n_qubits
+            n_qubits=n_qubits,
         )
 
-    # Print statistics
-    cache.print_stats()
+    # Log statistics
+    cache.log_stats()
 
-    print("\nExpected behavior:")
-    print("- First circuit: Template MISS + Bound MISS (build from scratch)")
-    print("- Remaining 19: Template HIT + Bound MISS (bind parameters)")
-    print("- 19x faster than rebuilding (0.05ms vs 25ms per circuit)")
+    logger.info("Expected behavior:")
+    logger.info("- First circuit: Template MISS + Bound MISS (build from scratch)")
+    logger.info("- Remaining 19: Template HIT + Bound MISS (bind parameters)")
+    logger.info("- 19x faster than rebuilding (0.05ms vs 25ms per circuit)")

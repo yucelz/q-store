@@ -12,13 +12,13 @@ Performance Target: 5-8 circuits/second (vs 0.5-0.6 in v3.3.1)
 """
 
 import asyncio
-import time
 import logging
 import os
-from typing import List, Dict, Optional, Any
+import time
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from .ionq_batch_client import IonQBatchClient, BatchJobResult, JobStatus
+from .ionq_batch_client import BatchJobResult, IonQBatchClient, JobStatus
 from .ionq_native_gate_compiler import IonQNativeGateCompiler
 from .smart_circuit_cache import SmartCircuitCache
 
@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PerformanceMetrics:
     """Track v3.4 performance metrics"""
+
     total_circuits: int = 0
     total_batches: int = 0
 
@@ -96,7 +97,7 @@ class CircuitBatchManagerV34:
         adaptive_batch_sizing: bool = False,
         connection_pool_size: int = 5,
         max_batch_size: int = 50,
-        target: str = "simulator"
+        target: str = "simulator",
     ):
         """
         Initialize v3.4 batch manager
@@ -126,21 +127,16 @@ class CircuitBatchManagerV34:
 
         if use_batch_api:
             self.batch_client = IonQBatchClient(
-                api_key=api_key,
-                max_connections=connection_pool_size
+                api_key=api_key, max_connections=connection_pool_size
             )
 
         if use_native_gates:
             self.native_compiler = IonQNativeGateCompiler(
-                optimize_depth=True,
-                optimize_fidelity=True
+                optimize_depth=True, optimize_fidelity=True
             )
 
         if use_smart_caching:
-            self.circuit_cache = SmartCircuitCache(
-                max_templates=100,
-                max_bound_circuits=1000
-            )
+            self.circuit_cache = SmartCircuitCache(max_templates=100, max_bound_circuits=1000)
 
         # Performance tracking
         self.metrics = PerformanceMetrics()
@@ -165,7 +161,7 @@ class CircuitBatchManagerV34:
         circuits: List[Dict],
         shots: int = 1000,
         compile_to_native: bool = None,
-        name_prefix: str = "batch"
+        name_prefix: str = "batch",
     ) -> List[Dict[str, Any]]:
         """
         Execute batch of circuits with all v3.4 optimizations
@@ -193,7 +189,7 @@ class CircuitBatchManagerV34:
 
         # Step 1: Compile to native gates (if enabled)
         prep_start = time.time()
-        if (compile_to_native if compile_to_native is not None else self.use_native_gates):
+        if compile_to_native if compile_to_native is not None else self.use_native_gates:
             circuits = self._compile_circuits_to_native(circuits)
         prep_time = (time.time() - prep_start) * 1000
 
@@ -201,10 +197,7 @@ class CircuitBatchManagerV34:
         submit_start = time.time()
         if self.use_batch_api and self.batch_client:
             job_ids = await self.batch_client.submit_batch(
-                circuits,
-                target=self.target,
-                shots=shots,
-                name_prefix=name_prefix
+                circuits, target=self.target, shots=shots, name_prefix=name_prefix
             )
         else:
             # Fallback to sequential submission
@@ -225,9 +218,7 @@ class CircuitBatchManagerV34:
 
         # Update metrics
         total_time = (time.time() - batch_start) * 1000
-        self._update_metrics(
-            n_circuits, prep_time, submit_time, poll_time, total_time
-        )
+        self._update_metrics(n_circuits, prep_time, submit_time, poll_time, total_time)
 
         # Adaptive batch sizing
         if self.adaptive_batch_sizing:
@@ -253,38 +244,30 @@ class CircuitBatchManagerV34:
 
         # Update metrics
         stats = self.native_compiler.get_stats()
-        self.metrics.gates_compiled += stats['total_gates_compiled']
-        self.metrics.gates_reduced += stats['total_gates_reduced']
+        self.metrics.gates_compiled += stats["total_gates_compiled"]
+        self.metrics.gates_reduced += stats["total_gates_reduced"]
 
         return compiled_circuits
 
     async def _submit_sequential(
-        self,
-        circuits: List[Dict],
-        shots: int,
-        name_prefix: str
+        self, circuits: List[Dict], shots: int, name_prefix: str
     ) -> List[str]:
         """Fallback: Sequential submission (v3.3.1 style)"""
         logger.warning("Using sequential submission (batch API disabled)")
         # This would integrate with existing backend
         # For now, raise not implemented
         raise NotImplementedError(
-            "Sequential submission not implemented in v3.4. "
-            "Please enable use_batch_api=True"
+            "Sequential submission not implemented in v3.4. " "Please enable use_batch_api=True"
         )
 
     async def _poll_sequential(self, job_ids: List[str]) -> List[Dict[str, Any]]:
         """Fallback: Sequential polling"""
         logger.warning("Using sequential polling (batch API disabled)")
         raise NotImplementedError(
-            "Sequential polling not implemented in v3.4. "
-            "Please enable use_batch_api=True"
+            "Sequential polling not implemented in v3.4. " "Please enable use_batch_api=True"
         )
 
-    def _convert_batch_results(
-        self,
-        batch_results: List[BatchJobResult]
-    ) -> List[Dict[str, Any]]:
+    def _convert_batch_results(self, batch_results: List[BatchJobResult]) -> List[Dict[str, Any]]:
         """Convert BatchJobResults to standard result format"""
         results = []
 
@@ -294,14 +277,14 @@ class CircuitBatchManagerV34:
                     "job_id": batch_result.job_id,
                     "status": "completed",
                     "measurements": batch_result.measurements or {},
-                    "execution_time_ms": batch_result.execution_time_ms or 0.0
+                    "execution_time_ms": batch_result.execution_time_ms or 0.0,
                 }
             else:
                 result = {
                     "job_id": batch_result.job_id,
                     "status": batch_result.status.value,
                     "error": batch_result.error,
-                    "measurements": {}
+                    "measurements": {},
                 }
 
             results.append(result)
@@ -314,7 +297,7 @@ class CircuitBatchManagerV34:
         prep_time: float,
         submit_time: float,
         poll_time: float,
-        total_time: float
+        total_time: float,
     ):
         """Update performance metrics"""
         self.metrics.total_circuits += n_circuits
@@ -327,14 +310,14 @@ class CircuitBatchManagerV34:
         # Update cache stats
         if self.circuit_cache:
             cache_stats = self.circuit_cache.get_stats()
-            self.metrics.cache_hits = cache_stats['template_hits']
-            self.metrics.cache_misses = cache_stats['template_misses']
+            self.metrics.cache_hits = cache_stats["template_hits"]
+            self.metrics.cache_misses = cache_stats["template_misses"]
 
         # Update batch client stats
         if self.batch_client:
             client_stats = self.batch_client.get_stats()
-            self.metrics.api_calls_made = client_stats['total_api_calls']
-            self.metrics.api_calls_saved = client_stats.get('api_calls_saved', 0)
+            self.metrics.api_calls_made = client_stats["total_api_calls"]
+            self.metrics.api_calls_saved = client_stats.get("api_calls_saved", 0)
 
     def _adjust_batch_size(self, batch_time_ms: float, n_circuits: int):
         """
@@ -382,72 +365,68 @@ class CircuitBatchManagerV34:
             "total_time_s": self.metrics.total_time_ms / 1000.0,
             "avg_batch_time_ms": self.metrics.get_avg_batch_time_ms(),
             "throughput_circuits_per_sec": self.metrics.get_throughput(),
-
             # Feature flags
             "features_enabled": {
                 "batch_api": self.use_batch_api,
                 "native_gates": self.use_native_gates,
                 "smart_caching": self.use_smart_caching,
-                "adaptive_batch_sizing": self.adaptive_batch_sizing
+                "adaptive_batch_sizing": self.adaptive_batch_sizing,
             },
-
             # Component statistics
-            "circuit_cache": (
-                self.circuit_cache.get_stats()
-                if self.circuit_cache else None
-            ),
-            "native_compiler": (
-                self.native_compiler.get_stats()
-                if self.native_compiler else None
-            ),
-            "batch_client": (
-                self.batch_client.get_stats()
-                if self.batch_client else None
-            )
+            "circuit_cache": (self.circuit_cache.get_stats() if self.circuit_cache else None),
+            "native_compiler": (self.native_compiler.get_stats() if self.native_compiler else None),
+            "batch_client": (self.batch_client.get_stats() if self.batch_client else None),
         }
 
         return stats
 
     def print_performance_report(self):
-        """Print comprehensive performance report"""
+        """Print comprehensive performance report (deprecated, use log_performance_report)"""
+        logger.warning(
+            "print_performance_report() is deprecated, use log_performance_report() instead"
+        )
+        self.log_performance_report()
+
+    def log_performance_report(self):
+        """Log comprehensive performance report"""
         stats = self.get_performance_stats()
 
-        print("\n" + "="*72)
-        print("CIRCUIT BATCH MANAGER V3.4 - PERFORMANCE REPORT")
-        print("="*72)
+        logger.info("=" * 72)
+        logger.info("CIRCUIT BATCH MANAGER V3.4 - PERFORMANCE REPORT")
+        logger.info("=" * 72)
 
-        print(f"\nExecution Summary:")
-        print(f"  Total Circuits: {stats['total_circuits']}")
-        print(f"  Total Batches: {stats['total_batches']}")
-        print(f"  Total Time: {stats['total_time_s']:.1f}s")
-        print(f"  Avg Batch Time: {stats['avg_batch_time_ms']:.0f}ms")
-        print(f"  Avg Throughput: {stats['throughput_circuits_per_sec']:.2f} circuits/sec")
+        logger.info(f"Execution Summary:")
+        logger.info(f"  Total Circuits: {stats['total_circuits']}")
+        logger.info(f"  Total Batches: {stats['total_batches']}")
+        logger.info(f"  Total Time: {stats['total_time_s']:.1f}s")
+        logger.info(f"  Avg Batch Time: {stats['avg_batch_time_ms']:.0f}ms")
+        logger.info(f"  Avg Throughput: {stats['throughput_circuits_per_sec']:.2f} circuits/sec")
 
-        print(f"\nFeatures Enabled:")
-        for feature, enabled in stats['features_enabled'].items():
-            print(f"  {feature.replace('_', ' ').title()}: {enabled}")
+        logger.info(f"Features Enabled:")
+        for feature, enabled in stats["features_enabled"].items():
+            logger.info(f"  {feature.replace('_', ' ').title()}: {enabled}")
 
-        if stats['circuit_cache']:
-            cache = stats['circuit_cache']
-            print(f"\nCircuit Cache:")
-            print(f"  Template Hit Rate: {cache['template_hit_rate']:.1%}")
-            print(f"  Bound Hit Rate: {cache['bound_hit_rate']:.1%}")
-            print(f"  Time Saved: {cache['total_time_saved_ms']:.0f}ms")
+        if stats["circuit_cache"]:
+            cache = stats["circuit_cache"]
+            logger.info(f"Circuit Cache:")
+            logger.info(f"  Template Hit Rate: {cache['template_hit_rate']:.1%}")
+            logger.info(f"  Bound Hit Rate: {cache['bound_hit_rate']:.1%}")
+            logger.info(f"  Time Saved: {cache['total_time_saved_ms']:.0f}ms")
 
-        if stats['native_compiler']:
-            compiler = stats['native_compiler']
-            print(f"\nNative Gate Compiler:")
-            print(f"  Gates Compiled: {compiler['total_gates_compiled']}")
-            print(f"  Gate Reduction: {compiler['avg_reduction_pct']:.1f}%")
+        if stats["native_compiler"]:
+            compiler = stats["native_compiler"]
+            logger.info(f"Native Gate Compiler:")
+            logger.info(f"  Gates Compiled: {compiler['total_gates_compiled']}")
+            logger.info(f"  Gate Reduction: {compiler['avg_reduction_pct']:.1f}%")
 
-        if stats['batch_client']:
-            client = stats['batch_client']
-            print(f"\nBatch Client:")
-            print(f"  API Calls: {client['total_api_calls']}")
-            print(f"  Circuits Submitted: {client['total_circuits_submitted']}")
-            print(f"  Avg Circuits/Call: {client['avg_circuits_per_call']:.1f}")
+        if stats["batch_client"]:
+            client = stats["batch_client"]
+            logger.info(f"Batch Client:")
+            logger.info(f"  API Calls: {client['total_api_calls']}")
+            logger.info(f"  Circuits Submitted: {client['total_circuits_submitted']}")
+            logger.info(f"  Avg Circuits/Call: {client['avg_circuits_per_call']:.1f}")
 
-        print("="*72 + "\n")
+        logger.info("=" * 72)
 
     def get_recommended_batch_size(self) -> int:
         """Get recommended batch size based on current performance"""
@@ -468,8 +447,8 @@ async def example_v3_4_execution():
                 {"gate": "h", "target": 0},
                 {"gate": "ry", "target": 1, "rotation": 0.5},
                 {"gate": "cnot", "control": 0, "target": 1},
-                {"gate": "rz", "target": 2, "rotation": 1.2}
-            ]
+                {"gate": "rz", "target": 2, "rotation": 1.2},
+            ],
         }
         for _ in range(20)
     ]
@@ -480,7 +459,7 @@ async def example_v3_4_execution():
         use_batch_api=True,
         use_native_gates=True,
         use_smart_caching=True,
-        adaptive_batch_sizing=False
+        adaptive_batch_sizing=False,
     ) as manager:
 
         # Execute batch
@@ -488,13 +467,13 @@ async def example_v3_4_execution():
         results = await manager.execute_batch(circuits, shots=1000)
         elapsed = time.time() - start
 
-        print(f"\nCompleted {len(results)} circuits in {elapsed:.1f}s")
-        print(f"Expected v3.3.1 time: ~35s")
-        print(f"v3.4 time: {elapsed:.1f}s")
-        print(f"Speedup: {35/elapsed:.1f}x")
+        logger.info(f"Completed {len(results)} circuits in {elapsed:.1f}s")
+        logger.info(f"Expected v3.3.1 time: ~35s")
+        logger.info(f"v3.4 time: {elapsed:.1f}s")
+        logger.info(f"Speedup: {35/elapsed:.1f}x")
 
-        # Print performance report
-        manager.print_performance_report()
+        # Log performance report
+        manager.log_performance_report()
 
 
 if __name__ == "__main__":

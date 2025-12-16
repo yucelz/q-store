@@ -5,17 +5,18 @@ Optimized quantum layer with reduced gate count and hardware-aware compilation
 Key Innovation: 33% fewer parameters through efficient ansatz design
 """
 
-import numpy as np
 import logging
-from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from ..backends.quantum_backend_interface import (
+    CircuitBuilder,
+    ExecutionResult,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
-    CircuitBuilder,
-    GateType,
-    ExecutionResult
 )
 
 logger = logging.getLogger(__name__)
@@ -24,11 +25,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class HardwareEfficientLayerConfig:
     """Configuration for hardware-efficient quantum layer"""
+
     n_qubits: int
     depth: int
-    entanglement: str = 'hardware_aware'  # 'linear', 'circular', 'full', 'hardware_aware'
-    rotation_gates: str = 'ry_rz'  # 'ry_rz', 'rx_rz', 'all'
-    measurement_basis: str = 'computational'
+    entanglement: str = "hardware_aware"  # 'linear', 'circular', 'full', 'hardware_aware'
+    rotation_gates: str = "ry_rz"  # 'ry_rz', 'rx_rz', 'all'
+    measurement_basis: str = "computational"
     trainable: bool = True
     use_hardware_topology: bool = True
 
@@ -51,9 +53,9 @@ class HardwareEfficientQuantumLayer:
         n_qubits: int,
         depth: int,
         backend: QuantumBackend,
-        ansatz_type: str = 'hardware_efficient',
-        entanglement: str = 'linear',
-        measurement_basis: str = 'computational'
+        ansatz_type: str = "hardware_efficient",
+        entanglement: str = "linear",
+        measurement_basis: str = "computational",
     ):
         """
         Initialize hardware-efficient quantum layer
@@ -123,7 +125,7 @@ class HardwareEfficientQuantumLayer:
             self._add_entanglement_layer(builder)
 
         # 3. Measurement layer
-        if self.measurement_basis == 'hadamard':
+        if self.measurement_basis == "hadamard":
             for i in range(self.n_qubits):
                 builder.h(i)
 
@@ -132,17 +134,13 @@ class HardwareEfficientQuantumLayer:
         circuit = builder.build()
 
         # Add metadata for optimization
-        circuit.metadata['ansatz_type'] = self.ansatz_type
-        circuit.metadata['hardware_efficient'] = True
-        circuit.metadata['n_parameters'] = self.n_parameters
+        circuit.metadata["ansatz_type"] = self.ansatz_type
+        circuit.metadata["hardware_efficient"] = True
+        circuit.metadata["n_parameters"] = self.n_parameters
 
         return circuit
 
-    def _add_encoding_layer(
-        self,
-        builder: CircuitBuilder,
-        data: np.ndarray
-    ) -> None:
+    def _add_encoding_layer(self, builder: CircuitBuilder, data: np.ndarray) -> None:
         """
         Encode classical data using amplitude encoding
 
@@ -155,11 +153,7 @@ class HardwareEfficientQuantumLayer:
             # Single RY rotation for encoding (vs RX+RY+RZ)
             builder.ry(i, normalized[i])
 
-    def _add_rotation_layer(
-        self,
-        builder: CircuitBuilder,
-        start_idx: int
-    ) -> int:
+    def _add_rotation_layer(self, builder: CircuitBuilder, start_idx: int) -> int:
         """
         Hardware-efficient rotation layer
 
@@ -182,7 +176,7 @@ class HardwareEfficientQuantumLayer:
 
         Uses backend connectivity information for optimal gate placement
         """
-        if self.entanglement == 'hardware_aware' and self.backend_caps.connectivity:
+        if self.entanglement == "hardware_aware" and self.backend_caps.connectivity:
             # Use hardware connectivity graph
             connectivity = self.backend_caps.connectivity
 
@@ -190,28 +184,24 @@ class HardwareEfficientQuantumLayer:
                 if control < self.n_qubits and target < self.n_qubits:
                     builder.cnot(control, target)
 
-        elif self.entanglement == 'linear':
+        elif self.entanglement == "linear":
             # Linear chain: 0-1, 1-2, 2-3, ...
             for i in range(self.n_qubits - 1):
                 builder.cnot(i, i + 1)
 
-        elif self.entanglement == 'circular':
+        elif self.entanglement == "circular":
             # Ring: 0-1, 1-2, ..., (n-1)-0
             for i in range(self.n_qubits - 1):
                 builder.cnot(i, i + 1)
             builder.cnot(self.n_qubits - 1, 0)
 
-        elif self.entanglement == 'full':
+        elif self.entanglement == "full":
             # All-to-all (expensive)
             for i in range(self.n_qubits):
                 for j in range(i + 1, self.n_qubits):
                     builder.cnot(i, j)
 
-    async def forward(
-        self,
-        input_data: np.ndarray,
-        shots: int = 1000
-    ) -> np.ndarray:
+    async def forward(self, input_data: np.ndarray, shots: int = 1000) -> np.ndarray:
         """
         Forward pass through quantum layer
 
@@ -248,7 +238,7 @@ class HardwareEfficientQuantumLayer:
         total_shots = result.total_shots
 
         # Create output vector from measurement probabilities
-        output = np.zeros(2 ** self.n_qubits)
+        output = np.zeros(2**self.n_qubits)
 
         for bitstring, count in counts.items():
             # Convert bitstring to index
@@ -265,9 +255,7 @@ class HardwareEfficientQuantumLayer:
             new_params: New parameter values
         """
         if len(new_params) != self.n_parameters:
-            raise ValueError(
-                f"Expected {self.n_parameters} parameters, got {len(new_params)}"
-            )
+            raise ValueError(f"Expected {self.n_parameters} parameters, got {len(new_params)}")
 
         # Apply frozen parameters
         for idx in self._frozen_params:
@@ -322,11 +310,11 @@ class HardwareEfficientQuantumLayer:
 
     def _estimate_entanglement_depth(self) -> int:
         """Estimate depth of entanglement layer"""
-        if self.entanglement == 'linear':
+        if self.entanglement == "linear":
             return 1  # All CNOTs can be in parallel
-        elif self.entanglement == 'circular':
+        elif self.entanglement == "circular":
             return 2  # Need 2 layers for ring
-        elif self.entanglement == 'full':
+        elif self.entanglement == "full":
             return self.n_qubits  # Worst case
         else:
             return 2  # Conservative estimate
@@ -334,14 +322,14 @@ class HardwareEfficientQuantumLayer:
     def to_dict(self) -> Dict[str, Any]:
         """Serialize layer configuration"""
         return {
-            'n_qubits': self.n_qubits,
-            'depth': self.depth,
-            'ansatz_type': self.ansatz_type,
-            'entanglement': self.entanglement,
-            'measurement_basis': self.measurement_basis,
-            'n_parameters': self.n_parameters,
-            'parameters': self.parameters.tolist(),
-            'frozen_params': list(self._frozen_params)
+            "n_qubits": self.n_qubits,
+            "depth": self.depth,
+            "ansatz_type": self.ansatz_type,
+            "entanglement": self.entanglement,
+            "measurement_basis": self.measurement_basis,
+            "n_parameters": self.n_parameters,
+            "parameters": self.parameters.tolist(),
+            "frozen_params": list(self._frozen_params),
         }
 
     @classmethod
@@ -357,16 +345,16 @@ class HardwareEfficientQuantumLayer:
             HardwareEfficientQuantumLayer instance
         """
         layer = cls(
-            n_qubits=config['n_qubits'],
-            depth=config['depth'],
+            n_qubits=config["n_qubits"],
+            depth=config["depth"],
             backend=backend,
-            ansatz_type=config.get('ansatz_type', 'hardware_efficient'),
-            entanglement=config.get('entanglement', 'linear'),
-            measurement_basis=config.get('measurement_basis', 'computational')
+            ansatz_type=config.get("ansatz_type", "hardware_efficient"),
+            entanglement=config.get("entanglement", "linear"),
+            measurement_basis=config.get("measurement_basis", "computational"),
         )
 
-        layer.parameters = np.array(config['parameters'])
-        layer._frozen_params = set(config.get('frozen_params', []))
+        layer.parameters = np.array(config["parameters"])
+        layer._frozen_params = set(config.get("frozen_params", []))
 
         return layer
 

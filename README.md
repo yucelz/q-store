@@ -1072,3 +1072,110 @@ If you use Q-Store in your research, please cite:
 ---
 
 **Note:** Q-Store v3.2 introduces production-ready quantum ML training with hardware-agnostic support. The system seamlessly integrates with classical ML frameworks (PyTorch, TensorFlow, JAX) and supports multiple quantum backends (Cirq, Qiskit) for flexible deployment. For mission-critical applications, additional validation and optimization are recommended.
+## Developer Guide
+
+### Setting Up Development Environment
+
+```bash
+# Clone repository
+git clone https://github.com/yucelz/q-store.git
+cd q-store
+
+# Install in development mode with all dependencies
+pip install -e ".[dev,backends,all]"
+
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+```
+
+### Code Quality Tools
+
+Q-Store uses automated code quality tools configured in `pyproject.toml` and `.pre-commit-config.yaml`:
+
+**Formatting**:
+```bash
+# Format code with black (line length: 100)
+black src/q_store
+
+# Sort imports with isort
+isort src/q_store --profile black
+```
+
+**Linting**:
+```bash
+# Run ruff (fast Python linter)
+ruff check src/q_store
+
+# Run flake8
+flake8 src/q_store
+
+# Run mypy for type checking
+mypy src/q_store
+```
+
+**Pre-commit Hooks**:
+All code quality checks run automatically on commit:
+- Trailing whitespace removal
+- End-of-file fixing
+- YAML/JSON/TOML validation
+- Black formatting
+- Import sorting (isort)
+- Ruff linting
+- Type checking (mypy)
+
+**Run All Checks Manually**:
+```bash
+pre-commit run --all-files
+```
+
+### Project Structure
+
+```
+q-store/
+├── src/q_store/           # Main package
+│   ├── core/             # Core database operations
+│   ├── backends/         # Quantum backend adapters
+│   ├── ml/              # ML training components
+│   ├── exceptions.py    # Custom exceptions
+│   └── constants.py     # Configuration constants
+├── tests/               # Test suite
+├── examples/            # Example scripts and demos
+├── docs/                # Documentation
+│   ├── ARCHITECTURE.md  # System architecture
+│   └── archive/         # Old version docs
+├── pyproject.toml       # Project configuration
+└── .pre-commit-config.yaml  # Code quality hooks
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src/q_store --cov-report=html
+
+# Run specific test file
+pytest tests/test_quantum_database.py
+
+# Run with specific markers
+pytest -m "not slow"
+pytest -m integration
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make your changes
+4. Run code quality tools: `pre-commit run --all-files`
+5. Run tests: `pytest`
+6. Commit changes (pre-commit hooks will run automatically)
+7. Push to your fork: `git push origin feature/my-feature`
+8. Create a Pull Request
+
+### Architecture
+
+See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system architecture, module descriptions, and design patterns.

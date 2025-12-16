@@ -3,17 +3,18 @@ Quantum Neural Network Layer
 Hardware-agnostic quantum layer for ML models
 """
 
-import numpy as np
 import logging
-from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from ..backends.quantum_backend_interface import (
+    CircuitBuilder,
+    ExecutionResult,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
-    CircuitBuilder,
-    GateType,
-    ExecutionResult
 )
 
 logger = logging.getLogger(__name__)
@@ -22,10 +23,11 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LayerConfig:
     """Configuration for quantum layer"""
+
     n_qubits: int
     depth: int
-    entanglement: str = 'linear'  # 'linear', 'circular', 'full'
-    measurement_basis: str = 'computational'  # 'computational', 'hadamard'
+    entanglement: str = "linear"  # 'linear', 'circular', 'full'
+    measurement_basis: str = "computational"  # 'computational', 'hadamard'
     trainable: bool = True
 
 
@@ -42,8 +44,8 @@ class QuantumLayer:
         n_qubits: int,
         depth: int,
         backend: QuantumBackend,
-        entanglement: str = 'linear',
-        measurement_basis: str = 'computational'
+        entanglement: str = "linear",
+        measurement_basis: str = "computational",
     ):
         """
         Initialize quantum layer
@@ -100,7 +102,7 @@ class QuantumLayer:
             self._add_entanglement_layer(builder)
 
         # 3. Measurement layer
-        if self.measurement_basis == 'hadamard':
+        if self.measurement_basis == "hadamard":
             # Apply Hadamard before measurement for X-basis
             for i in range(self.n_qubits):
                 builder.h(i)
@@ -109,11 +111,7 @@ class QuantumLayer:
 
         return builder.build()
 
-    def _add_encoding_layer(
-        self,
-        builder: CircuitBuilder,
-        data: np.ndarray
-    ) -> None:
+    def _add_encoding_layer(self, builder: CircuitBuilder, data: np.ndarray) -> None:
         """
         Encode classical data into quantum state
         Uses angle encoding: R_y(θ_i)|0⟩
@@ -122,11 +120,7 @@ class QuantumLayer:
             angle = data[i] * np.pi
             builder.ry(i, angle)
 
-    def _add_rotation_layer(
-        self,
-        builder: CircuitBuilder,
-        start_idx: int
-    ) -> int:
+    def _add_rotation_layer(self, builder: CircuitBuilder, start_idx: int) -> int:
         """
         Add trainable rotation gates
         Returns updated parameter index
@@ -142,18 +136,18 @@ class QuantumLayer:
 
     def _add_entanglement_layer(self, builder: CircuitBuilder) -> None:
         """Add entanglement gates based on pattern"""
-        if self.entanglement == 'linear':
+        if self.entanglement == "linear":
             # Linear chain: 0-1, 1-2, 2-3, ...
             for i in range(self.n_qubits - 1):
                 builder.cnot(i, i + 1)
 
-        elif self.entanglement == 'circular':
+        elif self.entanglement == "circular":
             # Circular: linear + last-first connection
             for i in range(self.n_qubits - 1):
                 builder.cnot(i, i + 1)
             builder.cnot(self.n_qubits - 1, 0)
 
-        elif self.entanglement == 'full':
+        elif self.entanglement == "full":
             # Full connectivity
             for i in range(self.n_qubits):
                 for j in range(i + 1, self.n_qubits):
@@ -162,11 +156,7 @@ class QuantumLayer:
         else:
             raise ValueError(f"Unknown entanglement pattern: {self.entanglement}")
 
-    async def forward(
-        self,
-        x: np.ndarray,
-        shots: int = 1000
-    ) -> np.ndarray:
+    async def forward(self, x: np.ndarray, shots: int = 1000) -> np.ndarray:
         """
         Forward pass through quantum layer
 
@@ -199,12 +189,12 @@ class QuantumLayer:
         for bitstring, count in result.counts.items():
             # Convert bitstring to string if it's an integer (from some backends)
             if isinstance(bitstring, int):
-                bitstring = format(bitstring, 'b')
+                bitstring = format(bitstring, "b")
             # Pad bitstring to n_qubits
             bitstring = bitstring.zfill(self.n_qubits)
             # Compute expectation: +1 for |0⟩, -1 for |1⟩
             for i, bit in enumerate(bitstring):
-                if bit == '0':
+                if bit == "0":
                     output[i] += count
                 else:
                     output[i] -= count
@@ -237,9 +227,7 @@ class QuantumLayer:
             new_params: New parameter values
         """
         if len(new_params) != self.n_parameters:
-            raise ValueError(
-                f"Expected {self.n_parameters} parameters, got {len(new_params)}"
-            )
+            raise ValueError(f"Expected {self.n_parameters} parameters, got {len(new_params)}")
 
         # Update only non-frozen parameters
         for i in range(self.n_parameters):
@@ -261,11 +249,11 @@ class QuantumLayer:
         require state tomography
         """
         # Placeholder: estimate based on entanglement pattern
-        if self.entanglement == 'linear':
+        if self.entanglement == "linear":
             return 0.5 * self.depth * (self.n_qubits - 1)
-        elif self.entanglement == 'circular':
+        elif self.entanglement == "circular":
             return 0.5 * self.depth * self.n_qubits
-        elif self.entanglement == 'full':
+        elif self.entanglement == "full":
             return 0.5 * self.depth * self.n_qubits * (self.n_qubits - 1) / 2
         return 0.0
 
@@ -276,26 +264,26 @@ class QuantumLayer:
             depth=self.depth,
             entanglement=self.entanglement,
             measurement_basis=self.measurement_basis,
-            trainable=len(self._frozen_params) < self.n_parameters
+            trainable=len(self._frozen_params) < self.n_parameters,
         )
 
     def save_state(self) -> Dict[str, Any]:
         """Save layer state for checkpointing"""
         return {
-            'parameters': self.parameters.tolist(),
-            'frozen_params': list(self._frozen_params),
-            'config': {
-                'n_qubits': self.n_qubits,
-                'depth': self.depth,
-                'entanglement': self.entanglement,
-                'measurement_basis': self.measurement_basis
-            }
+            "parameters": self.parameters.tolist(),
+            "frozen_params": list(self._frozen_params),
+            "config": {
+                "n_qubits": self.n_qubits,
+                "depth": self.depth,
+                "entanglement": self.entanglement,
+                "measurement_basis": self.measurement_basis,
+            },
         }
 
     def load_state(self, state: Dict[str, Any]) -> None:
         """Load layer state from checkpoint"""
-        self.parameters = np.array(state['parameters'])
-        self._frozen_params = set(state['frozen_params'])
+        self.parameters = np.array(state["parameters"])
+        self._frozen_params = set(state["frozen_params"])
         logger.info(f"Loaded layer state with {self.n_parameters} parameters")
 
 
@@ -312,7 +300,7 @@ class QuantumConvolutionalLayer(QuantumLayer):
         backend: QuantumBackend,
         kernel_size: int = 2,
         stride: int = 1,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(n_qubits, depth, backend, **kwargs)
         self.kernel_size = kernel_size
@@ -322,11 +310,7 @@ class QuantumConvolutionalLayer(QuantumLayer):
         self.n_parameters = depth * kernel_size * 3
         self.parameters = self._initialize_parameters()
 
-    async def forward(
-        self,
-        x: np.ndarray,
-        shots: int = 1000
-    ) -> np.ndarray:
+    async def forward(self, x: np.ndarray, shots: int = 1000) -> np.ndarray:
         """
         Convolutional forward pass
         Slides kernel across input qubits
@@ -336,7 +320,7 @@ class QuantumConvolutionalLayer(QuantumLayer):
         # Slide window across qubits
         for i in range(0, self.n_qubits - self.kernel_size + 1, self.stride):
             # Create sub-circuit for this window
-            window_data = x[i:i+self.kernel_size] if len(x) > i else x[i:]
+            window_data = x[i : i + self.kernel_size] if len(x) > i else x[i:]
 
             # Build and execute circuit for this window
             builder = CircuitBuilder(self.kernel_size)
@@ -362,11 +346,7 @@ class QuantumPoolingLayer:
     Reduces dimensionality via quantum measurements
     """
 
-    def __init__(
-        self,
-        pool_size: int = 2,
-        method: str = 'max'
-    ):
+    def __init__(self, pool_size: int = 2, method: str = "max"):
         """
         Initialize pooling layer
 
@@ -390,11 +370,11 @@ class QuantumPoolingLayer:
         pooled = []
 
         for i in range(0, len(x), self.pool_size):
-            window = x[i:i+self.pool_size]
+            window = x[i : i + self.pool_size]
 
-            if self.method == 'max':
+            if self.method == "max":
                 pooled.append(np.max(window))
-            elif self.method == 'average':
+            elif self.method == "average":
                 pooled.append(np.mean(window))
             else:
                 raise ValueError(f"Unknown pooling method: {self.method}")

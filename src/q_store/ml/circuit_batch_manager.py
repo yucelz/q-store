@@ -6,18 +6,14 @@ Key Innovation: Reduces API overhead by batching circuit submissions
 """
 
 import asyncio
-import time
 import logging
-from typing import List, Dict, Any, Optional
+import time
+from collections import defaultdict, deque
 from dataclasses import dataclass
 from queue import Queue
-from collections import defaultdict, deque
+from typing import Any, Dict, List, Optional
 
-from ..backends.quantum_backend_interface import (
-    QuantumBackend,
-    QuantumCircuit,
-    ExecutionResult
-)
+from ..backends.quantum_backend_interface import ExecutionResult, QuantumBackend, QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CircuitJob:
     """Tracks a submitted circuit job"""
+
     job_id: str
     circuit: QuantumCircuit
     shots: int
@@ -56,7 +53,7 @@ class CircuitBatchManager:
         backend: QuantumBackend,
         max_batch_size: int = 100,
         polling_interval: float = 0.5,
-        timeout: float = 120.0
+        timeout: float = 120.0,
     ):
         """
         Initialize batch manager
@@ -88,7 +85,7 @@ class CircuitBatchManager:
         circuits: List[QuantumCircuit],
         shots: int = 1000,
         wait_for_results: bool = True,
-        timeout: Optional[float] = None
+        timeout: Optional[float] = None,
     ) -> List[ExecutionResult]:
         """
         Execute multiple circuits in batch
@@ -115,17 +112,13 @@ class CircuitBatchManager:
         timeout = timeout or self.timeout
 
         # Check backend capabilities
-        supports_async = hasattr(self.backend, 'submit_job_async')
+        supports_async = hasattr(self.backend, "submit_job_async")
 
         if supports_async:
-            results = await self._execute_batch_async(
-                circuits, shots, wait_for_results, timeout
-            )
+            results = await self._execute_batch_async(circuits, shots, wait_for_results, timeout)
         else:
             # Fallback: parallel execution with asyncio
-            results = await self._execute_batch_parallel(
-                circuits, shots, timeout
-            )
+            results = await self._execute_batch_parallel(circuits, shots, timeout)
 
         batch_time = (time.time() - batch_start) * 1000
 
@@ -138,11 +131,7 @@ class CircuitBatchManager:
         return results
 
     async def _execute_batch_async(
-        self,
-        circuits: List[QuantumCircuit],
-        shots: int,
-        wait_for_results: bool,
-        timeout: float
+        self, circuits: List[QuantumCircuit], shots: int, wait_for_results: bool, timeout: float
     ) -> List[ExecutionResult]:
         """
         Execute batch using backend's async API
@@ -164,8 +153,8 @@ class CircuitBatchManager:
                 job_id=job_id,
                 circuit=circuit,
                 shots=shots,
-                status='submitted',
-                submit_time=time.time()
+                status="submitted",
+                submit_time=time.time(),
             )
 
         submit_time = (time.time() - submit_start) * 1000
@@ -186,10 +175,7 @@ class CircuitBatchManager:
         return results
 
     async def _execute_batch_parallel(
-        self,
-        circuits: List[QuantumCircuit],
-        shots: int,
-        timeout: float
+        self, circuits: List[QuantumCircuit], shots: int, timeout: float
     ) -> List[ExecutionResult]:
         """
         Execute batch using parallel asyncio calls
@@ -202,31 +188,20 @@ class CircuitBatchManager:
         )
 
         # Create tasks for all circuits
-        tasks = [
-            self._execute_single_circuit(circuit, shots)
-            for circuit in circuits
-        ]
+        tasks = [self._execute_single_circuit(circuit, shots) for circuit in circuits]
 
         # Execute all in parallel
         try:
-            results = await asyncio.wait_for(
-                asyncio.gather(*tasks),
-                timeout=timeout
-            )
+            results = await asyncio.wait_for(asyncio.gather(*tasks), timeout=timeout)
             return results
 
         except asyncio.TimeoutError:
             logger.error(
-                f"Batch execution timeout after {timeout}s "
-                f"for {len(circuits)} circuits"
+                f"Batch execution timeout after {timeout}s " f"for {len(circuits)} circuits"
             )
             raise
 
-    async def _execute_single_circuit(
-        self,
-        circuit: QuantumCircuit,
-        shots: int
-    ) -> ExecutionResult:
+    async def _execute_single_circuit(self, circuit: QuantumCircuit, shots: int) -> ExecutionResult:
         """Execute single circuit (wrapped for parallel execution)"""
         try:
             result = await self.backend.execute_circuit(circuit, shots)
@@ -237,11 +212,7 @@ class CircuitBatchManager:
             logger.error(f"Circuit execution failed: {e}")
             raise
 
-    async def _poll_for_results(
-        self,
-        job_ids: List[str],
-        timeout: float
-    ) -> List[ExecutionResult]:
+    async def _poll_for_results(self, job_ids: List[str], timeout: float) -> List[ExecutionResult]:
         """
         Poll for job completion
 
@@ -264,21 +235,19 @@ class CircuitBatchManager:
                     f"Polling timeout after {elapsed:.2f}s, "
                     f"{len(pending)}/{len(job_ids)} jobs still pending"
                 )
-                raise TimeoutError(
-                    f"Batch execution timeout: {len(pending)} jobs incomplete"
-                )
+                raise TimeoutError(f"Batch execution timeout: {len(pending)} jobs incomplete")
 
             # Check status of pending jobs
             for job_id in list(pending):
                 try:
                     # Check if backend has status check
-                    if hasattr(self.backend, 'check_job_status'):
+                    if hasattr(self.backend, "check_job_status"):
                         status = await self.backend.check_job_status(job_id)
                     else:
                         # Fallback: assume completed (will error if not)
-                        status = 'completed'
+                        status = "completed"
 
-                    if status == 'completed':
+                    if status == "completed":
                         # Fetch result
                         result = await self.backend.get_job_result(job_id)
                         results[job_id] = result
@@ -287,7 +256,7 @@ class CircuitBatchManager:
                         # Update job tracking
                         if job_id in self._active_jobs:
                             job = self._active_jobs[job_id]
-                            job.status = 'completed'
+                            job.status = "completed"
                             job.complete_time = time.time()
                             job.result = result
 
@@ -296,12 +265,12 @@ class CircuitBatchManager:
 
                         self.total_circuits_completed += 1
 
-                    elif status == 'failed':
+                    elif status == "failed":
                         logger.error(f"Job {job_id} failed")
                         pending.remove(job_id)
 
                         if job_id in self._active_jobs:
-                            self._active_jobs[job_id].status = 'failed'
+                            self._active_jobs[job_id].status = "failed"
 
                         # Store None for failed job to avoid KeyError later
                         results[job_id] = None
@@ -327,9 +296,7 @@ class CircuitBatchManager:
         poll_time = (time.time() - poll_start) * 1000
         self.total_execution_time_ms += poll_time
 
-        logger.debug(
-            f"Polling complete: {len(job_ids)} results in {poll_time:.2f}ms"
-        )
+        logger.debug(f"Polling complete: {len(job_ids)} results in {poll_time:.2f}ms")
 
         # Return results in order, filtering out None values from failed jobs
         ordered_results = [results.get(job_id) for job_id in job_ids]
@@ -349,30 +316,28 @@ class CircuitBatchManager:
 
         avg_submission = (
             self.total_submission_time_ms / self.total_circuits_submitted
-            if self.total_circuits_submitted > 0 else 0
+            if self.total_circuits_submitted > 0
+            else 0
         )
 
         avg_execution = (
             self.total_execution_time_ms / self.total_circuits_completed
-            if self.total_circuits_completed > 0 else 0
+            if self.total_circuits_completed > 0
+            else 0
         )
 
         return {
-            'circuits_submitted': self.total_circuits_submitted,
-            'circuits_completed': self.total_circuits_completed,
-            'active_jobs': len(self._active_jobs),
-            'total_submission_time_ms': self.total_submission_time_ms,
-            'total_execution_time_ms': self.total_execution_time_ms,
-            'avg_submission_ms': avg_submission,
-            'avg_execution_ms': avg_execution,
-            'avg_total_ms': avg_submission + avg_execution
+            "circuits_submitted": self.total_circuits_submitted,
+            "circuits_completed": self.total_circuits_completed,
+            "active_jobs": len(self._active_jobs),
+            "total_submission_time_ms": self.total_submission_time_ms,
+            "total_execution_time_ms": self.total_execution_time_ms,
+            "avg_submission_ms": avg_submission,
+            "avg_execution_ms": avg_execution,
+            "avg_total_ms": avg_submission + avg_execution,
         }
 
-    async def wait_for_job(
-        self,
-        job_id: str,
-        timeout: Optional[float] = None
-    ) -> ExecutionResult:
+    async def wait_for_job(self, job_id: str, timeout: Optional[float] = None) -> ExecutionResult:
         """Wait for specific job to complete"""
         timeout = timeout or self.timeout
         results = await self._poll_for_results([job_id], timeout)
@@ -393,10 +358,10 @@ class CircuitBatchManager:
     async def cancel_job(self, job_id: str):
         """Cancel a pending job"""
         if job_id in self._active_jobs:
-            if hasattr(self.backend, 'cancel_job'):
+            if hasattr(self.backend, "cancel_job"):
                 await self.backend.cancel_job(job_id)
 
-            self._active_jobs[job_id].status = 'cancelled'
+            self._active_jobs[job_id].status = "cancelled"
             del self._active_jobs[job_id]
 
     async def cancel_all(self):

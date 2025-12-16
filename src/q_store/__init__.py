@@ -19,61 +19,63 @@ v3.3 Enhancements:
 - Performance tracking and monitoring
 """
 
-# Core database components
-from .core.quantum_database import (
-    QuantumDatabase,
-    DatabaseConfig,
-    QueryMode,
-    QueryResult,
-    Metrics,
-    ConnectionPool,
-    MockPineconeIndex
-)
-
-# Quantum backend abstraction layer (v3.1)
-from .backends.quantum_backend_interface import (
-    QuantumBackend,
-    QuantumCircuit,
-    QuantumGate,
-    ExecutionResult,
-    BackendCapabilities,
-    BackendType,
-    GateType,
-    CircuitBuilder,
-    amplitude_encode_to_circuit,
-    create_bell_state_circuit,
-    create_ghz_state_circuit
-)
-
+# Exceptions and constants
+from . import constants, exceptions
 from .backends.backend_manager import (
     BackendManager,
     MockQuantumBackend,
     create_default_backend_manager,
-    setup_ionq_backends
+    setup_ionq_backends,
 )
 
 # Legacy backend (backward compatibility)
 from .backends.ionq_backend import IonQQuantumBackend
 
-# Core quantum components
-from .core.state_manager import StateManager, QuantumState, StateStatus
+# Quantum backend abstraction layer (v3.1)
+from .backends.quantum_backend_interface import (
+    BackendCapabilities,
+    BackendType,
+    CircuitBuilder,
+    ExecutionResult,
+    GateType,
+    QuantumBackend,
+    QuantumCircuit,
+    QuantumGate,
+    amplitude_encode_to_circuit,
+    create_bell_state_circuit,
+    create_ghz_state_circuit,
+)
 from .core.entanglement_registry import EntanglementRegistry
+
+# Core database components
+from .core.quantum_database import (
+    ConnectionPool,
+    DatabaseConfig,
+    Metrics,
+    MockPineconeIndex,
+    QuantumDatabase,
+    QueryMode,
+    QueryResult,
+)
+
+# Core quantum components
+from .core.state_manager import QuantumState, StateManager, StateStatus
 from .core.tunneling_engine import TunnelingEngine
 
 # ML Training Components (v3.2)
 from .ml import (
-    QuantumLayer,
-    QuantumConvolutionalLayer,
-    QuantumPoolingLayer,
-    LayerConfig,
-    QuantumGradientComputer,
     FiniteDifferenceGradient,
-    NaturalGradientComputer,
     GradientResult,
+    LayerConfig,
+    NaturalGradientComputer,
+    QuantumConvolutionalLayer,
     QuantumDataEncoder,
     QuantumFeatureMap,
-    QuantumTrainer,
+    QuantumGradientComputer,
+    QuantumLayer,
     QuantumModel,
+    QuantumPoolingLayer,
+    QuantumTrainer,
     TrainingConfig,
     TrainingMetrics,
 )
@@ -88,7 +90,6 @@ __all__ = [
     "Metrics",
     "ConnectionPool",
     "MockPineconeIndex",
-
     # Backend abstraction (v3.1)
     "QuantumBackend",
     "QuantumCircuit",
@@ -102,22 +103,18 @@ __all__ = [
     "MockQuantumBackend",
     "create_default_backend_manager",
     "setup_ionq_backends",
-
     # Utility functions
     "amplitude_encode_to_circuit",
     "create_bell_state_circuit",
     "create_ghz_state_circuit",
-
     # Legacy (backward compatibility)
     "IonQQuantumBackend",
-
     # Core components
     "StateManager",
     "QuantumState",
     "StateStatus",
     "EntanglementRegistry",
     "TunnelingEngine",
-
     # ML Training (v3.2)
     "QuantumLayer",
     "QuantumConvolutionalLayer",

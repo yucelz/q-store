@@ -3,18 +3,20 @@ Quantum Backend Abstraction Layer
 Provides hardware-agnostic interface for quantum operations
 """
 
+import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Union, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 class BackendType(Enum):
     """Type of quantum backend"""
+
     SIMULATOR = "simulator"
     NOISY_SIMULATOR = "noisy_simulator"
     QPU = "qpu"
@@ -23,6 +25,7 @@ class BackendType(Enum):
 
 class GateType(Enum):
     """Hardware-agnostic gate types"""
+
     # Single-qubit gates
     HADAMARD = "h"
     PAULI_X = "x"
@@ -52,13 +55,14 @@ class GateType(Enum):
 @dataclass
 class QuantumGate:
     """Hardware-agnostic gate representation"""
+
     gate_type: GateType
     qubits: List[int]
     parameters: Optional[Dict[str, float]] = None
     label: Optional[str] = None
 
     def __repr__(self) -> str:
-        qubits_str = ','.join(map(str, self.qubits))
+        qubits_str = ",".join(map(str, self.qubits))
         params_str = f", params={self.parameters}" if self.parameters else ""
         return f"{self.gate_type.value}({qubits_str}{params_str})"
 
@@ -69,6 +73,7 @@ class QuantumCircuit:
     Internal circuit representation (hardware-agnostic)
     Acts as intermediate representation (IR) between user code and backends
     """
+
     n_qubits: int
     gates: List[QuantumGate] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
@@ -88,6 +93,7 @@ class QuantumCircuit:
     def gate_count(self) -> Dict[GateType, int]:
         """Count gates by type"""
         from collections import Counter
+
         return dict(Counter(gate.gate_type for gate in self.gates))
 
     def __repr__(self) -> str:
@@ -97,6 +103,7 @@ class QuantumCircuit:
 @dataclass
 class ExecutionResult:
     """Normalized execution result from any backend"""
+
     counts: Dict[str, int]
     probabilities: Dict[str, float]
     total_shots: int
@@ -111,6 +118,7 @@ class ExecutionResult:
 @dataclass
 class BackendCapabilities:
     """Describes capabilities of a quantum backend"""
+
     max_qubits: int
     supported_gates: List[GateType]
     backend_type: BackendType
@@ -145,10 +153,7 @@ class QuantumBackend(ABC):
 
     @abstractmethod
     async def execute_circuit(
-        self,
-        circuit: QuantumCircuit,
-        shots: int = 1000,
-        **kwargs
+        self, circuit: QuantumCircuit, shots: int = 1000, **kwargs
     ) -> ExecutionResult:
         """
         Execute a quantum circuit
@@ -261,69 +266,63 @@ class CircuitBuilder:
     def __init__(self, n_qubits: int):
         self.circuit = QuantumCircuit(n_qubits=n_qubits)
 
-    def h(self, qubit: int) -> 'CircuitBuilder':
+    def h(self, qubit: int) -> "CircuitBuilder":
         """Add Hadamard gate"""
         self.circuit.add_gate(QuantumGate(GateType.HADAMARD, [qubit]))
         return self
 
-    def x(self, qubit: int) -> 'CircuitBuilder':
+    def x(self, qubit: int) -> "CircuitBuilder":
         """Add Pauli-X gate"""
         self.circuit.add_gate(QuantumGate(GateType.PAULI_X, [qubit]))
         return self
 
-    def y(self, qubit: int) -> 'CircuitBuilder':
+    def y(self, qubit: int) -> "CircuitBuilder":
         """Add Pauli-Y gate"""
         self.circuit.add_gate(QuantumGate(GateType.PAULI_Y, [qubit]))
         return self
 
-    def z(self, qubit: int) -> 'CircuitBuilder':
+    def z(self, qubit: int) -> "CircuitBuilder":
         """Add Pauli-Z gate"""
         self.circuit.add_gate(QuantumGate(GateType.PAULI_Z, [qubit]))
         return self
 
-    def rx(self, qubit: int, angle: float) -> 'CircuitBuilder':
+    def rx(self, qubit: int, angle: float) -> "CircuitBuilder":
         """Add RX rotation gate"""
-        self.circuit.add_gate(QuantumGate(
-            GateType.RX, [qubit], parameters={'angle': angle}
-        ))
+        self.circuit.add_gate(QuantumGate(GateType.RX, [qubit], parameters={"angle": angle}))
         return self
 
-    def ry(self, qubit: int, angle: float) -> 'CircuitBuilder':
+    def ry(self, qubit: int, angle: float) -> "CircuitBuilder":
         """Add RY rotation gate"""
-        self.circuit.add_gate(QuantumGate(
-            GateType.RY, [qubit], parameters={'angle': angle}
-        ))
+        self.circuit.add_gate(QuantumGate(GateType.RY, [qubit], parameters={"angle": angle}))
         return self
 
-    def rz(self, qubit: int, angle: float) -> 'CircuitBuilder':
+    def rz(self, qubit: int, angle: float) -> "CircuitBuilder":
         """Add RZ rotation gate"""
-        self.circuit.add_gate(QuantumGate(
-            GateType.RZ, [qubit], parameters={'angle': angle}
-        ))
+        self.circuit.add_gate(QuantumGate(GateType.RZ, [qubit], parameters={"angle": angle}))
         return self
 
-    def cnot(self, control: int, target: int) -> 'CircuitBuilder':
+    def cnot(self, control: int, target: int) -> "CircuitBuilder":
         """Add CNOT gate"""
         self.circuit.add_gate(QuantumGate(GateType.CNOT, [control, target]))
         return self
 
-    def cz(self, control: int, target: int) -> 'CircuitBuilder':
+    def cz(self, control: int, target: int) -> "CircuitBuilder":
         """Add CZ gate"""
         self.circuit.add_gate(QuantumGate(GateType.CZ, [control, target]))
         return self
 
-    def swap(self, qubit1: int, qubit2: int) -> 'CircuitBuilder':
+    def swap(self, qubit1: int, qubit2: int) -> "CircuitBuilder":
         """Add SWAP gate"""
         self.circuit.add_gate(QuantumGate(GateType.SWAP, [qubit1, qubit2]))
         return self
 
-    def measure_all(self) -> 'CircuitBuilder':
+    def measure_all(self) -> "CircuitBuilder":
         """Add measurement to all qubits"""
         for i in range(self.circuit.n_qubits):
             self.circuit.add_gate(QuantumGate(GateType.MEASURE, [i]))
         return self
 
-    def measure(self, *qubits: int) -> 'CircuitBuilder':
+    def measure(self, *qubits: int) -> "CircuitBuilder":
         """Add measurement to specific qubits"""
         for qubit in qubits:
             self.circuit.add_gate(QuantumGate(GateType.MEASURE, [qubit]))
@@ -335,6 +334,7 @@ class CircuitBuilder:
 
 
 # Utility functions
+
 
 def amplitude_encode_to_circuit(vector: np.ndarray) -> QuantumCircuit:
     """
@@ -371,11 +371,7 @@ def amplitude_encode_to_circuit(vector: np.ndarray) -> QuantumCircuit:
 
 def create_bell_state_circuit() -> QuantumCircuit:
     """Create a simple Bell state circuit for testing"""
-    return (CircuitBuilder(2)
-            .h(0)
-            .cnot(0, 1)
-            .measure_all()
-            .build())
+    return CircuitBuilder(2).h(0).cnot(0, 1).measure_all().build()
 
 
 def create_ghz_state_circuit(n_qubits: int) -> QuantumCircuit:

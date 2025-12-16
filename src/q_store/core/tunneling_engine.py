@@ -4,21 +4,23 @@ Hardware-agnostic quantum tunneling implementation
 Works with any QuantumBackend via abstraction layer
 """
 
-import numpy as np
-from typing import List, Optional, Tuple
 from dataclasses import dataclass
+from typing import List, Optional, Tuple
+
+import numpy as np
 
 from ..backends.quantum_backend_interface import (
+    CircuitBuilder,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
-    CircuitBuilder,
-    GateType
 )
 
 
 @dataclass
 class TunnelingResult:
     """Result from tunneling search"""
+
     vector: np.ndarray
     distance: float
     tunneling_probability: float
@@ -39,11 +41,13 @@ class TunnelingEngine:
         """
         self.quantum_backend = quantum_backend
 
-    def tunnel_search(self,
-                     query: np.ndarray,
-                     candidates: List[np.ndarray],
-                     barrier_threshold: float = 0.8,
-                     top_k: int = 10) -> List[TunnelingResult]:
+    def tunnel_search(
+        self,
+        query: np.ndarray,
+        candidates: List[np.ndarray],
+        barrier_threshold: float = 0.8,
+        top_k: int = 10,
+    ) -> List[TunnelingResult]:
         """
         Search for matches allowing quantum tunneling through barriers
 
@@ -64,29 +68,22 @@ class TunnelingEngine:
 
             # Calculate tunneling probability
             # Higher barrier = higher chance of tunneling to distant matches
-            tunneling_prob = self._calculate_tunneling_probability(
-                distance, barrier_threshold
-            )
+            tunneling_prob = self._calculate_tunneling_probability(distance, barrier_threshold)
 
-            results.append(TunnelingResult(
-                vector=candidate,
-                distance=distance,
-                tunneling_probability=tunneling_prob
-            ))
+            results.append(
+                TunnelingResult(
+                    vector=candidate, distance=distance, tunneling_probability=tunneling_prob
+                )
+            )
 
         # Sort by combination of distance and tunneling probability
         # This allows finding both nearby and distant (but relevant) matches
-        results.sort(
-            key=lambda r: r.distance * (1 - barrier_threshold * r.tunneling_probability)
-        )
+        results.sort(key=lambda r: r.distance * (1 - barrier_threshold * r.tunneling_probability))
 
         return results[:top_k]
 
     async def quantum_tunneling_circuit(
-        self,
-        source: np.ndarray,
-        target: np.ndarray,
-        barrier: float
+        self, source: np.ndarray, target: np.ndarray, barrier: float
     ) -> QuantumCircuit:
         """
         Build hardware-agnostic quantum tunneling circuit
@@ -142,11 +139,7 @@ class TunnelingEngine:
         return builder.build()
 
     async def execute_tunneling_search(
-        self,
-        source: np.ndarray,
-        target: np.ndarray,
-        barrier: float,
-        shots: int = 1000
+        self, source: np.ndarray, target: np.ndarray, barrier: float, shots: int = 1000
     ):
         """
         Execute quantum tunneling search on hardware
@@ -163,16 +156,13 @@ class TunnelingEngine:
         circuit = await self.quantum_tunneling_circuit(source, target, barrier)
 
         # Execute on backend
-        result = await self.quantum_backend.execute_circuit(
-            circuit,
-            shots=shots
-        )
+        result = await self.quantum_backend.execute_circuit(circuit, shots=shots)
 
         return result
 
-    def discover_regimes(self,
-                        historical_data: List[np.ndarray],
-                        n_regimes: int = 3) -> List[List[int]]:
+    def discover_regimes(
+        self, historical_data: List[np.ndarray], n_regimes: int = 3
+    ) -> List[List[int]]:
         """
         Discover distinct regimes in historical data using tunneling
 
@@ -218,10 +208,12 @@ class TunnelingEngine:
 
         return clusters
 
-    def find_precursors(self,
-                       target_event: np.ndarray,
-                       historical_states: List[Tuple[np.ndarray, float]],
-                       lookback_window: int = 10) -> List[np.ndarray]:
+    def find_precursors(
+        self,
+        target_event: np.ndarray,
+        historical_states: List[Tuple[np.ndarray, float]],
+        lookback_window: int = 10,
+    ) -> List[np.ndarray]:
         """
         Find precursor states that led to target event
         Uses tunneling to find non-obvious patterns
@@ -252,16 +244,14 @@ class TunnelingEngine:
                         query=target_event,
                         candidates=lookback_states,
                         barrier_threshold=0.9,  # High barrier = find distant patterns
-                        top_k=3
+                        top_k=3,
                     )
 
                     precursors.extend([r.vector for r in tunneling_results])
 
         return precursors
 
-    def _calculate_tunneling_probability(self,
-                                        distance: float,
-                                        barrier: float) -> float:
+    def _calculate_tunneling_probability(self, distance: float, barrier: float) -> float:
         """
         Calculate quantum tunneling probability
         Based on: T ≈ exp(-2κL) where κ = sqrt(2*barrier)

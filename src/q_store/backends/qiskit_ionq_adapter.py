@@ -5,18 +5,19 @@ Implements the QuantumBackend interface using Qiskit and qiskit-ionq
 
 import asyncio
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Any
 import os
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from .quantum_backend_interface import (
+    BackendCapabilities,
+    BackendType,
+    ExecutionResult,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
     QuantumGate,
-    ExecutionResult,
-    BackendCapabilities,
-    BackendType,
-    GateType
 )
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,8 @@ class QiskitIonQBackend(QuantumBackend):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        target: str = 'simulator',
-        noise_model: Optional[str] = None
+        target: str = "simulator",
+        noise_model: Optional[str] = None,
     ):
         """
         Initialize Qiskit-IonQ backend
@@ -44,7 +45,7 @@ class QiskitIonQBackend(QuantumBackend):
             target: Backend target ('simulator', 'qpu.aria-1', etc.)
             noise_model: Optional noise model for simulator
         """
-        self.api_key = api_key or os.getenv('IONQ_API_KEY')
+        self.api_key = api_key or os.getenv("IONQ_API_KEY")
         self.target = target
         self.noise_model = noise_model
         self._provider = None
@@ -66,11 +67,11 @@ class QiskitIonQBackend(QuantumBackend):
             self._provider = IonQProvider(self.api_key)
 
             # Get backend
-            if self.target == 'simulator':
-                self._backend = self._provider.get_backend('ionq_simulator')
-            elif 'qpu' in self.target:
+            if self.target == "simulator":
+                self._backend = self._provider.get_backend("ionq_simulator")
+            elif "qpu" in self.target:
                 # Extract QPU name (e.g., 'qpu.aria-1' -> 'ionq_qpu.aria-1')
-                qpu_name = self.target.replace('qpu.', 'ionq_qpu.')
+                qpu_name = self.target.replace("qpu.", "ionq_qpu.")
                 self._backend = self._provider.get_backend(qpu_name)
             else:
                 self._backend = self._provider.get_backend(self.target)
@@ -79,13 +80,11 @@ class QiskitIonQBackend(QuantumBackend):
             logger.info(f"Initialized Qiskit-IonQ backend: {self.target}")
 
         except ImportError:
-            raise ImportError(
-                "qiskit-ionq not installed. Install with: pip install qiskit-ionq"
-            )
+            raise ImportError("qiskit-ionq not installed. Install with: pip install qiskit-ionq")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Qiskit-IonQ backend: {e}")
 
-    def _convert_to_qiskit(self, circuit: QuantumCircuit) -> 'QuantumCircuit':
+    def _convert_to_qiskit(self, circuit: QuantumCircuit) -> "QuantumCircuit":
         """
         Convert internal QuantumCircuit to Qiskit QuantumCircuit
 
@@ -117,11 +116,7 @@ class QiskitIonQBackend(QuantumBackend):
 
         return qiskit_circuit
 
-    def _add_gate_to_qiskit(
-        self,
-        qiskit_circuit: 'QuantumCircuit',
-        gate: QuantumGate
-    ) -> None:
+    def _add_gate_to_qiskit(self, qiskit_circuit: "QuantumCircuit", gate: QuantumGate) -> None:
         """
         Add a gate to Qiskit circuit
 
@@ -147,16 +142,16 @@ class QiskitIonQBackend(QuantumBackend):
 
         # Rotation gates
         elif gate.gate_type == GateType.RX:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             qiskit_circuit.rx(angle, qubits[0])
         elif gate.gate_type == GateType.RY:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             qiskit_circuit.ry(angle, qubits[0])
         elif gate.gate_type == GateType.RZ:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             qiskit_circuit.rz(angle, qubits[0])
         elif gate.gate_type == GateType.PHASE:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             qiskit_circuit.p(angle, qubits[0])
 
         # Two-qubit gates
@@ -175,10 +170,7 @@ class QiskitIonQBackend(QuantumBackend):
             logger.warning(f"Unsupported gate type: {gate.gate_type}")
 
     async def execute_circuit(
-        self,
-        circuit: QuantumCircuit,
-        shots: int = 1000,
-        **kwargs
+        self, circuit: QuantumCircuit, shots: int = 1000, **kwargs
     ) -> ExecutionResult:
         """
         Execute circuit on IonQ hardware via Qiskit
@@ -210,10 +202,7 @@ class QiskitIonQBackend(QuantumBackend):
             raise
 
     def _convert_result(
-        self,
-        qiskit_result,
-        total_shots: int,
-        original_circuit: QuantumCircuit
+        self, qiskit_result, total_shots: int, original_circuit: QuantumCircuit
     ) -> ExecutionResult:
         """Convert Qiskit result to ExecutionResult"""
         # Get counts from Qiskit result
@@ -223,7 +212,7 @@ class QiskitIonQBackend(QuantumBackend):
         counts = {}
         for bitstring, count in counts_dict.items():
             # Remove spaces if present
-            clean_bitstring = bitstring.replace(' ', '')
+            clean_bitstring = bitstring.replace(" ", "")
             counts[clean_bitstring] = count
 
         # Calculate probabilities
@@ -234,22 +223,22 @@ class QiskitIonQBackend(QuantumBackend):
             probabilities=probabilities,
             total_shots=total_shots,
             metadata={
-                'backend': 'qiskit_ionq',
-                'target': self.target,
-                'job_id': qiskit_result.job_id if hasattr(qiskit_result, 'job_id') else None
-            }
+                "backend": "qiskit_ionq",
+                "target": self.target,
+                "job_id": qiskit_result.job_id if hasattr(qiskit_result, "job_id") else None,
+            },
         )
 
     def get_capabilities(self) -> BackendCapabilities:
         """Get IonQ backend capabilities"""
         # IonQ capabilities vary by target
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             max_qubits = 29
             backend_type = BackendType.SIMULATOR
-        elif 'aria' in self.target:
+        elif "aria" in self.target:
             max_qubits = 25
             backend_type = BackendType.QPU
-        elif 'forte' in self.target:
+        elif "forte" in self.target:
             max_qubits = 32
             backend_type = BackendType.QPU
         else:
@@ -259,32 +248,43 @@ class QiskitIonQBackend(QuantumBackend):
         return BackendCapabilities(
             max_qubits=max_qubits,
             supported_gates=[
-                GateType.HADAMARD, GateType.PAULI_X, GateType.PAULI_Y, GateType.PAULI_Z,
-                GateType.RX, GateType.RY, GateType.RZ, GateType.PHASE,
-                GateType.CNOT, GateType.CZ, GateType.SWAP,
-                GateType.S, GateType.T, GateType.TOFFOLI, GateType.MEASURE
+                GateType.HADAMARD,
+                GateType.PAULI_X,
+                GateType.PAULI_Y,
+                GateType.PAULI_Z,
+                GateType.RX,
+                GateType.RY,
+                GateType.RZ,
+                GateType.PHASE,
+                GateType.CNOT,
+                GateType.CZ,
+                GateType.SWAP,
+                GateType.S,
+                GateType.T,
+                GateType.TOFFOLI,
+                GateType.MEASURE,
             ],
             backend_type=backend_type,
             supports_mid_circuit_measurement=False,
             supports_reset=False,
             max_shots=10000,
             native_gate_set=[GateType.RX, GateType.RY, GateType.RZ, GateType.CNOT],
-            connectivity=None  # All-to-all connectivity
+            connectivity=None,  # All-to-all connectivity
         )
 
     def get_backend_info(self) -> Dict[str, Any]:
         """Get backend information"""
         return {
-            'provider': 'IonQ',
-            'sdk': 'qiskit',
-            'target': self.target,
-            'version': self._get_version(),
-            'backend_type': self._get_backend_type().value
+            "provider": "IonQ",
+            "sdk": "qiskit",
+            "target": self.target,
+            "version": self._get_version(),
+            "backend_type": self._get_backend_type().value,
         }
 
     def _get_backend_type(self) -> BackendType:
         """Determine backend type from target"""
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             return BackendType.SIMULATOR
         else:
             return BackendType.QPU
@@ -293,8 +293,10 @@ class QiskitIonQBackend(QuantumBackend):
         """Get Qiskit version"""
         try:
             import qiskit
+
             return qiskit.__version__
-        except:
+        except (ImportError, AttributeError) as e:
+            logger.warning(f"Could not determine Qiskit version: {e}")
             return "unknown"
 
     async def close(self) -> None:
@@ -310,7 +312,7 @@ class QiskitIonQBackend(QuantumBackend):
 
     def estimate_cost(self, circuit: QuantumCircuit, shots: int) -> float:
         """Estimate execution cost"""
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             return 0.0
         else:
             # IonQ pricing: ~$0.01 per gate-shot

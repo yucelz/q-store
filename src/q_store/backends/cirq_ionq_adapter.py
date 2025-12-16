@@ -5,18 +5,19 @@ Implements the QuantumBackend interface using Cirq and cirq-ionq
 
 import asyncio
 import logging
-import numpy as np
-from typing import Dict, List, Optional, Any
 import os
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from .quantum_backend_interface import (
+    BackendCapabilities,
+    BackendType,
+    ExecutionResult,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
     QuantumGate,
-    ExecutionResult,
-    BackendCapabilities,
-    BackendType,
-    GateType
 )
 
 logger = logging.getLogger(__name__)
@@ -30,12 +31,7 @@ class CirqIonQBackend(QuantumBackend):
     and executes them on IonQ hardware via cirq-ionq.
     """
 
-    def __init__(
-        self,
-        api_key: str,
-        target: str = 'simulator',
-        noise_model: Optional[str] = None
-    ):
+    def __init__(self, api_key: str, target: str = "simulator", noise_model: Optional[str] = None):
         """
         Initialize Cirq-IonQ backend
 
@@ -52,18 +48,18 @@ class CirqIonQBackend(QuantumBackend):
 
         # Gate mapping
         self._gate_map = {
-            GateType.HADAMARD: 'H',
-            GateType.PAULI_X: 'X',
-            GateType.PAULI_Y: 'Y',
-            GateType.PAULI_Z: 'Z',
-            GateType.RX: 'rx',
-            GateType.RY: 'ry',
-            GateType.RZ: 'rz',
-            GateType.CNOT: 'CNOT',
-            GateType.CZ: 'CZ',
-            GateType.SWAP: 'SWAP',
-            GateType.S: 'S',
-            GateType.T: 'T',
+            GateType.HADAMARD: "H",
+            GateType.PAULI_X: "X",
+            GateType.PAULI_Y: "Y",
+            GateType.PAULI_Z: "Z",
+            GateType.RX: "rx",
+            GateType.RY: "ry",
+            GateType.RZ: "rz",
+            GateType.CNOT: "CNOT",
+            GateType.CZ: "CZ",
+            GateType.SWAP: "SWAP",
+            GateType.S: "S",
+            GateType.T: "T",
         }
 
     async def initialize(self) -> None:
@@ -80,13 +76,11 @@ class CirqIonQBackend(QuantumBackend):
             logger.info(f"Initialized Cirq-IonQ backend: {self.target}")
 
         except ImportError:
-            raise ImportError(
-                "cirq-ionq not installed. Install with: pip install cirq-ionq"
-            )
+            raise ImportError("cirq-ionq not installed. Install with: pip install cirq-ionq")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize Cirq-IonQ backend: {e}")
 
-    def _convert_to_cirq(self, circuit: QuantumCircuit) -> 'cirq.Circuit':
+    def _convert_to_cirq(self, circuit: QuantumCircuit) -> "cirq.Circuit":
         """
         Convert internal QuantumCircuit to Cirq circuit
 
@@ -111,10 +105,8 @@ class CirqIonQBackend(QuantumBackend):
         return cirq_circuit
 
     def _gate_to_cirq(
-        self,
-        gate: QuantumGate,
-        qubits: List['cirq.LineQubit']
-    ) -> Optional['cirq.Operation']:
+        self, gate: QuantumGate, qubits: List["cirq.LineQubit"]
+    ) -> Optional["cirq.Operation"]:
         """
         Convert a single gate to Cirq operation
 
@@ -150,13 +142,13 @@ class CirqIonQBackend(QuantumBackend):
 
         # Rotation gates
         elif gate.gate_type == GateType.RX:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             return cirq.rx(angle)(*gate_qubits)
         elif gate.gate_type == GateType.RY:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             return cirq.ry(angle)(*gate_qubits)
         elif gate.gate_type == GateType.RZ:
-            angle = gate.parameters['angle']
+            angle = gate.parameters["angle"]
             return cirq.rz(angle)(*gate_qubits)
 
         # Two-qubit gates
@@ -173,10 +165,7 @@ class CirqIonQBackend(QuantumBackend):
             return None
 
     async def execute_circuit(
-        self,
-        circuit: QuantumCircuit,
-        shots: int = 1000,
-        **kwargs
+        self, circuit: QuantumCircuit, shots: int = 1000, **kwargs
     ) -> ExecutionResult:
         """
         Execute circuit on IonQ hardware
@@ -199,7 +188,7 @@ class CirqIonQBackend(QuantumBackend):
 
         # Add measurements
         qubits = cirq.LineQubit.range(circuit.n_qubits)
-        cirq_circuit.append(cirq.measure(*qubits, key='result'))
+        cirq_circuit.append(cirq.measure(*qubits, key="result"))
 
         try:
             # Create job
@@ -207,7 +196,7 @@ class CirqIonQBackend(QuantumBackend):
                 circuit=cirq_circuit,
                 repetitions=shots,
                 target=self.target,
-                name=kwargs.get('name', 'quantum_db_query')
+                name=kwargs.get("name", "quantum_db_query"),
             )
 
             # Wait for results
@@ -230,10 +219,7 @@ class CirqIonQBackend(QuantumBackend):
             raise
 
     def _convert_result(
-        self,
-        cirq_result,
-        total_shots: int,
-        original_circuit: QuantumCircuit
+        self, cirq_result, total_shots: int, original_circuit: QuantumCircuit
     ) -> ExecutionResult:
         """Convert Cirq result to ExecutionResult"""
         import cirq
@@ -243,12 +229,12 @@ class CirqIonQBackend(QuantumBackend):
         measurements = None
 
         # Try to get measurements in various ways
-        if hasattr(cirq_result, 'measurement_dict'):
+        if hasattr(cirq_result, "measurement_dict"):
             # IonQ SimulatorResult format - has measurement_dict
             measurement_dict = cirq_result.measurement_dict
-            if isinstance(measurement_dict, dict) and 'result' in measurement_dict:
-                measurements = measurement_dict['result']
-            elif hasattr(cirq_result, 'probabilities') and callable(cirq_result.probabilities):
+            if isinstance(measurement_dict, dict) and "result" in measurement_dict:
+                measurements = measurement_dict["result"]
+            elif hasattr(cirq_result, "probabilities") and callable(cirq_result.probabilities):
                 # probabilities is a method, not a property
                 try:
                     probs = cirq_result.probabilities()
@@ -263,42 +249,48 @@ class CirqIonQBackend(QuantumBackend):
                         probabilities=probabilities,
                         total_shots=total_shots,
                         metadata={
-                            'backend': 'cirq_ionq',
-                            'target': self.target,
-                            'noise_model': self.noise_model
-                        }
+                            "backend": "cirq_ionq",
+                            "target": self.target,
+                            "noise_model": self.noise_model,
+                        },
                     )
                 except Exception as e:
                     logger.warning(f"Could not call probabilities() method: {e}")
                     measurements = None
-        elif hasattr(cirq_result, 'measurements'):
+        elif hasattr(cirq_result, "measurements"):
             # Standard Cirq result object
             measurements_dict = cirq_result.measurements
             if isinstance(measurements_dict, dict):
-                measurements = measurements_dict.get('result', None)
+                measurements = measurements_dict.get("result", None)
             else:
                 measurements = measurements_dict
-        elif hasattr(cirq_result, 'data'):
+        elif hasattr(cirq_result, "data"):
             # Alternative format
-            measurements = cirq_result.data.get('result', None)
+            measurements = cirq_result.data.get("result", None)
         elif isinstance(cirq_result, dict):
             # Direct dictionary
-            measurements = cirq_result.get('result', None)
+            measurements = cirq_result.get("result", None)
 
         if measurements is None:
             # Fallback: try to extract from any available attribute
-            logger.warning(f"Unexpected result format: {type(cirq_result)}, using uniform distribution fallback")
+            logger.warning(
+                f"Unexpected result format: {type(cirq_result)}, using uniform distribution fallback"
+            )
             # Create uniform distribution as fallback
             n_qubits = original_circuit.n_qubits
-            counts = {format(i, f'0{n_qubits}b'): total_shots // (2**n_qubits) for i in range(2**n_qubits)}
+            counts = {
+                format(i, f"0{n_qubits}b"): total_shots // (2**n_qubits) for i in range(2**n_qubits)
+            }
             probabilities = {k: v / total_shots for k, v in counts.items()}
         else:
             # Count outcomes from measurements
             counts = {}
-            measurements_array = np.array(measurements) if not isinstance(measurements, np.ndarray) else measurements
+            measurements_array = (
+                np.array(measurements) if not isinstance(measurements, np.ndarray) else measurements
+            )
 
             for measurement in measurements_array:
-                bitstring = ''.join(str(int(b)) for b in measurement)
+                bitstring = "".join(str(int(b)) for b in measurement)
                 counts[bitstring] = counts.get(bitstring, 0) + 1
 
             # Calculate probabilities
@@ -309,22 +301,22 @@ class CirqIonQBackend(QuantumBackend):
             probabilities=probabilities,
             total_shots=total_shots,
             metadata={
-                'backend': 'cirq_ionq',
-                'target': self.target,
-                'noise_model': self.noise_model
-            }
+                "backend": "cirq_ionq",
+                "target": self.target,
+                "noise_model": self.noise_model,
+            },
         )
 
     def get_capabilities(self) -> BackendCapabilities:
         """Get IonQ backend capabilities"""
         # IonQ capabilities vary by target
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             max_qubits = 29
             backend_type = BackendType.SIMULATOR
-        elif 'aria' in self.target:
+        elif "aria" in self.target:
             max_qubits = 25
             backend_type = BackendType.QPU
-        elif 'forte' in self.target:
+        elif "forte" in self.target:
             max_qubits = 32
             backend_type = BackendType.QPU
         else:
@@ -334,32 +326,41 @@ class CirqIonQBackend(QuantumBackend):
         return BackendCapabilities(
             max_qubits=max_qubits,
             supported_gates=[
-                GateType.HADAMARD, GateType.PAULI_X, GateType.PAULI_Y, GateType.PAULI_Z,
-                GateType.RX, GateType.RY, GateType.RZ,
-                GateType.CNOT, GateType.CZ, GateType.SWAP,
-                GateType.S, GateType.T, GateType.MEASURE
+                GateType.HADAMARD,
+                GateType.PAULI_X,
+                GateType.PAULI_Y,
+                GateType.PAULI_Z,
+                GateType.RX,
+                GateType.RY,
+                GateType.RZ,
+                GateType.CNOT,
+                GateType.CZ,
+                GateType.SWAP,
+                GateType.S,
+                GateType.T,
+                GateType.MEASURE,
             ],
             backend_type=backend_type,
             supports_mid_circuit_measurement=False,
             supports_reset=False,
             max_shots=10000,
             native_gate_set=[GateType.RX, GateType.RY, GateType.RZ, GateType.CNOT],
-            connectivity=None  # All-to-all connectivity
+            connectivity=None,  # All-to-all connectivity
         )
 
     def get_backend_info(self) -> Dict[str, Any]:
         """Get backend information"""
         return {
-            'provider': 'IonQ',
-            'sdk': 'cirq',
-            'target': self.target,
-            'version': self._get_version(),
-            'backend_type': self._get_backend_type().value
+            "provider": "IonQ",
+            "sdk": "cirq",
+            "target": self.target,
+            "version": self._get_version(),
+            "backend_type": self._get_backend_type().value,
         }
 
     def _get_backend_type(self) -> BackendType:
         """Determine backend type from target"""
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             return BackendType.SIMULATOR
         else:
             return BackendType.QPU
@@ -368,8 +369,10 @@ class CirqIonQBackend(QuantumBackend):
         """Get Cirq version"""
         try:
             import cirq
+
             return cirq.__version__
-        except:
+        except (ImportError, AttributeError) as e:
+            logger.warning(f"Could not determine Cirq version: {e}")
             return "unknown"
 
     async def close(self) -> None:
@@ -385,7 +388,7 @@ class CirqIonQBackend(QuantumBackend):
 
     def estimate_cost(self, circuit: QuantumCircuit, shots: int) -> float:
         """Estimate execution cost"""
-        if 'simulator' in self.target:
+        if "simulator" in self.target:
             return 0.0
         else:
             # IonQ pricing: ~$0.01 per gate-shot
@@ -394,12 +397,7 @@ class CirqIonQBackend(QuantumBackend):
             return (n_gates * shots) * 0.00001  # $0.01 per 1000 gate-shots
 
     # v3.3 NEW: Async job submission methods
-    async def submit_job_async(
-        self,
-        circuit: QuantumCircuit,
-        shots: int = 1000,
-        **kwargs
-    ) -> str:
+    async def submit_job_async(self, circuit: QuantumCircuit, shots: int = 1000, **kwargs) -> str:
         """
         Submit job without waiting for completion (v3.3)
 
@@ -421,7 +419,7 @@ class CirqIonQBackend(QuantumBackend):
 
         # Add measurements
         qubits = cirq.LineQubit.range(circuit.n_qubits)
-        cirq_circuit.append(cirq.measure(*qubits, key='result'))
+        cirq_circuit.append(cirq.measure(*qubits, key="result"))
 
         try:
             # Create job (non-blocking)
@@ -429,7 +427,7 @@ class CirqIonQBackend(QuantumBackend):
                 circuit=cirq_circuit,
                 repetitions=shots,
                 target=self.target,
-                name=kwargs.get('name', f'quantum_ml_{asyncio.current_task().get_name()}')
+                name=kwargs.get("name", f"quantum_ml_{asyncio.current_task().get_name()}"),
             )
 
             # Return job ID immediately (don't wait)
@@ -466,23 +464,21 @@ class CirqIonQBackend(QuantumBackend):
             # status() returns a string directly (e.g., 'completed', 'running', 'failed')
             ionq_status = str(status).lower()
 
-            if 'complete' in ionq_status or 'success' in ionq_status:
-                return 'completed'
-            elif 'fail' in ionq_status or 'error' in ionq_status or 'cancel' in ionq_status:
-                return 'failed'
-            elif 'running' in ionq_status:
-                return 'running'
+            if "complete" in ionq_status or "success" in ionq_status:
+                return "completed"
+            elif "fail" in ionq_status or "error" in ionq_status or "cancel" in ionq_status:
+                return "failed"
+            elif "running" in ionq_status:
+                return "running"
             else:
-                return 'submitted'
+                return "submitted"
 
         except Exception as e:
             logger.error(f"Error checking job status: {e}")
-            return 'failed'
+            return "failed"
 
     async def get_job_result(
-        self,
-        job_id: str,
-        original_circuit: Optional[QuantumCircuit] = None
+        self, job_id: str, original_circuit: Optional[QuantumCircuit] = None
     ) -> ExecutionResult:
         """
         Fetch result for a completed job (v3.3)
@@ -513,7 +509,7 @@ class CirqIonQBackend(QuantumBackend):
 
             # Get shots from job metadata if available
             shots = 1000  # default
-            if hasattr(job, 'repetitions'):
+            if hasattr(job, "repetitions"):
                 shots = job.repetitions()
 
             # Convert to our format
@@ -523,11 +519,7 @@ class CirqIonQBackend(QuantumBackend):
             logger.error(f"Error fetching job result: {e}")
             raise
 
-    def execute_circuit_sync(
-        self,
-        circuit,
-        shots: int = 1000
-    ) -> ExecutionResult:
+    def execute_circuit_sync(self, circuit, shots: int = 1000) -> ExecutionResult:
         """
         Synchronous circuit execution (for batch manager fallback)
 
@@ -540,6 +532,7 @@ class CirqIonQBackend(QuantumBackend):
         """
         # Run async method in sync context
         import asyncio
+
         loop = asyncio.get_event_loop()
         if isinstance(circuit, QuantumCircuit):
             return loop.run_until_complete(self.execute_circuit(circuit, shots))

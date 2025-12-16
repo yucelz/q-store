@@ -6,17 +6,14 @@ Key Innovation: Avoids redundant circuit execution through intelligent caching
 """
 
 import hashlib
-import time
 import logging
-from typing import Dict, Any, Optional, Tuple, List
+import time
 from collections import OrderedDict
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..backends.quantum_backend_interface import (
-    QuantumCircuit,
-    ExecutionResult
-)
+from ..backends.quantum_backend_interface import ExecutionResult, QuantumCircuit
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +32,7 @@ class QuantumCircuitCache:
         self,
         max_compiled_circuits: int = 1000,
         max_results: int = 5000,
-        result_ttl: float = 300.0  # 5 minutes
+        result_ttl: float = 300.0,  # 5 minutes
     ):
         """
         Initialize circuit cache
@@ -62,11 +59,7 @@ class QuantumCircuitCache:
         self.misses = 0
         self.evictions = 0
 
-    def get_compiled_circuit(
-        self,
-        circuit: QuantumCircuit,
-        backend_name: str
-    ) -> Optional[Any]:
+    def get_compiled_circuit(self, circuit: QuantumCircuit, backend_name: str) -> Optional[Any]:
         """
         Get compiled circuit if cached
 
@@ -89,10 +82,7 @@ class QuantumCircuitCache:
         return None
 
     def cache_compiled_circuit(
-        self,
-        circuit: QuantumCircuit,
-        backend_name: str,
-        compiled_circuit: Any
+        self, circuit: QuantumCircuit, backend_name: str, compiled_circuit: Any
     ):
         """
         Cache compiled circuit
@@ -114,10 +104,7 @@ class QuantumCircuitCache:
         logger.debug(f"Cached compiled circuit: {key}")
 
     def get_execution_result(
-        self,
-        circuit: QuantumCircuit,
-        parameters: np.ndarray,
-        shots: int
+        self, circuit: QuantumCircuit, parameters: np.ndarray, shots: int
     ) -> Optional[ExecutionResult]:
         """
         Get cached execution result
@@ -149,11 +136,7 @@ class QuantumCircuitCache:
         return None
 
     def cache_execution_result(
-        self,
-        circuit: QuantumCircuit,
-        parameters: np.ndarray,
-        shots: int,
-        result: ExecutionResult
+        self, circuit: QuantumCircuit, parameters: np.ndarray, shots: int, result: ExecutionResult
     ):
         """
         Cache execution result
@@ -169,10 +152,7 @@ class QuantumCircuitCache:
         # Evict oldest if at capacity
         if len(self._result_cache) >= self._result_max:
             # Find oldest (lowest timestamp)
-            oldest_key = min(
-                self._result_cache.keys(),
-                key=lambda k: self._result_cache[k][1]
-            )
+            oldest_key = min(self._result_cache.keys(), key=lambda k: self._result_cache[k][1])
             del self._result_cache[oldest_key]
             self.evictions += 1
             logger.debug(f"Evicted result: {oldest_key}")
@@ -180,10 +160,7 @@ class QuantumCircuitCache:
         self._result_cache[key] = (result, time.time())
         logger.debug(f"Cached result: {key}")
 
-    def get_optimized_circuit(
-        self,
-        circuit: QuantumCircuit
-    ) -> Optional[QuantumCircuit]:
+    def get_optimized_circuit(self, circuit: QuantumCircuit) -> Optional[QuantumCircuit]:
         """
         Get optimized version of circuit
 
@@ -202,11 +179,7 @@ class QuantumCircuitCache:
         self.misses += 1
         return None
 
-    def cache_optimized_circuit(
-        self,
-        original: QuantumCircuit,
-        optimized: QuantumCircuit
-    ):
+    def cache_optimized_circuit(self, original: QuantumCircuit, optimized: QuantumCircuit):
         """
         Cache optimized circuit
 
@@ -218,11 +191,7 @@ class QuantumCircuitCache:
         self._optimized_cache[key] = optimized
         logger.debug(f"Cached optimized circuit: {key}")
 
-    def _circuit_hash(
-        self,
-        circuit: QuantumCircuit,
-        backend_name: str = ""
-    ) -> str:
+    def _circuit_hash(self, circuit: QuantumCircuit, backend_name: str = "") -> str:
         """
         Generate hash for circuit structure
 
@@ -235,21 +204,15 @@ class QuantumCircuitCache:
         """
         # Build circuit signature
         circuit_str = f"{circuit.n_qubits}_{len(circuit.gates)}_"
-        circuit_str += "_".join([
-            f"{g.gate_type.value}_{','.join(map(str, g.qubits))}"
-            for g in circuit.gates
-        ])
+        circuit_str += "_".join(
+            [f"{g.gate_type.value}_{','.join(map(str, g.qubits))}" for g in circuit.gates]
+        )
         circuit_str += f"_{backend_name}"
 
         # Hash it
         return hashlib.sha256(circuit_str.encode()).hexdigest()[:16]
 
-    def _result_hash(
-        self,
-        circuit: QuantumCircuit,
-        parameters: np.ndarray,
-        shots: int
-    ) -> str:
+    def _result_hash(self, circuit: QuantumCircuit, parameters: np.ndarray, shots: int) -> str:
         """
         Generate hash for circuit + parameters + shots
 
@@ -288,15 +251,15 @@ class QuantumCircuitCache:
         optimized_size = len(self._optimized_cache)
 
         return {
-            'hits': self.hits,
-            'misses': self.misses,
-            'evictions': self.evictions,
-            'hit_rate': hit_rate,
-            'compiled_circuits': compiled_size,
-            'cached_results': result_size,
-            'optimized_circuits': optimized_size,
-            'compiled_usage_pct': (compiled_size / self._compiled_lru_max) * 100,
-            'result_usage_pct': (result_size / self._result_max) * 100
+            "hits": self.hits,
+            "misses": self.misses,
+            "evictions": self.evictions,
+            "hit_rate": hit_rate,
+            "compiled_circuits": compiled_size,
+            "cached_results": result_size,
+            "optimized_circuits": optimized_size,
+            "compiled_usage_pct": (compiled_size / self._compiled_lru_max) * 100,
+            "result_usage_pct": (result_size / self._result_max) * 100,
         }
 
     def clear(self, level: Optional[str] = None):
@@ -306,15 +269,15 @@ class QuantumCircuitCache:
         Args:
             level: Which level to clear ('compiled', 'results', 'optimized', or None for all)
         """
-        if level is None or level == 'compiled':
+        if level is None or level == "compiled":
             self._compiled_cache.clear()
             logger.info("Cleared compiled circuit cache")
 
-        if level is None or level == 'results':
+        if level is None or level == "results":
             self._result_cache.clear()
             logger.info("Cleared execution result cache")
 
-        if level is None or level == 'optimized':
+        if level is None or level == "optimized":
             self._optimized_cache.clear()
             logger.info("Cleared optimized circuit cache")
 
@@ -366,11 +329,10 @@ class AdaptiveCircuitCache(QuantumCircuitCache):
         self,
         initial_compiled_size: int = 500,
         initial_result_size: int = 2500,
-        max_memory_mb: float = 500.0
+        max_memory_mb: float = 500.0,
     ):
         super().__init__(
-            max_compiled_circuits=initial_compiled_size,
-            max_results=initial_result_size
+            max_compiled_circuits=initial_compiled_size, max_results=initial_result_size
         )
 
         self.max_memory_mb = max_memory_mb
@@ -390,27 +352,23 @@ class AdaptiveCircuitCache(QuantumCircuitCache):
         stats = self.get_stats()
 
         # Increase compiled cache if high hit rate
-        if stats['hit_rate'] > 0.8 and stats['compiled_usage_pct'] > 90:
+        if stats["hit_rate"] > 0.8 and stats["compiled_usage_pct"] > 90:
             new_size = int(self._compiled_lru_max * 1.2)
             logger.info(f"Increasing compiled cache size to {new_size}")
             self._compiled_lru_max = new_size
 
         # Increase result cache if high hit rate
-        if stats['hit_rate'] > 0.8 and stats['result_usage_pct'] > 90:
+        if stats["hit_rate"] > 0.8 and stats["result_usage_pct"] > 90:
             new_size = int(self._result_max * 1.2)
             logger.info(f"Increasing result cache size to {new_size}")
             self._result_max = new_size
 
         # Decrease if low hit rate
-        if stats['hit_rate'] < 0.3:
+        if stats["hit_rate"] < 0.3:
             self._compiled_lru_max = max(
-                self.initial_compiled_size,
-                int(self._compiled_lru_max * 0.8)
+                self.initial_compiled_size, int(self._compiled_lru_max * 0.8)
             )
-            self._result_max = max(
-                self.initial_result_size,
-                int(self._result_max * 0.8)
-            )
+            self._result_max = max(self.initial_result_size, int(self._result_max * 0.8))
             logger.info("Decreased cache sizes due to low hit rate")
 
         self.last_adaptation_time = time.time()

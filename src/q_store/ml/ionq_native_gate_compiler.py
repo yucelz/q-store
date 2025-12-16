@@ -6,26 +6,29 @@ KEY INNOVATION: Use hardware-native gates directly
 Performance Impact: 1.3s execution → 0.9s execution (30% faster)
 """
 
-import numpy as np
-import time
 import logging
-from typing import Dict, List, Optional, Tuple
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
 class NativeGateType(Enum):
     """IonQ native gate types"""
-    GPI = "gpi"      # Single-qubit rotation
-    GPI2 = "gpi2"    # Single-qubit π/2 rotation
-    MS = "ms"        # Mølmer-Sørensen two-qubit gate
+
+    GPI = "gpi"  # Single-qubit rotation
+    GPI2 = "gpi2"  # Single-qubit π/2 rotation
+    MS = "ms"  # Mølmer-Sørensen two-qubit gate
 
 
 @dataclass
 class GateDecomposition:
     """Result of gate decomposition"""
+
     native_gates: List[Dict]
     fidelity_estimate: float
     gate_count_reduction: float
@@ -59,11 +62,7 @@ class IonQNativeGateCompiler:
     - Gate decompositions: Nielsen & Chuang, Chapter 4
     """
 
-    def __init__(
-        self,
-        optimize_depth: bool = True,
-        optimize_fidelity: bool = True
-    ):
+    def __init__(self, optimize_depth: bool = True, optimize_fidelity: bool = True):
         """
         Initialize native gate compiler
 
@@ -108,14 +107,13 @@ class IonQNativeGateCompiler:
         # Update statistics
         native_count = len(native_gates)
         self.gates_compiled += original_count
-        self.gates_reduced += (original_count - native_count)
+        self.gates_reduced += original_count - native_count
 
         elapsed_ms = (time.time() - start_time) * 1000
         self.compilation_time_ms += elapsed_ms
 
         reduction_pct = (
-            (original_count - native_count) / original_count * 100
-            if original_count > 0 else 0
+            (original_count - native_count) / original_count * 100 if original_count > 0 else 0
         )
 
         logger.info(
@@ -124,10 +122,7 @@ class IonQNativeGateCompiler:
         )
 
         # Return native circuit
-        return {
-            "qubits": circuit.get("qubits", 0),
-            "circuit": native_gates
-        }
+        return {"qubits": circuit.get("qubits", 0), "circuit": native_gates}
 
     def _decompose_gate(self, gate_dict: Dict) -> GateDecomposition:
         """
@@ -180,17 +175,13 @@ class IonQNativeGateCompiler:
         # Already native
         elif gate_type in ["gpi", "gpi2", "ms"]:
             return GateDecomposition(
-                native_gates=[gate_dict],
-                fidelity_estimate=0.9995,
-                gate_count_reduction=0.0
+                native_gates=[gate_dict], fidelity_estimate=0.9995, gate_count_reduction=0.0
             )
 
         else:
             logger.warning(f"Unsupported gate type: {gate_type}, passing through")
             return GateDecomposition(
-                native_gates=[gate_dict],
-                fidelity_estimate=1.0,
-                gate_count_reduction=0.0
+                native_gates=[gate_dict], fidelity_estimate=1.0, gate_count_reduction=0.0
             )
 
     def _decompose_hadamard(self, gate_dict: Dict) -> GateDecomposition:
@@ -204,10 +195,10 @@ class IonQNativeGateCompiler:
         return GateDecomposition(
             native_gates=[
                 {"gate": "gpi2", "target": target, "phase": 0.0},
-                {"gate": "gpi", "target": target, "phase": 0.0}
+                {"gate": "gpi", "target": target, "phase": 0.0},
             ],
             fidelity_estimate=0.999,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_pauli_x(self, gate_dict: Dict) -> GateDecomposition:
@@ -215,11 +206,9 @@ class IonQNativeGateCompiler:
         target = gate_dict.get("target", gate_dict.get("targets", [0])[0])
 
         return GateDecomposition(
-            native_gates=[
-                {"gate": "gpi", "target": target, "phase": 0.0}
-            ],
+            native_gates=[{"gate": "gpi", "target": target, "phase": 0.0}],
             fidelity_estimate=0.9995,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_pauli_y(self, gate_dict: Dict) -> GateDecomposition:
@@ -227,11 +216,9 @@ class IonQNativeGateCompiler:
         target = gate_dict.get("target", gate_dict.get("targets", [0])[0])
 
         return GateDecomposition(
-            native_gates=[
-                {"gate": "gpi", "target": target, "phase": np.pi / 2}
-            ],
+            native_gates=[{"gate": "gpi", "target": target, "phase": np.pi / 2}],
             fidelity_estimate=0.9995,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_pauli_z(self, gate_dict: Dict) -> GateDecomposition:
@@ -242,10 +229,10 @@ class IonQNativeGateCompiler:
             native_gates=[
                 {"gate": "gpi2", "target": target, "phase": np.pi / 2},
                 {"gate": "gpi", "target": target, "phase": 0.0},
-                {"gate": "gpi2", "target": target, "phase": -np.pi / 2}
+                {"gate": "gpi2", "target": target, "phase": -np.pi / 2},
             ],
             fidelity_estimate=0.999,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_ry(self, gate_dict: Dict) -> GateDecomposition:
@@ -261,11 +248,9 @@ class IonQNativeGateCompiler:
         rotation = gate_dict.get("rotation", 0.0)
 
         return GateDecomposition(
-            native_gates=[
-                {"gate": "gpi2", "target": target, "phase": rotation}
-            ],
+            native_gates=[{"gate": "gpi2", "target": target, "phase": rotation}],
             fidelity_estimate=0.9995,
-            gate_count_reduction=0.66  # 1 gate vs 3+ compiled gates
+            gate_count_reduction=0.66,  # 1 gate vs 3+ compiled gates
         )
 
     def _decompose_rz(self, gate_dict: Dict) -> GateDecomposition:
@@ -278,11 +263,9 @@ class IonQNativeGateCompiler:
         rotation = gate_dict.get("rotation", 0.0)
 
         return GateDecomposition(
-            native_gates=[
-                {"gate": "gpi", "target": target, "phase": rotation}
-            ],
+            native_gates=[{"gate": "gpi", "target": target, "phase": rotation}],
             fidelity_estimate=0.9995,
-            gate_count_reduction=0.66
+            gate_count_reduction=0.66,
         )
 
     def _decompose_rx(self, gate_dict: Dict) -> GateDecomposition:
@@ -296,10 +279,10 @@ class IonQNativeGateCompiler:
             native_gates=[
                 {"gate": "gpi2", "target": target, "phase": np.pi / 2},
                 {"gate": "gpi", "target": target, "phase": rotation},
-                {"gate": "gpi2", "target": target, "phase": -np.pi / 2}
+                {"gate": "gpi2", "target": target, "phase": -np.pi / 2},
             ],
             fidelity_estimate=0.999,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_cnot(self, gate_dict: Dict) -> GateDecomposition:
@@ -317,13 +300,18 @@ class IonQNativeGateCompiler:
                 {"gate": "gpi2", "target": control, "phase": 0.0},
                 {"gate": "gpi2", "target": target, "phase": -np.pi / 2},
                 # MS entangling gate
-                {"gate": "ms", "targets": [control, target], "phases": [0.0, 0.0], "angle": np.pi / 4},
+                {
+                    "gate": "ms",
+                    "targets": [control, target],
+                    "phases": [0.0, 0.0],
+                    "angle": np.pi / 4,
+                },
                 # Post-MS gates
                 {"gate": "gpi2", "target": control, "phase": -np.pi / 2},
-                {"gate": "gpi2", "target": target, "phase": np.pi / 2}
+                {"gate": "gpi2", "target": target, "phase": np.pi / 2},
             ],
             fidelity_estimate=0.995,
-            gate_count_reduction=0.2
+            gate_count_reduction=0.2,
         )
 
     def _decompose_cz(self, gate_dict: Dict) -> GateDecomposition:
@@ -338,12 +326,17 @@ class IonQNativeGateCompiler:
                 # Pre-MS gates
                 {"gate": "gpi2", "target": target, "phase": 0.0},
                 # MS entangling gate
-                {"gate": "ms", "targets": [control, target], "phases": [0.0, 0.0], "angle": np.pi / 4},
+                {
+                    "gate": "ms",
+                    "targets": [control, target],
+                    "phases": [0.0, 0.0],
+                    "angle": np.pi / 4,
+                },
                 # Post-MS gates
-                {"gate": "gpi2", "target": target, "phase": 0.0}
+                {"gate": "gpi2", "target": target, "phase": 0.0},
             ],
             fidelity_estimate=0.995,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
     def _decompose_swap(self, gate_dict: Dict) -> GateDecomposition:
@@ -364,19 +357,12 @@ class IonQNativeGateCompiler:
         cnot3 = self._decompose_cnot({"control": a, "target": b})
 
         return GateDecomposition(
-            native_gates=(
-                cnot1.native_gates +
-                cnot2.native_gates +
-                cnot3.native_gates
-            ),
+            native_gates=(cnot1.native_gates + cnot2.native_gates + cnot3.native_gates),
             fidelity_estimate=0.985,
-            gate_count_reduction=0.0
+            gate_count_reduction=0.0,
         )
 
-    def _optimize_gate_sequence(
-        self,
-        gates: List[Dict]
-    ) -> List[Dict]:
+    def _optimize_gate_sequence(self, gates: List[Dict]) -> List[Dict]:
         """
         Optimize gate sequence
 
@@ -408,11 +394,7 @@ class IonQNativeGateCompiler:
 
         return optimized
 
-    def _try_merge_gates(
-        self,
-        gate1: Dict,
-        gate2: Dict
-    ) -> Optional[Dict]:
+    def _try_merge_gates(self, gate1: Dict, gate2: Dict) -> Optional[Dict]:
         """
         Try to merge two adjacent gates
 
@@ -440,11 +422,7 @@ class IonQNativeGateCompiler:
             if abs(combined_phase) < 1e-6:
                 return {}  # Identity gate, can be removed
 
-            return {
-                "gate": gate1_type,
-                "target": target1,
-                "phase": combined_phase
-            }
+            return {"gate": gate1_type, "target": target1, "phase": combined_phase}
 
         # Check for inverse gates (GPi2 followed by GPi2 with opposite phase)
         if gate1_type == "gpi2" and gate2_type == "gpi2":
@@ -459,20 +437,16 @@ class IonQNativeGateCompiler:
     def get_stats(self) -> Dict[str, float]:
         """Get compiler statistics"""
         avg_reduction = (
-            self.gates_reduced / self.gates_compiled * 100
-            if self.gates_compiled > 0 else 0
+            self.gates_reduced / self.gates_compiled * 100 if self.gates_compiled > 0 else 0
         )
 
-        avg_time = (
-            self.compilation_time_ms / self.gates_compiled
-            if self.gates_compiled > 0 else 0
-        )
+        avg_time = self.compilation_time_ms / self.gates_compiled if self.gates_compiled > 0 else 0
 
         return {
             "total_gates_compiled": self.gates_compiled,
             "total_gates_reduced": self.gates_reduced,
             "avg_reduction_pct": avg_reduction,
-            "avg_compilation_time_ms": avg_time
+            "avg_compilation_time_ms": avg_time,
         }
 
 
@@ -487,30 +461,27 @@ if __name__ == "__main__":
             {"gate": "rz", "target": 2, "rotation": 1.2},
             {"gate": "cnot", "control": 0, "target": 1},
             {"gate": "cnot", "control": 1, "target": 2},
-            {"gate": "ry", "target": 3, "rotation": -0.8}
-        ]
+            {"gate": "ry", "target": 3, "rotation": -0.8},
+        ],
     }
 
     # Compile to native gates
-    compiler = IonQNativeGateCompiler(
-        optimize_depth=True,
-        optimize_fidelity=True
-    )
+    compiler = IonQNativeGateCompiler(optimize_depth=True, optimize_fidelity=True)
 
-    print("Original circuit:")
-    print(f"  Gates: {len(circuit['circuit'])}")
+    logger.info("Original circuit:")
+    logger.info(f"  Gates: {len(circuit['circuit'])}")
 
     native_circuit = compiler.compile_circuit(circuit)
 
-    print(f"\nNative circuit:")
-    print(f"  Gates: {len(native_circuit['circuit'])}")
+    logger.info(f"Native circuit:")
+    logger.info(f"  Gates: {len(native_circuit['circuit'])}")
 
-    print(f"\nNative gates:")
-    for i, gate in enumerate(native_circuit['circuit']):
-        print(f"  {i}: {gate}")
+    logger.info(f"Native gates:")
+    for i, gate in enumerate(native_circuit["circuit"]):
+        logger.info(f"  {i}: {gate}")
 
-    # Print statistics
+    # Log statistics
     stats = compiler.get_stats()
-    print(f"\nCompilation statistics:")
-    print(f"  Gate reduction: {stats['avg_reduction_pct']:.1f}%")
-    print(f"  Compilation time: {stats['avg_compilation_time_ms']:.2f}ms per gate")
+    logger.info(f"Compilation statistics:")
+    logger.info(f"  Gate reduction: {stats['avg_reduction_pct']:.1f}%")
+    logger.info(f"  Compilation time: {stats['avg_compilation_time_ms']:.2f}ms per gate")

@@ -6,18 +6,19 @@ Manages multiple quantum backends and provides testing infrastructure
 import asyncio
 import logging
 import time
-from typing import Dict, List, Optional, Any
-import numpy as np
 from collections import Counter
+from typing import Any, Dict, List, Optional
+
+import numpy as np
 
 from .quantum_backend_interface import (
+    BackendCapabilities,
+    BackendType,
+    ExecutionResult,
+    GateType,
     QuantumBackend,
     QuantumCircuit,
     QuantumGate,
-    ExecutionResult,
-    BackendCapabilities,
-    BackendType,
-    GateType
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class BackendManager:
         name: str,
         backend: QuantumBackend,
         set_as_default: bool = False,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         """
         Register a new backend
@@ -98,8 +99,7 @@ class BackendManager:
         if backend_name not in self._backends:
             available = ", ".join(self._backends.keys())
             raise ValueError(
-                f"Backend '{backend_name}' not found. "
-                f"Available backends: {available}"
+                f"Backend '{backend_name}' not found. " f"Available backends: {available}"
             )
 
         return self._backends[backend_name]
@@ -115,15 +115,15 @@ class BackendManager:
 
         for name, backend in self._backends.items():
             info = backend.get_backend_info()
-            info['name'] = name
-            info['is_default'] = (name == self._default_backend)
-            info['metadata'] = self._backend_metadata.get(name, {})
-            info['available'] = backend.is_available()
+            info["name"] = name
+            info["is_default"] = name == self._default_backend
+            info["metadata"] = self._backend_metadata.get(name, {})
+            info["available"] = backend.is_available()
 
             # Add capabilities summary
             caps = backend.get_capabilities()
-            info['max_qubits'] = caps.max_qubits
-            info['backend_type'] = caps.backend_type.value
+            info["max_qubits"] = caps.max_qubits
+            info["backend_type"] = caps.backend_type.value
 
             backends_info.append(info)
 
@@ -168,10 +168,7 @@ class BackendManager:
                 logger.error(f"Failed to close backend {name}: {e}")
 
     def find_best_backend(
-        self,
-        circuit: QuantumCircuit,
-        prefer_qpu: bool = False,
-        max_cost: Optional[float] = None
+        self, circuit: QuantumCircuit, prefer_qpu: bool = False, max_cost: Optional[float] = None
     ) -> Optional[str]:
         """
         Find best backend for a circuit
@@ -232,12 +229,7 @@ class MockQuantumBackend(QuantumBackend):
     Simulates quantum behavior without actual quantum hardware
     """
 
-    def __init__(
-        self,
-        name: str = "mock",
-        max_qubits: int = 10,
-        noise_level: float = 0.0
-    ):
+    def __init__(self, name: str = "mock", max_qubits: int = 10, noise_level: float = 0.0):
         """
         Initialize mock backend
 
@@ -258,10 +250,7 @@ class MockQuantumBackend(QuantumBackend):
         logger.info(f"Mock backend '{self.name}' initialized")
 
     async def execute_circuit(
-        self,
-        circuit: QuantumCircuit,
-        shots: int = 1000,
-        **kwargs
+        self, circuit: QuantumCircuit, shots: int = 1000, **kwargs
     ) -> ExecutionResult:
         """
         Execute circuit with mock simulation
@@ -301,26 +290,25 @@ class MockQuantumBackend(QuantumBackend):
 
         # Determine if circuit has entanglement (CNOTs)
         has_entanglement = any(
-            gate.gate_type in [GateType.CNOT, GateType.CZ, GateType.SWAP]
-            for gate in circuit.gates
+            gate.gate_type in [GateType.CNOT, GateType.CZ, GateType.SWAP] for gate in circuit.gates
         )
 
         if has_entanglement:
             # Correlated outcomes (e.g., 00 and 11 more likely)
             for _ in range(shots):
                 if np.random.random() < (1 - self.noise_level) * 0.5:
-                    outcome = '0' * n_measured
+                    outcome = "0" * n_measured
                 elif np.random.random() < (1 - self.noise_level) * 0.5:
-                    outcome = '1' * n_measured
+                    outcome = "1" * n_measured
                 else:
                     # Random outcome
-                    outcome = ''.join(str(np.random.randint(2)) for _ in range(n_measured))
+                    outcome = "".join(str(np.random.randint(2)) for _ in range(n_measured))
 
                 counts[outcome] = counts.get(outcome, 0) + 1
         else:
             # Random outcomes
             for _ in range(shots):
-                outcome = ''.join(str(np.random.randint(2)) for _ in range(n_measured))
+                outcome = "".join(str(np.random.randint(2)) for _ in range(n_measured))
                 counts[outcome] = counts.get(outcome, 0) + 1
 
         # Add noise
@@ -331,8 +319,8 @@ class MockQuantumBackend(QuantumBackend):
                 bits = list(outcome)
                 for i in range(len(bits)):
                     if np.random.random() < self.noise_level * 0.1:
-                        bits[i] = '1' if bits[i] == '0' else '0'
-                noisy_outcome = ''.join(bits)
+                        bits[i] = "1" if bits[i] == "0" else "0"
+                noisy_outcome = "".join(bits)
                 noisy_counts[noisy_outcome] = noisy_counts.get(noisy_outcome, 0) + count
             counts = noisy_counts
 
@@ -344,10 +332,10 @@ class MockQuantumBackend(QuantumBackend):
             probabilities=probabilities,
             total_shots=shots,
             metadata={
-                'backend': self.name,
-                'noise_level': self.noise_level,
-                'execution_count': self._execution_count
-            }
+                "backend": self.name,
+                "noise_level": self.noise_level,
+                "execution_count": self._execution_count,
+            },
         )
 
     def get_capabilities(self) -> BackendCapabilities:
@@ -359,20 +347,20 @@ class MockQuantumBackend(QuantumBackend):
             supports_mid_circuit_measurement=True,
             supports_reset=True,
             max_shots=100000,
-            native_gate_set=[GateType.RX, GateType.RY, GateType.RZ, GateType.CNOT]
+            native_gate_set=[GateType.RX, GateType.RY, GateType.RZ, GateType.CNOT],
         )
 
     def get_backend_info(self) -> Dict[str, Any]:
         """Get mock backend info"""
         return {
-            'name': self.name,
-            'type': 'mock',
-            'version': '1.0.0',
-            'max_qubits': self.max_qubits,
-            'noise_level': self.noise_level,
-            'status': 'available',
-            'queue_depth': 0,
-            'executions': self._execution_count
+            "name": self.name,
+            "type": "mock",
+            "version": "1.0.0",
+            "max_qubits": self.max_qubits,
+            "noise_level": self.noise_level,
+            "status": "available",
+            "queue_depth": 0,
+            "executions": self._execution_count,
         }
 
     async def close(self) -> None:
@@ -391,6 +379,7 @@ class MockQuantumBackend(QuantumBackend):
 
 # Convenience functions
 
+
 def create_default_backend_manager() -> BackendManager:
     """
     Create a backend manager with common backends
@@ -401,26 +390,19 @@ def create_default_backend_manager() -> BackendManager:
     manager = BackendManager()
 
     # Register mock backend as default
-    mock_backend = MockQuantumBackend(
-        name="mock_ideal",
-        max_qubits=20,
-        noise_level=0.0
-    )
+    mock_backend = MockQuantumBackend(name="mock_ideal", max_qubits=20, noise_level=0.0)
     manager.register_backend(
         "mock_ideal",
         mock_backend,
         set_as_default=True,
-        metadata={'description': 'Ideal mock simulator for testing'}
+        metadata={"description": "Ideal mock simulator for testing"},
     )
 
     return manager
 
 
 async def setup_ionq_backends(
-    manager: BackendManager,
-    api_key: str,
-    use_cirq: bool = True,
-    use_qiskit: bool = False
+    manager: BackendManager, api_key: str, use_cirq: bool = True, use_qiskit: bool = False
 ) -> BackendManager:
     """
     Set up IonQ backends in the manager
@@ -440,19 +422,15 @@ async def setup_ionq_backends(
             from .cirq_ionq_adapter import CirqIonQBackend
 
             # Simulator
-            cirq_sim = CirqIonQBackend(api_key=api_key, target='simulator')
+            cirq_sim = CirqIonQBackend(api_key=api_key, target="simulator")
             manager.register_backend(
-                'ionq_sim_cirq',
-                cirq_sim,
-                metadata={'description': 'IonQ simulator via Cirq'}
+                "ionq_sim_cirq", cirq_sim, metadata={"description": "IonQ simulator via Cirq"}
             )
 
             # QPU (if available)
-            cirq_qpu = CirqIonQBackend(api_key=api_key, target='qpu.aria-1')
+            cirq_qpu = CirqIonQBackend(api_key=api_key, target="qpu.aria-1")
             manager.register_backend(
-                'ionq_aria_cirq',
-                cirq_qpu,
-                metadata={'description': 'IonQ Aria QPU via Cirq'}
+                "ionq_aria_cirq", cirq_qpu, metadata={"description": "IonQ Aria QPU via Cirq"}
             )
         except ImportError:
             logger.warning("cirq-ionq not installed, skipping Cirq backends")
@@ -462,11 +440,9 @@ async def setup_ionq_backends(
         try:
             from .qiskit_ionq_adapter import QiskitIonQBackend
 
-            qiskit_sim = QiskitIonQBackend(api_key=api_key, target='simulator')
+            qiskit_sim = QiskitIonQBackend(api_key=api_key, target="simulator")
             manager.register_backend(
-                'ionq_sim_qiskit',
-                qiskit_sim,
-                metadata={'description': 'IonQ simulator via Qiskit'}
+                "ionq_sim_qiskit", qiskit_sim, metadata={"description": "IonQ simulator via Qiskit"}
             )
         except ImportError:
             logger.warning("qiskit-ionq not installed, skipping Qiskit backends")

@@ -7,19 +7,21 @@ Performance Impact: 12x faster submission (1 call vs 20 calls)
 """
 
 import asyncio
-import aiohttp
-import time
-import logging
 import hashlib
-from typing import List, Dict, Optional, Any
+import logging
+import time
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
 
 class JobStatus(Enum):
     """IonQ job status states"""
+
     READY = "ready"
     SUBMITTED = "submitted"
     RUNNING = "running"
@@ -31,6 +33,7 @@ class JobStatus(Enum):
 @dataclass
 class BatchJobResult:
     """Result from batch job execution"""
+
     job_id: str
     status: JobStatus
     measurements: Optional[Dict[str, int]] = None
@@ -61,7 +64,7 @@ class IonQBatchClient:
         max_connections: int = 5,
         timeout: float = 120.0,
         retry_attempts: int = 3,
-        base_url: str = "https://api.ionq.co/v0.4"
+        base_url: str = "https://api.ionq.co/v0.4",
     ):
         """
         Initialize IonQ batch client
@@ -105,8 +108,8 @@ class IonQBatchClient:
                 timeout=self.timeout,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                }
+                    "Content-Type": "application/json",
+                },
             )
 
     async def close(self):
@@ -119,7 +122,7 @@ class IonQBatchClient:
         circuits: List[Dict],
         target: str = "simulator",
         shots: int = 1000,
-        name_prefix: str = "batch"
+        name_prefix: str = "batch",
     ) -> List[str]:
         """
         Submit multiple circuits in a single API call
@@ -141,19 +144,14 @@ class IonQBatchClient:
         start_time = time.time()
         n_circuits = len(circuits)
 
-        logger.info(
-            f"Submitting batch of {n_circuits} circuits to {target} "
-            f"(shots={shots})"
-        )
+        logger.info(f"Submitting batch of {n_circuits} circuits to {target} " f"(shots={shots})")
 
         # Check if IonQ API supports batch submission
         # Note: As of Dec 2024, IonQ API doesn't have official batch endpoint
         # So we need to submit in rapid succession with connection reuse
 
         # Strategy: Submit all circuits concurrently using existing connections
-        job_ids = await self._submit_concurrent(
-            circuits, target, shots, name_prefix
-        )
+        job_ids = await self._submit_concurrent(circuits, target, shots, name_prefix)
 
         submit_time = (time.time() - start_time) * 1000
 
@@ -173,11 +171,7 @@ class IonQBatchClient:
         return job_ids
 
     async def _submit_concurrent(
-        self,
-        circuits: List[Dict],
-        target: str,
-        shots: int,
-        name_prefix: str
+        self, circuits: List[Dict], target: str, shots: int, name_prefix: str
     ) -> List[str]:
         """
         Submit circuits concurrently using connection pool
@@ -187,9 +181,7 @@ class IonQBatchClient:
         """
         # Create submission tasks
         tasks = [
-            self._submit_single_with_retry(
-                circuit, target, shots, f"{name_prefix}_{i}"
-            )
+            self._submit_single_with_retry(circuit, target, shots, f"{name_prefix}_{i}")
             for i, circuit in enumerate(circuits)
         ]
 
@@ -207,11 +199,7 @@ class IonQBatchClient:
         return job_ids
 
     async def _submit_single_with_retry(
-        self,
-        circuit: Dict,
-        target: str,
-        shots: int,
-        name: str
+        self, circuit: Dict, target: str, shots: int, name: str
     ) -> str:
         """Submit single circuit with retry logic"""
         for attempt in range(self.retry_attempts):
@@ -219,7 +207,7 @@ class IonQBatchClient:
                 return await self._submit_single(circuit, target, shots, name)
             except Exception as e:
                 if attempt < self.retry_attempts - 1:
-                    wait_time = 2 ** attempt  # Exponential backoff
+                    wait_time = 2**attempt  # Exponential backoff
                     logger.warning(
                         f"Submission failed (attempt {attempt + 1}), "
                         f"retrying in {wait_time}s: {e}"
@@ -229,34 +217,17 @@ class IonQBatchClient:
                     logger.error(f"Submission failed after {self.retry_attempts} attempts")
                     raise
 
-    async def _submit_single(
-        self,
-        circuit: Dict,
-        target: str,
-        shots: int,
-        name: str
-    ) -> str:
+    async def _submit_single(self, circuit: Dict, target: str, shots: int, name: str) -> str:
         """Submit single circuit to IonQ API"""
-        payload = {
-            "target": target,
-            "shots": shots,
-            "name": name,
-            "input": circuit
-        }
+        payload = {"target": target, "shots": shots, "name": name, "input": circuit}
 
-        async with self.session.post(
-            f"{self.base_url}/jobs",
-            json=payload
-        ) as response:
+        async with self.session.post(f"{self.base_url}/jobs", json=payload) as response:
             response.raise_for_status()
             data = await response.json()
             return data["id"]
 
     async def get_results_parallel(
-        self,
-        job_ids: List[str],
-        polling_interval: float = 0.2,
-        timeout: float = 120.0
+        self, job_ids: List[str], polling_interval: float = 0.2, timeout: float = 120.0
     ) -> List[BatchJobResult]:
         """
         Fetch results for multiple jobs in parallel
@@ -280,10 +251,7 @@ class IonQBatchClient:
         logger.info(f"Polling for {len(job_ids)} job results...")
 
         # Create polling tasks for each job
-        tasks = [
-            self._poll_single_job(job_id, polling_interval, timeout)
-            for job_id in job_ids
-        ]
+        tasks = [self._poll_single_job(job_id, polling_interval, timeout) for job_id in job_ids]
 
         # Execute all polling concurrently
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -293,11 +261,9 @@ class IonQBatchClient:
         for i, result in enumerate(results):
             if isinstance(result, Exception):
                 logger.error(f"Job {job_ids[i]} polling failed: {result}")
-                batch_results.append(BatchJobResult(
-                    job_id=job_ids[i],
-                    status=JobStatus.FAILED,
-                    error=str(result)
-                ))
+                batch_results.append(
+                    BatchJobResult(job_id=job_ids[i], status=JobStatus.FAILED, error=str(result))
+                )
             else:
                 batch_results.append(result)
 
@@ -305,17 +271,13 @@ class IonQBatchClient:
 
         completed = sum(1 for r in batch_results if r.status == JobStatus.COMPLETED)
         logger.info(
-            f"Polling complete: {completed}/{len(job_ids)} successful, "
-            f"{poll_time:.2f}ms total"
+            f"Polling complete: {completed}/{len(job_ids)} successful, " f"{poll_time:.2f}ms total"
         )
 
         return batch_results
 
     async def _poll_single_job(
-        self,
-        job_id: str,
-        polling_interval: float,
-        timeout: float
+        self, job_id: str, polling_interval: float, timeout: float
     ) -> BatchJobResult:
         """Poll single job until completion"""
         start_time = time.time()
@@ -325,9 +287,7 @@ class IonQBatchClient:
             elapsed = time.time() - start_time
             if elapsed > timeout:
                 return BatchJobResult(
-                    job_id=job_id,
-                    status=JobStatus.FAILED,
-                    error=f"Timeout after {timeout}s"
+                    job_id=job_id, status=JobStatus.FAILED, error=f"Timeout after {timeout}s"
                 )
 
             try:
@@ -346,22 +306,14 @@ class IonQBatchClient:
 
     async def _get_job_status(self, job_id: str) -> JobStatus:
         """Get current job status"""
-        async with self.session.get(
-            f"{self.base_url}/jobs/{job_id}"
-        ) as response:
+        async with self.session.get(f"{self.base_url}/jobs/{job_id}") as response:
             response.raise_for_status()
             data = await response.json()
             return JobStatus(data["status"])
 
-    async def _get_job_result(
-        self,
-        job_id: str,
-        status: JobStatus
-    ) -> BatchJobResult:
+    async def _get_job_result(self, job_id: str, status: JobStatus) -> BatchJobResult:
         """Fetch complete job result"""
-        async with self.session.get(
-            f"{self.base_url}/jobs/{job_id}"
-        ) as response:
+        async with self.session.get(f"{self.base_url}/jobs/{job_id}") as response:
             response.raise_for_status()
             data = await response.json()
 
@@ -377,24 +329,19 @@ class IonQBatchClient:
                 status=status,
                 measurements=measurements,
                 execution_time_ms=execution_time,
-                error=data.get("failure", {}).get("error") if status == JobStatus.FAILED else None
+                error=data.get("failure", {}).get("error") if status == JobStatus.FAILED else None,
             )
 
     async def cancel_jobs(self, job_ids: List[str]):
         """Cancel multiple jobs concurrently"""
-        tasks = [
-            self._cancel_single_job(job_id)
-            for job_id in job_ids
-        ]
+        tasks = [self._cancel_single_job(job_id) for job_id in job_ids]
 
         await asyncio.gather(*tasks, return_exceptions=True)
         logger.info(f"Canceled {len(job_ids)} jobs")
 
     async def _cancel_single_job(self, job_id: str):
         """Cancel single job"""
-        async with self.session.delete(
-            f"{self.base_url}/jobs/{job_id}"
-        ) as response:
+        async with self.session.delete(f"{self.base_url}/jobs/{job_id}") as response:
             response.raise_for_status()
 
     def get_stats(self) -> Dict[str, Any]:
@@ -405,8 +352,9 @@ class IonQBatchClient:
             "api_calls_saved": self.api_calls_saved,
             "avg_circuits_per_call": (
                 self.total_circuits_submitted / self.total_api_calls
-                if self.total_api_calls > 0 else 0
-            )
+                if self.total_api_calls > 0
+                else 0
+            ),
         }
 
 
@@ -418,26 +366,22 @@ async def example_batch_submission():
     circuits = [
         {
             "qubits": 2,
-            "circuit": [
-                {"gate": "h", "target": 0},
-                {"gate": "cnot", "control": 0, "target": 1}
-            ]
+            "circuit": [{"gate": "h", "target": 0}, {"gate": "cnot", "control": 0, "target": 1}],
         }
         for _ in range(20)
     ]
 
     # Initialize client with connection pooling
-    async with IonQBatchClient(
-        api_key="your_api_key",
-        max_connections=5
-    ) as client:
+    async with IonQBatchClient(api_key="your_api_key", max_connections=5) as client:
         # Submit batch
         job_ids = await client.submit_batch(circuits, target="simulator", shots=1000)
 
         # Get results
         results = await client.get_results_parallel(job_ids)
 
-        print(f"Completed {len([r for r in results if r.status == JobStatus.COMPLETED])} circuits")
+        logger.info(
+            f"Completed {len([r for r in results if r.status == JobStatus.COMPLETED])} circuits"
+        )
 
 
 if __name__ == "__main__":
