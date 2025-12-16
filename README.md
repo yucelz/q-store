@@ -10,6 +10,13 @@ A hardware-agnostic database architecture that leverages quantum mechanical prop
   <strong>Q-STORE website </strong>
 </a>
 
+<p align="center">
+    <a href="https://pypi.org/project/q-store/"><img alt="PyPI" src="https://img.shields.io/pypi/v/q-store.svg"></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg"></a>
+    <a href="https://www.python.org/"><img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/q-store.svg"></a>
+    <a href="https://github.com/yucelz/q-store/actions"><img alt="CI" src="https://github.com/yucelz/q-store/actions/workflows/ci.yml/badge.svg"></a>
+</p>
+
 ## 🆕 What's New in v3.4
 
 ### 🚀 Major Performance Improvements (8-12x Faster)

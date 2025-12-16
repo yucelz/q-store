@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Lint
+        run: |
+          ruff --version || pip install ruff
+          ruff check src tests
+      - name: Format check
+        run: |
+          black --version || pip install black
+          black --check src tests
+      - name: Type check
+        run: |
+          mypy --version || pip install mypy
+          mypy src
+      - name: Run tests
+        run: |
+          pytest -m "not slow" --cov=q_store --cov-report=xml
