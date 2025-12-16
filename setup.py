@@ -43,7 +43,7 @@ setup(
     author="Yucel Zengin",
     author_email="yucelz@gmail.com",
     description="Quantum-Native Database with ML Capabilities (Closed Source)",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/q-store",
 
