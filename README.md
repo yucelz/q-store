@@ -562,7 +562,10 @@ Run the comprehensive test suite:
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-asyncio psutil
+pip install pytest pytest-asyncio pytest-cov psutil
+
+# Run all tests with coverage
+python -m pytest tests/test_simple.py tests/test_constants_exceptions.py tests/test_core.py::TestStateManager::test_state_manager_creation tests/test_core.py::TestStateManager::test_start_stop -v --cov=src/q_store --cov-report=term --cov-report=html:htmlcov
 
 # Run unit and integration tests
 pytest tests/ -v
@@ -573,6 +576,9 @@ pytest tests/ -v --run-integration
 # Run specific test categories
 pytest tests/ -v -k "test_state"
 pytest tests/ -v -k "test_performance"
+
+# View HTML coverage report
+firefox htmlcov/index.html  # or your preferred browser
 ```
 
 ## Troubleshooting

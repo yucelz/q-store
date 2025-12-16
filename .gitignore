@@ -108,3 +108,7 @@ Thumbs.db
 docs/sphinx/
 *.log
 .ionq_cache/
+
+
+# htmlcov
+htmlcov/

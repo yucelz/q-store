@@ -31,7 +31,7 @@ fi
 run_test() {
     local test_name="$1"
     local test_command="$2"
-    
+
     echo -e "${BLUE}Testing: ${test_name}${NC}"
     if eval "$test_command" > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ PASSED${NC}"
@@ -142,7 +142,7 @@ if echo "$LOGGER_ISSUES" | grep -q "logger\."; then
             fi
         fi
     done
-    
+
     if [ $UNDEFINED_LOGGERS -eq 0 ]; then
         echo -e "${GREEN}  ✓ No logger definition issues${NC}"
         ((TESTS_PASSED++))
