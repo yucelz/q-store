@@ -1,13 +1,14 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "Cython>=0.29.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "2.0.0"
+version = "3.4.0"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
-license = {text = "CC BY-NC 4.0"}
+license = "CC-BY-NC-4.0"
+license-files = ["LICENCE"]
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
@@ -29,10 +30,10 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
-    "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Cython",
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
@@ -50,6 +51,11 @@ backends = [
     "pinecone>=3.0.0",
     "pgvector>=0.2.0",
     "qdrant-client>=1.7.0",
+]
+build = [
+    "Cython>=0.29.0",
+    "wheel",
+    "twine",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -78,11 +84,22 @@ Issues = "https://github.com/yucelz/q-store/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+zip-safe = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["q_store*"]
 exclude = ["tests*", "examples*"]
+
+[tool.setuptools.package-data]
+q_store = ["py.typed", "__init__.py"]
+
+# Cython compilation settings
+[tool.cython]
+language_level = 3
+boundscheck = false
+wraparound = false
+cdivision = true
 
 [tool.black]
 line-length = 100

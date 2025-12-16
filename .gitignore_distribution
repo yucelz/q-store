@@ -1,0 +1,66 @@
+# Q-Store Binary Distribution - Git Ignore
+# Ensures build artifacts and compiled binaries are not committed
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+*.tar.gz
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.dylib
+__pycache__/
+
+# Cython generated files
+*.c
+*.cpp
+*.html  # Cython annotation files
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Distribution config (if it contains secrets)
+.pypirc
+*.key
+*.pem
+*.secret
+
+# Build logs
+*.log
+pip-log.txt
+
+# Temporary files
+*.tmp
+*.bak
+.temp/
+
+# CRITICAL: Never commit source if you're distributing binaries
+# But we want to track source in our private repo, so DON'T add:
+# src/q_store/**/*.py  <-- Don't ignore source in your private repo!
+
+# However, if you create a PUBLIC repo for distribution, you would add:
+# src/  <-- Exclude entire source directory from public repo
