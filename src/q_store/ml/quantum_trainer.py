@@ -54,7 +54,7 @@ class TrainingConfig:
 
     # Optimization
     optimizer: str = 'adam'  # 'adam', 'sgd', 'natural_gradient'
-    gradient_method: str = 'parameter_shift'  # or 'finite_diff', 'spsa', 'adaptive'
+    gradient_method: str = 'spsa_subsampled'  # 'parameter_shift', 'finite_diff', 'spsa', 'spsa_parallel', 'spsa_subsampled', 'adaptive'
     momentum: float = 0.9
     weight_decay: float = 0.0
 
@@ -75,13 +75,19 @@ class TrainingConfig:
     # v3.3 NEW: Performance optimizations
     enable_circuit_cache: bool = True
     enable_batch_execution: bool = True
+    enable_circuit_batching: bool = True  # v3.3.1: Enable circuit batching
     cache_size: int = 1000
     batch_timeout: float = 60.0
+    max_parallel_circuits: int = 50  # v3.3.1: Max parallel circuits
     hardware_efficient_ansatz: bool = True
 
     # v3.3 NEW: SPSA parameters
     spsa_c_initial: float = 0.1
     spsa_a_initial: float = 0.01
+
+    # v3.3.1 NEW: Gradient subsampling
+    gradient_subsample_size: int = 5  # Subsample size for gradient estimation
+    batch_submission_timeout: float = 60.0  # Timeout for batch submission
 
     # v3.3 NEW: Performance tracking
     enable_performance_tracking: bool = True
@@ -213,8 +219,34 @@ class QuantumTrainer:
         # Get quantum backend
         self.backend = backend_manager.get_backend()
 
-        # Initialize components (v3.3 enhanced)
-        if config.gradient_method == 'adaptive':
+        # v3.3.1: Circuit batch manager (always needed for new gradient methods)
+        self.batch_manager = CircuitBatchManager(
+            self.backend,
+            max_batch_size=config.max_parallel_circuits,
+            timeout=config.batch_submission_timeout
+        ) if config.enable_circuit_batching else None
+
+        # Initialize gradient computer based on method (v3.3.1 updated)
+        if config.gradient_method == 'spsa_parallel':
+            from .parallel_spsa_estimator import ParallelSPSAEstimator
+            self.gradient_computer = ParallelSPSAEstimator(
+                backend=self.backend,
+                batch_manager=self.batch_manager,
+                c_initial=config.spsa_c_initial,
+                a_initial=config.spsa_a_initial
+            )
+            logger.info("Using parallel SPSA gradient estimator (v3.3.1)")
+        elif config.gradient_method == 'spsa_subsampled':
+            from .parallel_spsa_estimator import SubsampledSPSAEstimator
+            self.gradient_computer = SubsampledSPSAEstimator(
+                backend=self.backend,
+                batch_manager=self.batch_manager,
+                subsample_size=config.gradient_subsample_size,
+                c_initial=config.spsa_c_initial,
+                a_initial=config.spsa_a_initial
+            )
+            logger.info(f"Using subsampled SPSA gradient estimator (v3.3.1, subsample={config.gradient_subsample_size})")
+        elif config.gradient_method == 'adaptive':
             self.gradient_computer = AdaptiveGradientOptimizer(
                 self.backend,
                 enable_adaptation=True
@@ -237,11 +269,6 @@ class QuantumTrainer:
             max_compiled_circuits=config.cache_size,
             max_results=config.cache_size * 5
         ) if config.enable_circuit_cache else None
-
-        self.batch_manager = CircuitBatchManager(
-            self.backend,
-            timeout=config.batch_timeout
-        ) if config.enable_batch_execution else None
 
         # v3.3 NEW: Performance monitoring
         self.performance_tracker = PerformanceTracker(
@@ -417,7 +444,7 @@ class QuantumTrainer:
         batch_y: np.ndarray
     ) -> Dict[str, float]:
         """
-        Train on a single batch (v3.3 optimized)
+        Train on a single batch (v3.3.1 CORRECTED)
 
         Args:
             model: Model to train
@@ -429,62 +456,76 @@ class QuantumTrainer:
         """
         batch_start = time.time()
 
-        # v3.3 OPTIMIZATION: Batch gradient computation
-        # Instead of computing gradients for each sample separately,
-        # compute them for the entire batch at once
+        # v3.3.1 FIX: Use batch gradient methods for parallel/subsampled SPSA
+        if hasattr(self.gradient_computer, 'estimate_batch_gradient'):
+            # NEW v3.3.1: True batch gradient computation
+            # Computes gradient of BATCH LOSS, not per-sample average
+            grad_result = await self.gradient_computer.estimate_batch_gradient(
+                model=model,  # Pass full model, not just quantum_layer
+                batch_x=batch_x,
+                batch_y=batch_y,
+                loss_function=self.loss_function,
+                shots=self.config.shots_per_circuit
+            )
 
-        # Average over batch
-        batch_loss = 0.0
-        batch_gradients = None
-        n_circuits = 0
+            batch_gradients = grad_result.gradients
+            batch_loss = grad_result.function_value
+            n_circuits = grad_result.n_circuit_executions
 
-        for x, y in zip(batch_x, batch_y):
-            # Compute gradients
-            def circuit_builder(params):
-                # Update model parameters
-                temp_params = model.quantum_layer.parameters.copy()
-                model.quantum_layer.parameters = params
-                circuit = model.quantum_layer.build_circuit(x)
-                model.quantum_layer.parameters = temp_params
-                return circuit
+        else:
+            # OLD v3.3 method: Per-sample gradient computation
+            # Used for parameter shift, finite diff, and old SPSA
+            batch_loss = 0.0
+            batch_gradients = None
+            n_circuits = 0
 
-            def loss_from_result(result):
-                # Extract output from execution result
-                output = model.quantum_layer._process_measurements(result)
-                if len(output) != model.output_dim:
-                    output = output[:model.output_dim]
-                return self.loss_function(output, y)
+            for x, y in zip(batch_x, batch_y):
+                # Compute gradients
+                def circuit_builder(params):
+                    # Update model parameters
+                    temp_params = model.quantum_layer.parameters.copy()
+                    model.quantum_layer.parameters = params
+                    circuit = model.quantum_layer.build_circuit(x)
+                    model.quantum_layer.parameters = temp_params
+                    return circuit
 
-            # v3.3: Use appropriate gradient method
-            if hasattr(self.gradient_computer, 'estimate_gradient'):
-                # SPSA or adaptive optimizer
-                grad_result = await self.gradient_computer.estimate_gradient(
-                    circuit_builder=circuit_builder,
-                    loss_function=loss_from_result,
-                    parameters=model.quantum_layer.parameters,
-                    frozen_indices=model.quantum_layer._frozen_params,
-                    shots=self.config.shots_per_circuit
-                )
-            else:
-                # Standard parameter shift
-                grad_result = await self.gradient_computer.compute_gradients(
-                    circuit_builder=circuit_builder,
-                    loss_function=loss_from_result,
-                    parameters=model.quantum_layer.parameters,
-                    frozen_indices=list(model.quantum_layer._frozen_params)
-                )
+                def loss_from_result(result):
+                    # Extract output from execution result
+                    output = model.quantum_layer._process_measurements(result)
+                    if len(output) != model.output_dim:
+                        output = output[:model.output_dim]
+                    return self.loss_function(output, y)
 
-            batch_loss += grad_result.function_value
-            n_circuits += grad_result.n_circuit_executions
+                # v3.3: Use appropriate gradient method
+                if hasattr(self.gradient_computer, 'estimate_gradient'):
+                    # SPSA or adaptive optimizer
+                    grad_result = await self.gradient_computer.estimate_gradient(
+                        circuit_builder=circuit_builder,
+                        loss_function=loss_from_result,
+                        parameters=model.quantum_layer.parameters,
+                        frozen_indices=model.quantum_layer._frozen_params,
+                        shots=self.config.shots_per_circuit
+                    )
+                else:
+                    # Standard parameter shift
+                    grad_result = await self.gradient_computer.compute_gradients(
+                        circuit_builder=circuit_builder,
+                        loss_function=loss_from_result,
+                        parameters=model.quantum_layer.parameters,
+                        frozen_indices=list(model.quantum_layer._frozen_params)
+                    )
 
-            # Accumulate gradients
-            if batch_gradients is None:
-                batch_gradients = grad_result.gradients
-            else:
-                batch_gradients += grad_result.gradients
+                batch_loss += grad_result.function_value
+                n_circuits += grad_result.n_circuit_executions
 
-        # Average gradients
-        batch_gradients /= len(batch_x)
+                # Accumulate gradients
+                if batch_gradients is None:
+                    batch_gradients = grad_result.gradients
+                else:
+                    batch_gradients += grad_result.gradients
+
+            # Average gradients
+            batch_gradients /= len(batch_x)
 
         # Gradient clipping
         if self.config.use_gradient_clipping:

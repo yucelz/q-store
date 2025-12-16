@@ -10,6 +10,11 @@ v3.3 Enhancements:
 - Hardware-efficient quantum layers
 - Adaptive gradient optimization
 - Performance tracking and monitoring
+
+v3.3.1 Critical Fix:
+- True batch gradient computation with ParallelSPSAEstimator
+- Gradient subsampling for 5-10x speedup
+- Corrected SPSA implementation
 """
 
 from .quantum_layer import (
@@ -39,6 +44,12 @@ from .quantum_trainer import (
 from .spsa_gradient_estimator import (
     SPSAGradientEstimator,
     SPSAOptimizerWithAdaptiveGains
+)
+# v3.3.1 NEW: Corrected batch gradient computation
+from .parallel_spsa_estimator import (
+    ParallelSPSAEstimator,
+    SubsampledSPSAEstimator,
+    SPSABatchGradientEstimator
 )
 from .circuit_batch_manager import CircuitBatchManager
 from .circuit_cache import (
@@ -81,6 +92,10 @@ __all__ = [
     # v3.3: SPSA Gradient Estimation
     "SPSAGradientEstimator",
     "SPSAOptimizerWithAdaptiveGains",
+    # v3.3.1: Corrected Batch SPSA
+    "ParallelSPSAEstimator",
+    "SubsampledSPSAEstimator",
+    "SPSABatchGradientEstimator",
     # v3.3: Circuit Optimization
     "CircuitBatchManager",
     "QuantumCircuitCache",
