@@ -708,3 +708,10 @@ python src/q_store_examples/examples_v3_4.py --no-mock \
 # Recommended: Start with v3.4 for best performance! 🚀
 # ============================================================================
 ```
+**docs/sphinx**
+
+```bash
+pip install -e .[docs]
+cd docs/sphinx
+sphinx-build -b html . _build/html
+```
