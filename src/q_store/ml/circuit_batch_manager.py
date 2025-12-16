@@ -302,9 +302,16 @@ class CircuitBatchManager:
 
                         if job_id in self._active_jobs:
                             self._active_jobs[job_id].status = 'failed'
+                        
+                        # Store None for failed job to avoid KeyError later
+                        results[job_id] = None
 
                 except Exception as e:
                     logger.warning(f"Error checking job {job_id}: {e}")
+                    # Store None for job that errored to avoid KeyError
+                    if job_id not in results:
+                        results[job_id] = None
+                        pending.discard(job_id)
 
             # Wait before next poll
             if pending:
@@ -324,8 +331,17 @@ class CircuitBatchManager:
             f"Polling complete: {len(job_ids)} results in {poll_time:.2f}ms"
         )
 
-        # Return results in order
-        return [results[job_id] for job_id in job_ids]
+        # Return results in order, filtering out None values from failed jobs
+        ordered_results = [results.get(job_id) for job_id in job_ids]
+        
+        # Check if any jobs failed
+        failed_count = sum(1 for r in ordered_results if r is None)
+        if failed_count > 0:
+            logger.error(f"{failed_count}/{len(job_ids)} jobs failed")
+            # Raise error if any jobs failed
+            raise RuntimeError(f"{failed_count} out of {len(job_ids)} jobs failed during execution")
+        
+        return ordered_results
 
     def get_stats(self) -> Dict[str, Any]:
         """Get batch manager statistics"""

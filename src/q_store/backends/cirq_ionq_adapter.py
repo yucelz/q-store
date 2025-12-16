@@ -459,13 +459,12 @@ class CirqIonQBackend(QuantumBackend):
             job = self._service.get_job(job_id)
 
             # Get status (should be fast)
-            status = job.execution_status()
+            # IonQ API changed: use status() instead of execution_status()
+            status = job.status()
 
             # Map IonQ status to our status
-            if hasattr(status, 'value'):
-                ionq_status = status.value.lower()
-            else:
-                ionq_status = str(status).lower()
+            # status() returns a string directly (e.g., 'completed', 'running', 'failed')
+            ionq_status = str(status).lower()
 
             if 'complete' in ionq_status or 'success' in ionq_status:
                 return 'completed'
