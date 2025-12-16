@@ -302,7 +302,7 @@ class CircuitBatchManager:
 
                         if job_id in self._active_jobs:
                             self._active_jobs[job_id].status = 'failed'
-                        
+
                         # Store None for failed job to avoid KeyError later
                         results[job_id] = None
 
@@ -333,14 +333,14 @@ class CircuitBatchManager:
 
         # Return results in order, filtering out None values from failed jobs
         ordered_results = [results.get(job_id) for job_id in job_ids]
-        
+
         # Check if any jobs failed
         failed_count = sum(1 for r in ordered_results if r is None)
         if failed_count > 0:
             logger.error(f"{failed_count}/{len(job_ids)} jobs failed")
             # Raise error if any jobs failed
             raise RuntimeError(f"{failed_count} out of {len(job_ids)} jobs failed during execution")
-        
+
         return ordered_results
 
     def get_stats(self) -> Dict[str, Any]:
