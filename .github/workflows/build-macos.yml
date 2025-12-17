@@ -1,0 +1,126 @@
+name: Build macOS Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v3.4.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build_macos_intel:
+    name: Build wheels on macOS Intel
+    runs-on: macos-12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Build for Python 3.11, 3.12, and 3.13
+          CIBW_BUILD: cp311-* cp312-* cp313-*
+
+          # Install Cython before building
+          CIBW_BEFORE_BUILD: pip install Cython>=0.29.0
+
+          # Test the wheel after building
+          CIBW_TEST_REQUIRES: pytest numpy scipy
+          CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
+
+          # macOS: Build for x86_64
+          CIBW_ARCHS_MACOS: "x86_64"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-intel
+          path: ./wheelhouse/*.whl
+          retention-days: 30
+
+  build_macos_arm:
+    name: Build wheels on macOS ARM64
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Build for Python 3.11, 3.12, and 3.13
+          CIBW_BUILD: cp311-* cp312-* cp313-*
+
+          # Install Cython before building
+          CIBW_BEFORE_BUILD: pip install Cython>=0.29.0
+
+          # Test the wheel after building
+          CIBW_TEST_REQUIRES: pytest numpy scipy
+          CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
+
+          # macOS: Build for ARM64
+          CIBW_ARCHS_MACOS: "arm64"
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-arm
+          path: ./wheelhouse/*.whl
+          retention-days: 30
+
+  publish_macos:
+    name: Publish macOS Wheels
+    needs: [build_macos_intel, build_macos_arm]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download macOS Intel wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-intel
+          path: dist
+
+      - name: Download macOS ARM wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-arm
+          path: dist
+
+      - name: List built wheels
+        run: ls -lh dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.whl
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install twine
+        run: python -m pip install twine
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload dist/*.whl --skip-existing
+        continue-on-error: true
