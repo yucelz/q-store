@@ -421,6 +421,85 @@ make test
 make verify
 ```
 
+### Testing GitHub Actions Workflows Locally
+
+Before pushing changes that trigger GitHub Actions, test workflows locally using `act`:
+
+#### Quick Setup
+
+```bash
+# Install act (one-time setup)
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+
+# Or if act is already installed, verify
+act --version
+```
+
+#### Quick Validation (Recommended)
+
+```bash
+# Validate workflow syntax (fast, no Docker required)
+./scripts/test_workflow_locally.sh test-syntax
+
+# See what would execute (dry run)
+./scripts/test_workflow_locally.sh dry-run
+
+# List all workflows and jobs
+./scripts/test_workflow_locally.sh list
+```
+
+#### Full Workflow Testing
+
+```bash
+# Test Linux build workflow (requires Docker)
+./scripts/test_workflow_locally.sh build
+
+# Test specific workflow
+./scripts/test_workflow_locally.sh build-wheels.yml
+
+# Test specific job in a workflow
+./scripts/test_workflow_locally.sh build-wheels.yml build_wheels
+```
+
+#### Available Commands
+
+```bash
+./scripts/test_workflow_locally.sh list          # List all workflows and jobs
+./scripts/test_workflow_locally.sh test-syntax   # Validate YAML syntax
+./scripts/test_workflow_locally.sh dry-run       # Show execution plan
+./scripts/test_workflow_locally.sh build         # Test build workflow (Linux)
+./scripts/test_workflow_locally.sh windows       # Test Windows workflow (dry run)
+```
+
+#### Important Notes
+
+- ✅ **Syntax validation** is fast and doesn't require Docker
+- ✅ **Dry runs** show what would execute without running
+- ⚠️ **Full builds** require Docker and can take 30+ minutes
+- ⚠️ **Windows/macOS** workflows can only be syntax-checked on Linux
+- 💡 **Always run** `test-syntax` before pushing to GitHub
+
+#### Typical Development Workflow
+
+```bash
+# 1. Make changes to workflow files
+vim .github/workflows/build-wheels.yml
+
+# 2. Validate syntax
+./scripts/test_workflow_locally.sh test-syntax
+
+# 3. See what would run
+./scripts/test_workflow_locally.sh dry-run
+
+# 4. (Optional) Full local test
+./scripts/test_workflow_locally.sh build
+
+# 5. Commit and push
+git add .github/workflows/
+git commit -m "ci: update build workflow"
+git push
+```
+
 ### Testing Changes
 
 ```bash
@@ -655,6 +734,12 @@ make test                                 # Run tests
 make test-cov                             # Tests with coverage
 make verify                               # Run all checks
 make clean                                # Clean build artifacts
+
+# Workflow Testing (Local)
+./scripts/test_workflow_locally.sh test-syntax   # Validate workflows
+./scripts/test_workflow_locally.sh dry-run       # Show execution plan
+./scripts/test_workflow_locally.sh list          # List all jobs
+./scripts/test_workflow_locally.sh build         # Test build locally
 
 # Building
 make build                                # Build distribution
