@@ -182,7 +182,10 @@ jobs:
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-
+      
+      - name: Remove setup.cfg to prevent platform tag conflicts
+        run: rm -f setup.cfg
+      
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -193,7 +196,7 @@ jobs:
           CIBW_ARCHS_MACOS: "x86_64"
           # Force correct platform tag for macOS
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.9
-
+      
       - name: Verify wheels were built
         run: |
           if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
@@ -299,7 +302,11 @@ jobs:
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-
+      
+      - name: Remove setup.cfg to prevent platform tag conflicts
+        run: Remove-Item -Path setup.cfg -ErrorAction SilentlyContinue
+        shell: pwsh
+      
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -312,7 +319,7 @@ jobs:
           # Fix: Properly quote Windows compiler flags using YAML multiline string
           CIBW_ENVIRONMENT_WINDOWS: >-
             CL="/O2 /GL /MP"
-
+      
       - name: Verify wheels were built
         shell: bash
         run: |
