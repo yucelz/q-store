@@ -57,7 +57,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: "AMD64"
 
           # Windows: MSVC optimization flags for faster compilation
-          CIBW_ENVIRONMENT_WINDOWS: "CL=/O2 /GL /MP"
+          CIBW_ENVIRONMENT_WINDOWS: 'CL="/O2 /GL /MP"'
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
