@@ -7,8 +7,6 @@ name = "q-store"
 version = "3.4.2"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
-license = "CC-BY-NC-4.0"
-license-files = ["LICENCE"]
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
@@ -30,6 +28,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.svg" alt="Q-Store Logo" width="200"/>
+  <img src="https://www.q-store.tech/_astro/logo.CnqA1_E2.svg" alt="Q-Store Logo" width="200"/>
 </div>
 
 # Q-Store: Quantum-Native Database v3.4
