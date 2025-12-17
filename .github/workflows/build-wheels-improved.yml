@@ -130,13 +130,6 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
       
-      - name: Configure wheel platform tag
-        run: |
-          cat > setup.cfg << EOF
-          [bdist_wheel]
-          plat_name = manylinux_2_17_x86_64
-          EOF
-      
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -146,6 +139,7 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
       
       - name: Verify wheels were built
         run: |
@@ -155,6 +149,15 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ Linux wheels built successfully"
+          
+          # Verify platform tags
+          for wheel in wheelhouse/*.whl; do
+            echo "Checking: $(basename $wheel)"
+            if [[ ! $(basename $wheel) =~ manylinux ]]; then
+              echo "::error::Wheel has incorrect platform tag: $(basename $wheel)"
+              exit 1
+            fi
+          done
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -188,6 +191,8 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_MACOS: "x86_64"
+          # Force correct platform tag for macOS
+          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.9
       
       - name: Verify wheels were built
         run: |
@@ -197,6 +202,15 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ macOS Intel wheels built successfully"
+          
+          # Verify platform tags
+          for wheel in wheelhouse/*.whl; do
+            echo "Checking: $(basename $wheel)"
+            if [[ ! $(basename $wheel) =~ macosx.*x86_64 ]]; then
+              echo "::error::Wheel has incorrect platform tag: $(basename $wheel)"
+              exit 1
+            fi
+          done
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -222,6 +236,11 @@ jobs:
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
       
+      - name: Verify architecture
+        run: |
+          echo "Running on: $(uname -m)"
+          python -c "import platform; print(f'Python architecture: {platform.machine()}')"
+      
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -230,6 +249,12 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_MACOS: "arm64"
+          # Force correct platform tag for macOS ARM64
+          CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=11.0 _PYTHON_HOST_PLATFORM=macosx-11.0-arm64
+          # Use cross-compilation aware repair
+          CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+            delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} ||
+            (echo "Wheel repair failed, inspecting wheel..." && unzip -l {wheel} && exit 1)
       
       - name: Verify wheels were built
         run: |
@@ -239,6 +264,16 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ macOS ARM64 wheels built successfully"
+          
+          # Verify platform tags
+          for wheel in wheelhouse/*.whl; do
+            echo "Checking: $(basename $wheel)"
+            if [[ ! $(basename $wheel) =~ macosx.*arm64 ]]; then
+              echo "::error::Wheel has incorrect platform tag: $(basename $wheel)"
+              echo "Expected arm64 in filename, got: $(basename $wheel)"
+              exit 1
+            fi
+          done
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -274,7 +309,9 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_WINDOWS: "AMD64"
-          CIBW_ENVIRONMENT: "CL=/O2 /GL /MP"
+          # Fix: Properly quote Windows compiler flags using YAML multiline string
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CL="/O2 /GL /MP"
       
       - name: Verify wheels were built
         shell: bash
@@ -285,6 +322,15 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ Windows wheels built successfully"
+          
+          # Verify platform tags
+          for wheel in wheelhouse/*.whl; do
+            echo "Checking: $(basename $wheel)"
+            if [[ ! $(basename $wheel) =~ win_amd64 ]]; then
+              echo "::error::Wheel has incorrect platform tag: $(basename $wheel)"
+              exit 1
+            fi
+          done
       
       - name: Upload wheels
         uses: actions/upload-artifact@v4
@@ -331,6 +377,18 @@ jobs:
           else
             echo "✓ All expected wheels present"
           fi
+          
+          # Verify we have each platform
+          echo "Verifying platform coverage..."
+          for platform in manylinux win_amd64 "macosx.*x86_64" "macosx.*arm64"; do
+            count=$(ls -1 dist/*.whl | grep -E "$platform" | wc -l)
+            if [ $count -eq 0 ]; then
+              echo "::error::Missing wheels for platform: $platform"
+              exit 1
+            else
+              echo "✓ Found $count wheels for: $platform"
+            fi
+          done
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
