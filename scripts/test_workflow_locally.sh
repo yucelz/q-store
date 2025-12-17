@@ -53,19 +53,19 @@ case "${1:-help}" in
         echo ""
         $ACT_CMD -l
         ;;
-    
+
     dry-run)
         echo -e "${GREEN}Performing dry run (no execution):${NC}"
         echo ""
         $ACT_CMD -n
         ;;
-    
+
     build)
         WORKFLOW="${2:-.github/workflows/build-wheels.yml}"
         echo -e "${GREEN}Testing build workflow: ${WORKFLOW}${NC}"
         echo -e "${YELLOW}Note: This will use Docker and may take a while${NC}"
         echo ""
-        
+
         # Run with minimal configuration for testing
         $ACT_CMD push -W "$WORKFLOW" \
             --container-architecture linux/amd64 \
@@ -73,7 +73,7 @@ case "${1:-help}" in
             --env CIBW_BUILD="cp311-*" \
             --env CIBW_SKIP="*-win32 *-manylinux_i686 *-musllinux_*"
         ;;
-    
+
     test-syntax)
         echo -e "${GREEN}Testing workflow syntax:${NC}"
         echo ""
@@ -82,19 +82,19 @@ case "${1:-help}" in
             $ACT_CMD -W "$workflow" -n --quiet && echo -e "${GREEN}  ✓ Valid${NC}" || echo -e "${RED}  ✗ Invalid${NC}"
         done
         ;;
-    
+
     windows)
         echo -e "${GREEN}Testing Windows workflow (limited on Linux):${NC}"
         echo -e "${YELLOW}Note: Full Windows testing requires Windows or WSL${NC}"
         echo ""
         $ACT_CMD push -W .github/workflows/build-windows.yml -n
         ;;
-    
+
     *)
         if [ -f ".github/workflows/$1" ]; then
             WORKFLOW=".github/workflows/$1"
             JOB="${2:-}"
-            
+
             echo -e "${GREEN}Testing workflow: ${WORKFLOW}${NC}"
             if [ -n "$JOB" ]; then
                 echo -e "${BLUE}Job: ${JOB}${NC}"

@@ -112,3 +112,6 @@ docs/sphinx/
 
 # htmlcov
 htmlcov/
+
+#bin
+bin/
