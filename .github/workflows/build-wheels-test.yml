@@ -5,7 +5,7 @@ name: Test Build Wheels (No Publish)
 
 on:
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master, dev]
   workflow_dispatch:  # Allow manual triggering
     inputs:
       platforms:
@@ -26,32 +26,32 @@ jobs:
       build_macos_intel: ${{ steps.platforms.outputs.build_macos_intel }}
       build_macos_arm: ${{ steps.platforms.outputs.build_macos_arm }}
       build_windows: ${{ steps.platforms.outputs.build_windows }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Determine platforms to build
         id: platforms
         run: |
           PLATFORMS="${{ github.event.inputs.platforms || 'linux' }}"
-          
+
           echo "build_linux=$([[ $PLATFORMS == *"linux"* ]] && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "build_macos_intel=$([[ $PLATFORMS == *"macos-intel"* ]] && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "build_macos_arm=$([[ $PLATFORMS == *"macos-arm"* ]] && echo true || echo false)" >> $GITHUB_OUTPUT
           echo "build_windows=$([[ $PLATFORMS == *"windows"* ]] && echo true || echo false)" >> $GITHUB_OUTPUT
-          
+
           echo "Building for platforms: $PLATFORMS"
-      
+
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install build twine setuptools wheel
-      
+
       - name: Validate package structure
         run: |
           if [[ ! -f "setup.py" ]] && [[ ! -f "pyproject.toml" ]]; then
@@ -59,13 +59,13 @@ jobs:
             exit 1
           fi
           echo "✓ Build configuration found"
-      
+
       - name: Validate package metadata
         run: |
           python -m build --sdist --outdir /tmp/sdist-check
           python -m twine check /tmp/sdist-check/*
           echo "✓ Package metadata is valid"
-      
+
       - name: Check Python syntax
         run: |
           python -m py_compile $(find . -name "*.py" ! -path "./build/*" ! -path "./dist/*" ! -path "./.venv/*")
@@ -76,25 +76,25 @@ jobs:
     needs: test_pre_checks
     if: needs.test_pre_checks.outputs.build_linux == 'true'
     runs-on: ubuntu-22.04
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Configure wheel platform tag
         run: |
           cat > setup.cfg << EOF
           [bdist_wheel]
           plat_name = manylinux_2_17_x86_64
           EOF
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -104,12 +104,12 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('✓ Import test passed')"
           CIBW_ARCHS_LINUX: "x86_64"
-      
+
       - name: List built wheels
         run: |
           ls -lh wheelhouse/
           echo "✓ Linux wheels built successfully"
-      
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -122,18 +122,18 @@ jobs:
     needs: test_pre_checks
     if: needs.test_pre_checks.outputs.build_macos_intel == 'true'
     runs-on: macos-12
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -142,12 +142,12 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('✓ Import test passed')"
           CIBW_ARCHS_MACOS: "x86_64"
-      
+
       - name: List built wheels
         run: |
           ls -lh wheelhouse/
           echo "✓ macOS Intel wheels built successfully"
-      
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -160,18 +160,18 @@ jobs:
     needs: test_pre_checks
     if: needs.test_pre_checks.outputs.build_macos_arm == 'true'
     runs-on: macos-14
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -180,12 +180,12 @@ jobs:
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('✓ Import test passed')"
           CIBW_ARCHS_MACOS: "arm64"
-      
+
       - name: List built wheels
         run: |
           ls -lh wheelhouse/
           echo "✓ macOS ARM64 wheels built successfully"
-      
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -199,18 +199,18 @@ jobs:
     if: needs.test_pre_checks.outputs.build_windows == 'true'
     runs-on: windows-2022
     timeout-minutes: 90
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -221,13 +221,13 @@ jobs:
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('✓ Import test passed')"
           CIBW_ARCHS_WINDOWS: "AMD64"
           CIBW_ENVIRONMENT: "CL=/O2 /GL /MP"
-      
+
       - name: List built wheels
         shell: bash
         run: |
           ls -lh wheelhouse/
           echo "✓ Windows wheels built successfully"
-      
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -240,7 +240,7 @@ jobs:
     needs: [test_pre_checks, test_build_linux, test_build_macos_intel, test_build_macos_arm, test_build_windows]
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
       - name: Generate summary
         run: |
@@ -249,23 +249,23 @@ jobs:
           echo "This was a **test build** - no packages were published." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Build Status" >> $GITHUB_STEP_SUMMARY
-          
+
           if [[ "${{ needs.test_pre_checks.outputs.build_linux }}" == "true" ]]; then
             echo "- Linux: ${{ needs.test_build_linux.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.test_pre_checks.outputs.build_macos_intel }}" == "true" ]]; then
             echo "- macOS Intel: ${{ needs.test_build_macos_intel.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.test_pre_checks.outputs.build_macos_arm }}" == "true" ]]; then
             echo "- macOS ARM64: ${{ needs.test_build_macos_arm.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           if [[ "${{ needs.test_pre_checks.outputs.build_windows }}" == "true" ]]; then
             echo "- Windows: ${{ needs.test_build_windows.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           echo "To publish these wheels, create a new version tag:" >> $GITHUB_STEP_SUMMARY
