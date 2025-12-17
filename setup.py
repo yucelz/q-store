@@ -39,7 +39,7 @@ for f in files_to_compile:
 
 setup(
     name="q-store",
-    version="3.4.2",
+    version="3.4.3",
     author="Yucel Zengin",
     author_email="yucelz@gmail.com",
     description="Quantum-Native Database with ML Capabilities (AGPLv3 / Commercial License)",
