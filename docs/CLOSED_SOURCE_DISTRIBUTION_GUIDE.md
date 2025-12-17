@@ -600,6 +600,6 @@ For issues with this distribution process:
 3. Test in isolated environment
 4. Review build logs for errors
 
----
+
 
 **Remember:** Your proprietary algorithms in `src/q_store/` will be protected as compiled binaries, while users can still learn from your public `examples/` directory!
