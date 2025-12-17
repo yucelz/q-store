@@ -91,6 +91,31 @@ else
 fi
 echo ""
 
+# Clean up C extensions and source files after successful build
+echo -e "${GREEN}Step 4: Cleaning up C extensions and source files...${NC}"
+echo "  Deleting .so, .c, .cpp, .pyx files from src/q_store..."
+
+# Count files before deletion
+SO_COUNT=$(find src/q_store -name "*.so" 2>/dev/null | wc -l)
+C_COUNT=$(find src/q_store -name "*.c" 2>/dev/null | wc -l)
+CPP_COUNT=$(find src/q_store -name "*.cpp" 2>/dev/null | wc -l)
+PYX_COUNT=$(find src/q_store -name "*.pyx" 2>/dev/null | wc -l)
+
+echo "  Files to delete:"
+echo "    - .so files: $SO_COUNT"
+echo "    - .c files: $C_COUNT"
+echo "    - .cpp files: $CPP_COUNT"
+echo "    - .pyx files: $PYX_COUNT"
+
+# Delete the files
+find src/q_store -name "*.so" -type f -delete
+find src/q_store -name "*.c" -type f -delete
+find src/q_store -name "*.cpp" -type f -delete
+find src/q_store -name "*.pyx" -type f -delete
+
+echo -e "${GREEN}  ✓ C extensions and source files cleaned${NC}"
+echo ""
+
 # Summary
 echo -e "${GREEN}=========================================="
 echo "Build Complete!"
