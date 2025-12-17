@@ -19,15 +19,15 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Extract version from tag
         id: version
         run: |
@@ -36,7 +36,7 @@ jobs:
             VERSION=${TAG_NAME#v}
             echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
-            
+
             # Check if prerelease (contains alpha, beta, rc, dev)
             if [[ $VERSION =~ (alpha|beta|rc|dev) ]]; then
               echo "is_prerelease=true" >> $GITHUB_OUTPUT
@@ -48,7 +48,7 @@ jobs:
             echo "version=0.0.0-dev" >> $GITHUB_OUTPUT
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Validate version format
         run: |
           VERSION="${{ steps.version.outputs.version }}"
@@ -56,12 +56,12 @@ jobs:
             echo "::warning::Version format may not be standard: $VERSION"
           fi
           echo "✓ Version: $VERSION"
-      
+
       - name: Install build dependencies
         run: |
           python -m pip install --upgrade pip
           pip install build twine setuptools wheel
-      
+
       - name: Check if setup.py/pyproject.toml exists
         run: |
           if [[ ! -f "setup.py" ]] && [[ ! -f "pyproject.toml" ]]; then
@@ -69,14 +69,14 @@ jobs:
             exit 1
           fi
           echo "✓ Build configuration found"
-      
+
       - name: Validate package metadata
         run: |
           # Try to build source distribution to validate metadata
           python -m build --sdist --outdir /tmp/sdist-check
           python -m twine check /tmp/sdist-check/*
           echo "✓ Package metadata is valid"
-      
+
       - name: Check for required files
         run: |
           FILES_TO_CHECK="README.md LICENSE __init__.py"
@@ -87,7 +87,7 @@ jobs:
               echo "::warning::Missing: $file"
             fi
           done
-      
+
       - name: Verify PyPI credentials (if publishing)
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -96,7 +96,7 @@ jobs:
             exit 1
           fi
           echo "✓ PyPI credentials configured"
-      
+
       - name: Check for duplicate version on PyPI
         if: startsWith(github.ref, 'refs/tags/')
         continue-on-error: true
@@ -104,9 +104,9 @@ jobs:
           PACKAGE_NAME=$(python -c "import tomli; print(tomli.load(open('pyproject.toml', 'rb'))['project']['name'])" 2>/dev/null || \
                          python -c "from setuptools.config import read_configuration; print(read_configuration('setup.cfg')['metadata']['name'])" 2>/dev/null || \
                          python setup.py --name 2>/dev/null || echo "unknown")
-          
+
           VERSION="${{ steps.version.outputs.version }}"
-          
+
           if pip index versions "$PACKAGE_NAME" 2>/dev/null | grep -q "$VERSION"; then
             echo "::warning::Version $VERSION already exists on PyPI. Upload will be skipped for existing files."
           else
@@ -118,18 +118,18 @@ jobs:
     name: Build Linux wheels
     needs: pre_checks
     runs-on: ubuntu-22.04
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -140,7 +140,7 @@ jobs:
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_LINUX: "x86_64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-      
+
       - name: Verify wheels were built
         run: |
           if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
@@ -149,7 +149,7 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ Linux wheels built successfully"
-          
+
           # Verify platform tags
           for wheel in wheelhouse/*.whl; do
             echo "Checking: $(basename $wheel)"
@@ -158,7 +158,7 @@ jobs:
               exit 1
             fi
           done
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -171,18 +171,18 @@ jobs:
     name: Build macOS Intel wheels
     needs: pre_checks
     runs-on: macos-12
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -193,7 +193,7 @@ jobs:
           CIBW_ARCHS_MACOS: "x86_64"
           # Force correct platform tag for macOS
           CIBW_ENVIRONMENT_MACOS: MACOSX_DEPLOYMENT_TARGET=10.9
-      
+
       - name: Verify wheels were built
         run: |
           if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
@@ -202,7 +202,7 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ macOS Intel wheels built successfully"
-          
+
           # Verify platform tags
           for wheel in wheelhouse/*.whl; do
             echo "Checking: $(basename $wheel)"
@@ -211,7 +211,7 @@ jobs:
               exit 1
             fi
           done
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -224,23 +224,23 @@ jobs:
     name: Build macOS ARM64 wheels
     needs: pre_checks
     runs-on: macos-14
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Verify architecture
         run: |
           echo "Running on: $(uname -m)"
           python -c "import platform; print(f'Python architecture: {platform.machine()}')"
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -255,7 +255,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
             delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel} ||
             (echo "Wheel repair failed, inspecting wheel..." && unzip -l {wheel} && exit 1)
-      
+
       - name: Verify wheels were built
         run: |
           if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
@@ -264,7 +264,7 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ macOS ARM64 wheels built successfully"
-          
+
           # Verify platform tags
           for wheel in wheelhouse/*.whl; do
             echo "Checking: $(basename $wheel)"
@@ -274,7 +274,7 @@ jobs:
               exit 1
             fi
           done
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -288,18 +288,18 @@ jobs:
     needs: pre_checks
     runs-on: windows-2022
     timeout-minutes: 90
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
+
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.21.3
-      
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -312,7 +312,7 @@ jobs:
           # Fix: Properly quote Windows compiler flags using YAML multiline string
           CIBW_ENVIRONMENT_WINDOWS: >-
             CL="/O2 /GL /MP"
-      
+
       - name: Verify wheels were built
         shell: bash
         run: |
@@ -322,7 +322,7 @@ jobs:
           fi
           ls -lh wheelhouse/
           echo "✓ Windows wheels built successfully"
-          
+
           # Verify platform tags
           for wheel in wheelhouse/*.whl; do
             echo "Checking: $(basename $wheel)"
@@ -331,7 +331,7 @@ jobs:
               exit 1
             fi
           done
-      
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -346,17 +346,17 @@ jobs:
     needs: [pre_checks, build_linux, build_macos_intel, build_macos_arm, build_windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Download all wheels
         uses: actions/download-artifact@v4
         with:
           path: dist
           pattern: wheels-*
           merge-multiple: true
-      
+
       - name: List all built wheels
         run: |
           echo "=== Built Wheels ==="
@@ -366,18 +366,18 @@ jobs:
           echo ""
           echo "By platform:"
           ls -1 dist/*.whl | sed 's/.*-\(.*\)\.whl/\1/' | sort | uniq -c
-      
+
       - name: Verify all expected wheels exist
         run: |
           EXPECTED_COUNT=12  # 3 Python versions × 4 platforms
           ACTUAL_COUNT=$(ls -1 dist/*.whl | wc -l)
-          
+
           if [ $ACTUAL_COUNT -lt $EXPECTED_COUNT ]; then
             echo "::warning::Expected at least $EXPECTED_COUNT wheels, but found $ACTUAL_COUNT"
           else
             echo "✓ All expected wheels present"
           fi
-          
+
           # Verify we have each platform
           echo "Verifying platform coverage..."
           for platform in manylinux win_amd64 "macosx.*x86_64" "macosx.*arm64"; do
@@ -389,7 +389,7 @@ jobs:
               echo "✓ Found $count wheels for: $platform"
             fi
           done
-      
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
@@ -400,17 +400,17 @@ jobs:
           name: Release ${{ needs.pre_checks.outputs.tag_name }}
           body: |
             ## Wheels for version ${{ needs.pre_checks.outputs.version }}
-            
+
             This release includes pre-built wheels for:
             - **Linux**: manylinux x86_64 (Python 3.11, 3.12, 3.13)
             - **macOS**: Intel x86_64 and ARM64 (Python 3.11, 3.12, 3.13)
             - **Windows**: AMD64 (Python 3.11, 3.12, 3.13)
-            
+
             ### Installation
             ```bash
             pip install q-store==${{ needs.pre_checks.outputs.version }}
             ```
-            
+
             See the full changelog below.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -424,7 +424,7 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/project/q-store/${{ needs.pre_checks.outputs.version }}
-    
+
     steps:
       - name: Download all wheels
         uses: actions/download-artifact@v4
@@ -432,20 +432,20 @@ jobs:
           path: dist
           pattern: wheels-*
           merge-multiple: true
-      
+
       - name: List wheels to publish
         run: |
           echo "=== Publishing these wheels to PyPI ==="
           ls -lh dist/
-      
+
       - name: Install twine
         run: python -m pip install --upgrade twine
-      
+
       - name: Check package distributions
         run: |
           python -m twine check dist/*.whl
           echo "✓ All wheels passed twine check"
-      
+
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
@@ -453,15 +453,15 @@ jobs:
         run: |
           # Use --skip-existing to handle race conditions gracefully
           python -m twine upload dist/*.whl --skip-existing --verbose
-      
+
       - name: Verify PyPI upload
         run: |
           echo "Package should be available at:"
           echo "https://pypi.org/project/q-store/${{ needs.pre_checks.outputs.version }}/"
-          
+
           # Wait a bit for PyPI to process
           sleep 10
-          
+
           # Try to fetch package info
           pip index versions q-store | head -n 5 || true
 
@@ -471,7 +471,7 @@ jobs:
     needs: [pre_checks, build_linux, build_macos_intel, build_macos_arm, build_windows, create_release, publish_pypi]
     runs-on: ubuntu-latest
     if: always() && startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Generate summary
         run: |
