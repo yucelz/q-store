@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "3.4.0"
+version = "3.4.1"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
 license = "CC-BY-NC-4.0"

@@ -22,17 +22,72 @@ if [ ! -f "setup.py" ] || [ ! -d "src/q_store" ]; then
     exit 1
 fi
 
-# Check if version argument is provided
-if [ -z "$1" ]; then
-    echo -e "${RED}Error: Version number required${NC}"
-    echo ""
-    echo "Usage: ./scripts/release.sh <version>"
-    echo "Example: ./scripts/release.sh 3.4.0"
-    echo ""
+# Extract version from setup.py
+SETUP_VERSION=$(grep -E '^\s*version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' setup.py | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+
+if [ -z "$SETUP_VERSION" ]; then
+    echo -e "${RED}Error: Could not extract version from setup.py${NC}"
     exit 1
 fi
 
-VERSION=$1
+echo -e "${BLUE}Version found in setup.py: ${SETUP_VERSION}${NC}"
+echo ""
+
+# Check version consistency across project files
+echo -e "${YELLOW}Checking version consistency...${NC}"
+
+# Check pyproject.toml
+PYPROJECT_VERSION=$(grep -E '^\s*version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml 2>/dev/null | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "")
+if [ -n "$PYPROJECT_VERSION" ]; then
+    if [ "$PYPROJECT_VERSION" != "$SETUP_VERSION" ]; then
+        echo -e "${RED}  ✗ pyproject.toml version mismatch: ${PYPROJECT_VERSION}${NC}"
+        MISMATCH=1
+    else
+        echo -e "${GREEN}  ✓ pyproject.toml: ${PYPROJECT_VERSION}${NC}"
+    fi
+fi
+
+# Check __init__.py
+INIT_VERSION=$(grep -E '^\s*__version__\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' src/q_store/__init__.py 2>/dev/null | sed -E 's/.*__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "")
+if [ -n "$INIT_VERSION" ]; then
+    if [ "$INIT_VERSION" != "$SETUP_VERSION" ]; then
+        echo -e "${RED}  ✗ __init__.py version mismatch: ${INIT_VERSION}${NC}"
+        MISMATCH=1
+    else
+        echo -e "${GREEN}  ✓ __init__.py: ${INIT_VERSION}${NC}"
+    fi
+fi
+
+if [ -n "$MISMATCH" ]; then
+    echo ""
+    echo -e "${RED}Error: Version mismatch detected!${NC}"
+    echo -e "${YELLOW}Please update all version numbers to match before releasing.${NC}"
+    echo ""
+    echo "Files to update:"
+    echo "  - setup.py: version=\"${SETUP_VERSION}\""
+    [ -n "$PYPROJECT_VERSION" ] && echo "  - pyproject.toml: version = \"${SETUP_VERSION}\""
+    [ -n "$INIT_VERSION" ] && echo "  - src/q_store/__init__.py: __version__ = \"${SETUP_VERSION}\""
+    exit 1
+fi
+echo ""
+
+# Use version from setup.py or allow override
+if [ -n "$1" ]; then
+    VERSION=$1
+    if [ "$VERSION" != "$SETUP_VERSION" ]; then
+        echo -e "${YELLOW}Warning: Provided version ${VERSION} differs from setup.py version ${SETUP_VERSION}${NC}"
+        read -p "Continue with version ${VERSION}? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${BLUE}Using setup.py version: ${SETUP_VERSION}${NC}"
+            VERSION=$SETUP_VERSION
+        fi
+    fi
+else
+    VERSION=$SETUP_VERSION
+    echo -e "${BLUE}Using version from setup.py: ${VERSION}${NC}"
+fi
+
 TAG="v${VERSION}"
 
 # Validate version format (basic check)
@@ -138,6 +193,10 @@ echo "     - macOS (x86_64 and ARM64)"
 echo "     - Windows (AMD64)"
 echo "  3. Check workflow progress at:"
 echo "     https://github.com/YOUR_USERNAME/q-store/actions"
+echo ""
+echo -e "${YELLOW}Usage:${NC}"
+echo "  ./scripts/release.sh              # Use version from setup.py (${SETUP_VERSION})"
+echo "  ./scripts/release.sh <version>    # Override with specific version"
 echo ""
 echo -e "${YELLOW}To monitor the build:${NC}"
 echo "  gh run list --workflow=build-wheels.yml"
