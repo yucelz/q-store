@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="logo.svg" alt="Q-Store Logo" width="200"/>
+  <img src="https://www.q-store.tech/_astro/logo.CnqA1_E2.svg" alt="Q-Store Logo" width="200"/>
 </div>
 
 # Q-Store: Quantum-Native Database v3.4
@@ -562,7 +562,10 @@ Run the comprehensive test suite:
 
 ```bash
 # Install test dependencies
-pip install pytest pytest-asyncio psutil
+pip install pytest pytest-asyncio pytest-cov psutil
+
+# Run all tests with coverage
+python -m pytest tests/test_simple.py tests/test_constants_exceptions.py tests/test_core.py::TestStateManager::test_state_manager_creation tests/test_core.py::TestStateManager::test_start_stop -v --cov=src/q_store --cov-report=term --cov-report=html:htmlcov
 
 # Run unit and integration tests
 pytest tests/ -v
@@ -573,6 +576,9 @@ pytest tests/ -v --run-integration
 # Run specific test categories
 pytest tests/ -v -k "test_state"
 pytest tests/ -v -k "test_performance"
+
+# View HTML coverage report
+firefox htmlcov/index.html  # or your preferred browser
 ```
 
 ## Troubleshooting
@@ -780,52 +786,6 @@ training_config = TrainingConfig(
     enable_adversarial_training=False,
     enable_transfer_learning=False
 )
-```
-
-## Project Structure
-
-```
-q-store/
-├── q_store/                    # Main package (v3.4)
-│   ├── __init__.py             # Public API exports
-│   ├── quantum_database.py     # Main database class
-│   ├── state_manager.py        # State lifecycle management
-│   ├── ionq_backend.py         # IonQ quantum backend
-│   ├── entanglement_registry.py # Entanglement management
-│   ├── tunneling_engine.py     # Quantum tunneling
-│   └── quantum_ml/             # ML Training (v3.2+, optimized in v3.4)
-│       ├── __init__.py
-│       ├── quantum_layer.py    # Quantum neural network layers
-│       ├── quantum_trainer.py  # Training orchestration
-│       ├── gradient_computer.py # Quantum gradient computation
-│       ├── optimizers.py       # Quantum-aware optimizers
-│       ├── data_encoder.py     # Classical→Quantum encoding
-│       ├── circuit_builder.py  # ML circuit construction
-│       ├── checkpoint_manager.py # Model persistence
-│       ├── metrics_tracker.py  # Training metrics
-│       ├── ionq_batch_client.py # IonQ batch API (NEW v3.4)
-│       ├── smart_circuit_cache.py # Circuit caching (NEW v3.4)
-│       ├── ionq_native_gate_compiler.py # Native gates (NEW v3.4)
-│       └── circuit_batch_manager_v3_4.py # Batch orchestration (NEW v3.4)
-├── examples/                   # Example scripts
-│   ├── quantum_db_quickstart.py  # Comprehensive guide
-│   ├── quantum_ml_basic.py     # Basic quantum NN (NEW)
-│   ├── quantum_ml_hybrid.py    # Hybrid model (NEW)
-│   ├── quantum_transfer_learning.py # Transfer learning (NEW)
-│   ├── quantum_hpo.py          # HPO with quantum (NEW)
-│   ├── basic_example.py
-│   ├── financial_example.py
-│   ├── ml_training_example.py
-│   └── tinyllama_react_training.py
-├── tests/                      # Test suite
-│   └── test_quantum_database.py
-├── .env                        # Environment variables (you create this)
-├── environment.yml             # Conda dependencies
-├── setup.py                    # Package setup
-├── verify_installation.py      # Installation verification script
-├── QUICKSTART.md               # Quick start guide
-├── quantum_db_design_v3_4.md   # Architecture documentation v3.4
-└── README.md
 ```
 
 ## API Reference v3.4

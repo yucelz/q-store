@@ -27,6 +27,9 @@ from .quantum_layer_v2 import HardwareEfficientQuantumLayer
 # v3.3 imports
 from .spsa_gradient_estimator import SPSAGradientEstimator
 
+# Set up logger first
+logger = logging.getLogger(__name__)
+
 # v3.4 imports
 try:
     from .circuit_batch_manager_v3_4 import CircuitBatchManagerV34
@@ -39,7 +42,6 @@ except ImportError:
     V3_4_AVAILABLE = False
     logger.warning("v3.4 components not available, using v3.3.1 fallback")
 
-logger = logging.getLogger(__name__)
 
 
 @dataclass

@@ -1,13 +1,12 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "Cython>=0.29.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "2.0.0"
+version = "3.4.3"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
-license = {text = "CC BY-NC 4.0"}
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
@@ -29,10 +28,12 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
-    "License :: Other/Proprietary License",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Cython",
     "Operating System :: OS Independent",
     "Typing :: Typed",
 ]
@@ -51,6 +52,14 @@ backends = [
     "pgvector>=0.2.0",
     "qdrant-client>=1.7.0",
 ]
+ml = [
+    "torch>=2.0.0",
+]
+build = [
+    "Cython>=0.29.0",
+    "wheel",
+    "twine",
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -67,7 +76,7 @@ docs = [
     "sphinx-autodoc-typehints>=1.23.0",
 ]
 all = [
-    "q-store[backends,dev,docs]"
+    "q-store[backends,ml,dev,docs]"
 ]
 
 [project.urls]
@@ -78,11 +87,22 @@ Issues = "https://github.com/yucelz/q-store/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+zip-safe = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["q_store*"]
 exclude = ["tests*", "examples*"]
+
+[tool.setuptools.package-data]
+q_store = ["py.typed", "__init__.py"]
+
+# Cython compilation settings
+[tool.cython]
+language_level = 3
+boundscheck = false
+wraparound = false
+cdivision = true
 
 [tool.black]
 line-length = 100

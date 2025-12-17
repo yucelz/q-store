@@ -1,0 +1,121 @@
+name: Build Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v3.4.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build_wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-2022, macos-12, macos-14]  # macos-14 is ARM64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Configure wheel platform tag (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          cat > setup.cfg << EOF
+          [bdist_wheel]
+          # Enable building manylinux wheels (manylinux2014 = glibc 2.17)
+          plat_name = manylinux_2_17_x86_64
+          EOF
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          # Build for Python 3.11, 3.12, and 3.13
+          CIBW_BUILD: cp311-* cp312-* cp313-*
+
+          # Skip 32-bit builds and musllinux (use manylinux instead)
+          CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux_*"
+
+          # Install Cython before building
+          CIBW_BEFORE_BUILD: pip install Cython>=0.29.0
+
+          # Test the wheel after building
+          CIBW_TEST_REQUIRES: pytest numpy scipy
+          CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
+
+          # macOS: Build for both x86_64 and arm64
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_LINUX: "x86_64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+
+          # Windows: MSVC optimization flags for faster compilation
+          CIBW_ENVIRONMENT_WINDOWS: 'CL="/O2 /GL /MP"'
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+          retention-days: 30
+
+  create_release:
+    name: Create GitHub Release
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List built wheels
+        run: ls -lh dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.whl
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish_pypi:
+    name: Publish to PyPI
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    # Only run if repository is public or you have PyPI configured
+    # Remove the 'if' condition above if you want to publish to private PyPI
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: Install twine
+        run: python -m pip install twine
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload dist/*.whl --skip-existing

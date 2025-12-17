@@ -1,119 +1,98 @@
-# Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License
+# Dual License
 
-This work, including all designs, graphics, source code, documentation, and related files in this repository, is licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0).
+This software is available under a dual licensing model:
 
----
+## 1. Open Source License: GNU Affero General Public License v3.0 (AGPLv3)
 
-## You Are Free To:
+For open source use, this software is licensed under the GNU Affero General Public License v3.0.
 
-1. **Share** — Copy and redistribute the material in any medium or format for non-commercial purposes.
-2. **Adapt** — Remix, transform, and build upon the material for non-commercial purposes.
+### Key Terms of AGPLv3:
 
----
+- **Freedom to Use**: You may use this software for any purpose
+- **Freedom to Study**: You have access to the source code and can study how it works
+- **Freedom to Modify**: You can modify the software to suit your needs
+- **Freedom to Distribute**: You can distribute copies of the original or modified software
 
-## Under the Following Terms:
+### Important Requirements:
 
-### 1. Attribution
-You must give appropriate credit to the creator (**Yucel Zengin**), provide a link to this license, and indicate if any changes were made. You may do so in any reasonable manner, but not in any way that suggests the licensor endorses you or your use.
+1. **Share Modifications**: If you modify this software and distribute it, you must make your modifications available under AGPLv3
+2. **Network Use**: If you run a modified version on a server and let others interact with it over a network, you must provide them access to the modified source code
+3. **Attribution**: You must retain copyright notices and license information
+4. **Same License**: Derivative works must be licensed under AGPLv3
 
-**Required attribution format:**
-```
-Original work by Yucel Zengin (yucelz@gmail.com)
-Licensed under CC BY-NC 4.0: https://creativecommons.org/licenses/by-nc/4.0/
-```
+### Full AGPLv3 License Text:
 
-### 2. NonCommercial
-You may **NOT** use the material for commercial purposes without explicit written permission.
-
----
-
-## Detailed Usage Guidelines
-
-### ✅ PERMITTED PERSONAL USE (Non-Commercial)
-
-You are **allowed** to use this work for:
-
-- **Personal Projects**: Using the design/code for your own personal portfolio, hobby projects, or learning purposes
-- **Educational Purposes**: Using the material in classroom settings, tutorials, workshops, or educational content (free of charge)
-- **Open Source Projects**: Incorporating the work into non-profit, open-source projects
-- **Academic Research**: Using the material for research, thesis work, or academic publications
-- **Non-Profit Organizations**: Using the work for registered non-profit or charitable organizations (with proper attribution)
-- **Personal Blogs/Portfolios**: Showcasing the work on personal websites or portfolios to demonstrate your skills
-- **Experimentation**: Modifying and testing the work for learning and skill development
-- **Free Distribution**: Sharing the work or modifications with others at no cost, provided they are also informed of this license
-
-### ❌ PROHIBITED COMMERCIAL USE
-
-You are **NOT allowed** to use this work for:
-
-- **Direct Sales**: Selling the design, code, or any derivative works in any form (digital or physical)
-- **Paid Products/Services**: Incorporating the work into products or services that generate revenue
-- **Client Work**: Using the work in projects for paying clients or commercial contracts
-- **Advertising/Marketing**: Using the work in commercial advertising, promotional materials, or marketing campaigns
-- **Monetized Platforms**: Distributing the work through paid platforms, subscription services, or marketplaces (e.g., theme marketplaces, template stores, stock websites)
-- **SaaS Applications**: Using the work as part of Software-as-a-Service offerings or paid web applications
-- **Commercial Training**: Using the work in paid courses, workshops, or training programs
-- **Fundraising**: Using the work for commercial fundraising activities (non-profit fundraising may be permitted with written approval)
-- **Indirect Monetization**: Using the work on platforms where you receive ad revenue, sponsorships, or other indirect compensation
-- **White-Label Products**: Rebranding and reselling the work under a different name
-- **Premium Features**: Using the work as a basis for premium or paid features in any application
-
-### 🔄 MODIFICATIONS AND DERIVATIVES
-
-- **Allowed**: You may modify, adapt, and create derivative works for personal and educational use
-- **Required**: All derivative works must retain this license (CC BY-NC 4.0) if shared publicly
-- **Attribution**: You must clearly indicate what changes were made to the original work
-- **No Warranty**: Modified versions are provided "as-is" without any warranty from the original creator
-
-### 📋 COMMERCIAL LICENSE
-
-If you wish to use this work for **any commercial purpose**, you must:
-
-1. Contact the copyright holder: **Yucel Zengin** at yucelz@gmail.com
-2. Obtain explicit written permission
-3. Negotiate terms for commercial licensing (which may include licensing fees)
-4. Receive a signed commercial license agreement
-
-**Commercial inquiries are welcome** — please provide details about your intended use when requesting permission.
+The complete legal text of the AGPLv3 license can be found at:
+**https://www.gnu.org/licenses/agpl-3.0.html**
 
 ---
 
-## Additional Terms
+## 2. Commercial License
 
-### No Additional Restrictions
-You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
+If the AGPLv3 license does not suit your needs (for example, if you want to use this software in proprietary applications without open-sourcing your code), a commercial license is available.
 
-### ShareAlike Not Required
-Unlike CC BY-NC-SA, this license does not require derivative works to be shared under the same license, but they must remain non-commercial unless permission is obtained.
+### Benefits of Commercial License:
 
-### Disclaimer of Warranties
-This material is provided **"as-is"** without warranty of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. The licensor shall not be liable for any damages, claims, or losses arising from the use of this material.
+- Use the software in proprietary/closed-source applications
+- No requirement to disclose your source code
+- No copyleft obligations
+- Priority support options available
+- Custom licensing terms available
 
-### License Violations
-Unauthorized commercial use of this work constitutes a violation of copyright law and may result in legal action. If you discover unauthorized commercial use, please report it to yucelz@gmail.com.
+### To Obtain a Commercial License:
 
----
+**Contact:** Yucel Zengin
+**Email:** yucelz@gmail.com
+**Subject:** Q-Store Commercial License Inquiry
 
-
-*Non-profit use with proper attribution is generally allowed, but please contact for clarification if uncertain.
-
----
-
-## Full License Text
-
-The complete legal text of the CC BY-NC 4.0 license can be found at:  
-**https://creativecommons.org/licenses/by-nc/4.0/legalcode**
+Please include:
+- Description of your intended use
+- Project scope and timeline
+- Company/organization information (if applicable)
+- Any specific licensing requirements
 
 ---
 
-## Contact Information
+## Which License Should You Choose?
 
-**Copyright Holder:** Yucel Zengin  
-**Email:** yucelz@gmail.com  
-**For Commercial Licensing Inquiries:** Please include details about your intended use, project scope, and timeline.
+### Choose AGPLv3 (Free) if:
+- You're building open source software
+- You're willing to share your modifications
+- You're comfortable with copyleft requirements
+- You're using it for research or educational purposes
+- You plan to contribute back to the community
+
+### Choose Commercial License if:
+- You're building proprietary/closed-source software
+- You cannot or do not want to disclose your source code
+- You need freedom from copyleft obligations
+- You want to integrate this into commercial products
+- You need custom licensing terms or support
 
 ---
 
-© 2025 Yucel Zengin. All rights reserved.
+## Frequently Asked Questions
+
+**Q: Can I use this software for free?**
+A: Yes, under the AGPLv3 license, which requires you to share modifications if you distribute the software or run it as a network service.
+
+**Q: What if I just want to evaluate the software?**
+A: Evaluation is permitted under AGPLv3 with no licensing fees.
+
+**Q: Do I need a commercial license for SaaS applications?**
+A: Under AGPLv3, if you run modified software on a server that users interact with, you must provide the source code. If this doesn't work for your business model, contact us for a commercial license.
+
+**Q: Can I get a commercial license for a specific project?**
+A: Yes, we can provide project-specific or time-limited commercial licenses. Contact us to discuss your needs.
+
+---
+
+## Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+**Copyright © 2025 Yucel Zengin. All rights reserved.**
 
 *Last Updated: December 2025*
