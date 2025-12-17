@@ -52,6 +52,9 @@ backends = [
     "pgvector>=0.2.0",
     "qdrant-client>=1.7.0",
 ]
+ml = [
+    "torch>=2.0.0",
+]
 build = [
     "Cython>=0.29.0",
     "wheel",
@@ -73,7 +76,7 @@ docs = [
     "sphinx-autodoc-typehints>=1.23.0",
 ]
 all = [
-    "q-store[backends,dev,docs]"
+    "q-store[backends,ml,dev,docs]"
 ]
 
 [project.urls]

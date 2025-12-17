@@ -14,6 +14,7 @@ jobs:
   build_windows:
     name: Build wheels on Windows
     runs-on: windows-2022
+    timeout-minutes: 90
 
     steps:
       - uses: actions/checkout@v4
@@ -44,6 +45,9 @@ jobs:
 
           # Windows: Build for AMD64
           CIBW_ARCHS_WINDOWS: "AMD64"
+
+          # MSVC optimization flags: /O2=optimize, /GL=whole program, /MP=parallel
+          CIBW_ENVIRONMENT: "CL=/O2 /GL /MP"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4

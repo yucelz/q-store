@@ -72,6 +72,7 @@ setup(
         },
         # Optimization flags
         annotate=False,  # Set to True to generate HTML annotation files for debugging
+        nthreads=0,  # Use all available CPU cores for parallel compilation
     ),
 
     cmdclass={
@@ -86,7 +87,6 @@ setup(
         "cirq>=1.3.0",
         "cirq-ionq>=1.3.0",
         "requests>=2.31.0",
-        "torch>=2.0.0",
     ],
 
     python_requires=">=3.11",

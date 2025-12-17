@@ -10,6 +10,7 @@ jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       matrix:
         os: [ubuntu-22.04, windows-2022, macos-12, macos-14]  # macos-14 is ARM64
@@ -54,6 +55,9 @@ jobs:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_ARCHS_LINUX: "x86_64"
           CIBW_ARCHS_WINDOWS: "AMD64"
+
+          # Windows: MSVC optimization flags for faster compilation
+          CIBW_ENVIRONMENT_WINDOWS: "CL=/O2 /GL /MP"
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
