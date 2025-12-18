@@ -38,16 +38,6 @@ for f in files_to_compile:
     print(f"  - {f}")
 
 setup(
-    name="q-store",
-    version="3.4.4",
-    author="Yucel Zengin",
-    author_email="yucelz@gmail.com",
-    description="Quantum-Native Database with ML Capabilities (AGPLv3 / Commercial License)",
-    long_description=open("README.md", encoding="utf-8").read(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/yucelz/q-store",
-    license="AGPLv3",
-
     # Package configuration
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -90,18 +80,6 @@ setup(
     ],
 
     python_requires=">=3.11",
-
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Science/Research",
-        "Topic :: Scientific/Engineering :: Physics",
-        "Topic :: Database",
-        "License :: OSI Approved :: GNU Affero General Public License v3",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Programming Language :: Cython",
-    ],
 
     # Prevent source distribution
     zip_safe=False,
