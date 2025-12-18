@@ -7,6 +7,7 @@ name = "q-store"
 version = "3.4.4"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
+license = {text = "AGPLv3"}
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
