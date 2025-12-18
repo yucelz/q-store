@@ -17,40 +17,29 @@ echo "=========================================="
 echo ""
 
 # Check if we're in the right directory
-if [ ! -f "setup.py" ] || [ ! -d "src/q_store" ]; then
+if [ ! -f "pyproject.toml" ] || [ ! -d "src/q_store" ]; then
     echo -e "${RED}Error: Must run from project root directory${NC}"
     exit 1
 fi
 
-# Extract version from setup.py
-SETUP_VERSION=$(grep -E '^\s*version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' setup.py | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
+# Extract version from pyproject.toml (primary source)
+PYPROJECT_VERSION=$(grep -E '^\s*version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/')
 
-if [ -z "$SETUP_VERSION" ]; then
-    echo -e "${RED}Error: Could not extract version from setup.py${NC}"
+if [ -z "$PYPROJECT_VERSION" ]; then
+    echo -e "${RED}Error: Could not extract version from pyproject.toml${NC}"
     exit 1
 fi
 
-echo -e "${BLUE}Version found in setup.py: ${SETUP_VERSION}${NC}"
+echo -e "${BLUE}Version found in pyproject.toml: ${PYPROJECT_VERSION}${NC}"
 echo ""
 
 # Check version consistency across project files
 echo -e "${YELLOW}Checking version consistency...${NC}"
 
-# Check pyproject.toml
-PYPROJECT_VERSION=$(grep -E '^\s*version\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' pyproject.toml 2>/dev/null | sed -E 's/.*version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "")
-if [ -n "$PYPROJECT_VERSION" ]; then
-    if [ "$PYPROJECT_VERSION" != "$SETUP_VERSION" ]; then
-        echo -e "${RED}  ✗ pyproject.toml version mismatch: ${PYPROJECT_VERSION}${NC}"
-        MISMATCH=1
-    else
-        echo -e "${GREEN}  ✓ pyproject.toml: ${PYPROJECT_VERSION}${NC}"
-    fi
-fi
-
 # Check __init__.py
 INIT_VERSION=$(grep -E '^\s*__version__\s*=\s*"[0-9]+\.[0-9]+\.[0-9]+"' src/q_store/__init__.py 2>/dev/null | sed -E 's/.*__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)".*/\1/' || echo "")
 if [ -n "$INIT_VERSION" ]; then
-    if [ "$INIT_VERSION" != "$SETUP_VERSION" ]; then
+    if [ "$INIT_VERSION" != "$PYPROJECT_VERSION" ]; then
         echo -e "${RED}  ✗ __init__.py version mismatch: ${INIT_VERSION}${NC}"
         MISMATCH=1
     else
@@ -64,28 +53,27 @@ if [ -n "$MISMATCH" ]; then
     echo -e "${YELLOW}Please update all version numbers to match before releasing.${NC}"
     echo ""
     echo "Files to update:"
-    echo "  - setup.py: version=\"${SETUP_VERSION}\""
-    [ -n "$PYPROJECT_VERSION" ] && echo "  - pyproject.toml: version = \"${SETUP_VERSION}\""
-    [ -n "$INIT_VERSION" ] && echo "  - src/q_store/__init__.py: __version__ = \"${SETUP_VERSION}\""
+    echo "  - pyproject.toml: version = \"${PYPROJECT_VERSION}\""
+    [ -n "$INIT_VERSION" ] && echo "  - src/q_store/__init__.py: __version__ = \"${PYPROJECT_VERSION}\""
     exit 1
 fi
 echo ""
 
-# Use version from setup.py or allow override
+# Use version from pyproject.toml or allow override
 if [ -n "$1" ]; then
     VERSION=$1
-    if [ "$VERSION" != "$SETUP_VERSION" ]; then
-        echo -e "${YELLOW}Warning: Provided version ${VERSION} differs from setup.py version ${SETUP_VERSION}${NC}"
+    if [ "$VERSION" != "$PYPROJECT_VERSION" ]; then
+        echo -e "${YELLOW}Warning: Provided version ${VERSION} differs from pyproject.toml version ${PYPROJECT_VERSION}${NC}"
         read -p "Continue with version ${VERSION}? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${BLUE}Using setup.py version: ${SETUP_VERSION}${NC}"
-            VERSION=$SETUP_VERSION
+            echo -e "${BLUE}Using pyproject.toml version: ${PYPROJECT_VERSION}${NC}"
+            VERSION=$PYPROJECT_VERSION
         fi
     fi
 else
-    VERSION=$SETUP_VERSION
-    echo -e "${BLUE}Using version from setup.py: ${VERSION}${NC}"
+    VERSION=$PYPROJECT_VERSION
+    echo -e "${BLUE}Using version from pyproject.toml: ${VERSION}${NC}"
 fi
 
 TAG="v${VERSION}"
@@ -195,7 +183,7 @@ echo "  3. Check workflow progress at:"
 echo "     https://github.com/YOUR_USERNAME/q-store/actions"
 echo ""
 echo -e "${YELLOW}Usage:${NC}"
-echo "  ./scripts/release.sh              # Use version from setup.py (${SETUP_VERSION})"
+echo "  ./scripts/release.sh              # Use version from pyproject.toml (${PYPROJECT_VERSION})"
 echo "  ./scripts/release.sh <version>    # Override with specific version"
 echo ""
 echo -e "${YELLOW}To monitor the build:${NC}"
