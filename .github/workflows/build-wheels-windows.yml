@@ -1,0 +1,284 @@
+name: Build Windows Wheels
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v3.4.0
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  # Pre-flight checks before building
+  pre_checks:
+    name: Pre-flight Validation
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            VERSION=${TAG_NAME#v}
+            echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+            # Check if prerelease (contains alpha, beta, rc, dev)
+            if [[ $VERSION =~ (alpha|beta|rc|dev) ]]; then
+              echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            else
+              echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "tag_name=manual-build" >> $GITHUB_OUTPUT
+            echo "version=0.0.0-dev" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc|dev)\.[0-9]+)?$ ]]; then
+            echo "::warning::Version format may not be standard: $VERSION"
+          fi
+          echo "✓ Version: $VERSION"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine setuptools wheel
+
+      - name: Check if setup.py/pyproject.toml exists
+        run: |
+          if [[ ! -f "setup.py" ]] && [[ ! -f "pyproject.toml" ]]; then
+            echo "::error::Neither setup.py nor pyproject.toml found!"
+            exit 1
+          fi
+          echo "✓ Build configuration found"
+
+      - name: Validate package metadata
+        run: |
+          # Try to build source distribution to validate metadata
+          python -m build --sdist --outdir /tmp/sdist-check
+          python -m twine check /tmp/sdist-check/*
+          echo "✓ Package metadata is valid"
+
+      - name: Check for required files
+        run: |
+          FILES_TO_CHECK="README.md LICENSE __init__.py"
+          for file in $FILES_TO_CHECK; do
+            if [[ -f "$file" ]] || find . -name "$file" -type f | grep -q .; then
+              echo "✓ Found: $file"
+            else
+              echo "::warning::Missing: $file"
+            fi
+          done
+
+  # Build Windows wheels
+  build_windows:
+    name: Build Windows wheels
+    needs: pre_checks
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install cibuildwheel
+        run: python -m pip install cibuildwheel==2.21.3
+
+      - name: Remove setup.cfg to prevent platform tag conflicts
+        run: Remove-Item -Path setup.cfg -ErrorAction SilentlyContinue
+        shell: pwsh
+
+      - name: Build wheels
+        run: python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_BUILD: cp311-* cp312-* cp313-*
+          CIBW_SKIP: "*-win32"
+          CIBW_BEFORE_BUILD: pip install Cython>=0.29.0
+          CIBW_TEST_REQUIRES: pytest numpy scipy
+          CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          # Fix: Properly quote Windows compiler flags using YAML multiline string
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CL="/O2 /GL /MP"
+
+      - name: Verify wheels were built
+        shell: bash
+        run: |
+          if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
+            echo "::error::No wheels were built!"
+            exit 1
+          fi
+          ls -lh wheelhouse/
+          echo "✓ Windows wheels built successfully"
+
+          # Verify platform tags
+          for wheel in wheelhouse/*.whl; do
+            echo "Checking: $(basename $wheel)"
+            if [[ ! $(basename $wheel) =~ win_amd64 ]]; then
+              echo "::error::Wheel has incorrect platform tag: $(basename $wheel)"
+              exit 1
+            fi
+          done
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-amd64
+          path: ./wheelhouse/*.whl
+          retention-days: 30
+          if-no-files-found: error
+
+  # Create GitHub Release
+  create_release:
+    name: Create GitHub Release
+    needs: [pre_checks, build_windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List all built wheels
+        run: |
+          echo "=== Built Wheels ==="
+          ls -lh dist/
+          echo ""
+          echo "Total wheels: $(ls -1 dist/*.whl | wc -l)"
+          echo ""
+          echo "By platform:"
+          ls -1 dist/*.whl | sed 's/.*-\(.*\)\.whl/\1/' | sort | uniq -c
+
+      - name: Verify wheels exist
+        run: |
+          ACTUAL_COUNT=$(ls -1 dist/*.whl | wc -l)
+          if [ $ACTUAL_COUNT -eq 0 ]; then
+            echo "::error::No wheels found!"
+            exit 1
+          else
+            echo "✓ Found $ACTUAL_COUNT wheels"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.whl
+          draft: false
+          prerelease: ${{ needs.pre_checks.outputs.is_prerelease }}
+          generate_release_notes: true
+          name: Release ${{ needs.pre_checks.outputs.tag_name }} (Windows)
+          body: |
+            ## Windows Wheels for version ${{ needs.pre_checks.outputs.version }}
+
+            This release includes pre-built wheels for:
+            - **Windows**: AMD64 (Python 3.11, 3.12, 3.13)
+
+            ### Installation
+            ```bash
+            pip install q-store==${{ needs.pre_checks.outputs.version }}
+            ```
+
+            See the full changelog below.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to PyPI
+  publish_pypi:
+    name: Publish to PyPI
+    needs: [pre_checks, build_windows, create_release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    environment:
+      name: pypi
+      url: https://pypi.org/project/q-store/${{ needs.pre_checks.outputs.version }}
+
+    steps:
+      - name: Download all wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List wheels to publish
+        run: |
+          echo "=== Publishing these wheels to PyPI ==="
+          ls -lh dist/
+
+      - name: Install twine
+        run: python -m pip install --upgrade twine
+
+      - name: Check package distributions
+        run: |
+          python -m twine check dist/*.whl
+          echo "✓ All wheels passed twine check"
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          # Use --skip-existing to handle race conditions gracefully
+          python -m twine upload dist/*.whl --skip-existing --verbose
+
+      - name: Verify PyPI upload
+        run: |
+          echo "Package should be available at:"
+          echo "https://pypi.org/project/q-store/${{ needs.pre_checks.outputs.version }}/"
+
+          # Wait a bit for PyPI to process
+          sleep 10
+
+          # Try to fetch package info
+          pip index versions q-store | head -n 5 || true
+
+  # Summary job for easy status checking
+  publish_summary:
+    name: Publish Summary
+    needs: [pre_checks, build_windows, create_release, publish_pypi]
+    runs-on: ubuntu-latest
+    if: always() && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🎉 Windows Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ needs.pre_checks.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ needs.pre_checks.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Prerelease:** ${{ needs.pre_checks.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Status" >> $GITHUB_STEP_SUMMARY
+          echo "- Windows: ${{ needs.build_windows.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Publishing Status" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Release: ${{ needs.create_release.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- PyPI: ${{ needs.publish_pypi.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
