@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from .ionq_batch_client import BatchJobResult, IonQBatchClient, JobStatus
+from .ionq_concurrent_client import BatchJobResult, IonQConcurrentClient, JobStatus
 from .ionq_native_gate_compiler import IonQNativeGateCompiler
 from .smart_circuit_cache import SmartCircuitCache
 
@@ -121,12 +121,12 @@ class CircuitBatchManagerV34:
         self.target = target
 
         # Initialize components
-        self.batch_client: Optional[IonQBatchClient] = None
+        self.batch_client: Optional[IonQConcurrentClient] = None
         self.native_compiler: Optional[IonQNativeGateCompiler] = None
         self.circuit_cache: Optional[SmartCircuitCache] = None
 
         if use_batch_api:
-            self.batch_client = IonQBatchClient(
+            self.batch_client = IonQConcurrentClient(
                 api_key=api_key, max_connections=connection_pool_size
             )
 
