@@ -80,7 +80,7 @@ from .ml import (
     TrainingMetrics,
 )
 
-__version__ = "3.4.3"
+__version__ = "3.4.4"
 __all__ = [
     # Core database
     "QuantumDatabase",
