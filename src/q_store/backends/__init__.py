@@ -52,6 +52,15 @@ except ImportError:
     LightningBackend = None
     create_lightning_backend = None
 
+# IonQ hardware backend (optional dependency)
+try:
+    from .ionq_hardware_backend import IonQHardwareBackend, create_ionq_backend
+    HAS_IONQ_HARDWARE = True
+except ImportError:
+    HAS_IONQ_HARDWARE = False
+    IonQHardwareBackend = None
+    create_ionq_backend = None
+
 __all__ = [
     # Core abstraction
     "QuantumBackend",
@@ -80,6 +89,10 @@ __all__ = [
     "LightningBackend",
     "create_lightning_backend",
     "HAS_LIGHTNING",
+    # IonQ hardware
+    "IonQHardwareBackend",
+    "create_ionq_backend",
+    "HAS_IONQ_HARDWARE",
     # Utility functions
     "amplitude_encode_to_circuit",
     "create_bell_state_circuit",
