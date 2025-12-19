@@ -22,41 +22,41 @@ class OptimizationResult:
     gate_reduction_pct: float
     depth_reduction_pct: float
     preserves_functionality: bool
-    
-    
+
+
 class OptimizationProfiler:
     """
     Profiler for optimization techniques.
-    
+
     Compares circuits before and after optimization.
     """
-    
+
     def __init__(self):
         """Initialize optimization profiler."""
         self.results: List[OptimizationResult] = []
-    
-    def profile_optimization(self, 
+
+    def profile_optimization(self,
                            original: UnifiedCircuit,
                            optimized: UnifiedCircuit,
                            verify_fn: Optional[Callable] = None) -> OptimizationResult:
         """
         Profile an optimization transformation.
-        
+
         Args:
             original: Original circuit
             optimized: Optimized circuit
             verify_fn: Optional function to verify equivalence
-            
+
         Returns:
             OptimizationResult with metrics
         """
         # Calculate reductions
         gate_reduction = len(original.gates) - len(optimized.gates)
         depth_reduction = original.depth - optimized.depth
-        
+
         gate_reduction_pct = 100 * gate_reduction / len(original.gates) if len(original.gates) > 0 else 0.0
         depth_reduction_pct = 100 * depth_reduction / original.depth if original.depth > 0 else 0.0
-        
+
         # Verify functionality preservation
         preserves = True
         if verify_fn:
@@ -64,7 +64,7 @@ class OptimizationProfiler:
                 preserves = verify_fn(original, optimized)
             except Exception:
                 preserves = False
-        
+
         result = OptimizationResult(
             original_gates=len(original.gates),
             optimized_gates=len(optimized.gates),
@@ -77,49 +77,49 @@ class OptimizationProfiler:
             depth_reduction_pct=depth_reduction_pct,
             preserves_functionality=preserves
         )
-        
+
         self.results.append(result)
         return result
-    
+
     def profile_optimization_with_timing(self,
                                         original: UnifiedCircuit,
                                         optimization_fn: Callable[[UnifiedCircuit], UnifiedCircuit],
                                         verify_fn: Optional[Callable] = None) -> OptimizationResult:
         """
         Profile an optimization with execution timing.
-        
+
         Args:
             original: Original circuit
             optimization_fn: Function that returns optimized circuit
             verify_fn: Optional verification function
-            
+
         Returns:
             OptimizationResult with timing
         """
         start_time = time.perf_counter()
         optimized = optimization_fn(original)
         optimization_time = time.perf_counter() - start_time
-        
+
         result = self.profile_optimization(original, optimized, verify_fn)
         result.optimization_time = optimization_time
-        
+
         return result
-    
+
     def compare_optimizations(self,
                             original: UnifiedCircuit,
                             optimizations: Dict[str, UnifiedCircuit]) -> Dict[str, Any]:
         """
         Compare multiple optimization strategies.
-        
+
         Args:
             original: Original circuit
             optimizations: Dictionary mapping names to optimized circuits
-            
+
         Returns:
             Comparison results
         """
         results = {}
-        
+
         for name, optimized in optimizations.items():
             result = self.profile_optimization(original, optimized)
             results[name] = {
@@ -131,32 +131,32 @@ class OptimizationProfiler:
                 'final_depth': result.optimized_depth,
                 'preserves_functionality': result.preserves_functionality
             }
-        
+
         # Find best optimization
         valid_opts = {k: v for k, v in results.items() if v['preserves_functionality']}
         if valid_opts:
             best_gate_reduction = max(valid_opts.items(), key=lambda x: x[1]['gate_reduction_pct'])
             best_depth_reduction = max(valid_opts.items(), key=lambda x: x[1]['depth_reduction_pct'])
-            
+
             results['best_gate_reduction'] = best_gate_reduction[0]
             results['best_depth_reduction'] = best_depth_reduction[0]
-        
+
         return results
-    
+
     def get_statistics(self) -> Dict[str, Any]:
         """
         Get statistics across all profiled optimizations.
-        
+
         Returns:
             Statistics dictionary
         """
         if not self.results:
             return {}
-        
+
         gate_reductions = [r.gate_reduction_pct for r in self.results]
         depth_reductions = [r.depth_reduction_pct for r in self.results]
         times = [r.optimization_time for r in self.results]
-        
+
         return {
             'n_optimizations': len(self.results),
             'avg_gate_reduction_pct': np.mean(gate_reductions),
@@ -169,34 +169,34 @@ class OptimizationProfiler:
             'successful_optimizations': sum(1 for r in self.results if r.preserves_functionality),
             'failed_optimizations': sum(1 for r in self.results if not r.preserves_functionality)
         }
-    
+
     def benchmark_optimization(self,
                              circuits: List[UnifiedCircuit],
                              optimization_fn: Callable[[UnifiedCircuit], UnifiedCircuit],
                              verify_fn: Optional[Callable] = None) -> Dict[str, Any]:
         """
         Benchmark an optimization across multiple circuits.
-        
+
         Args:
             circuits: List of circuits to optimize
             optimization_fn: Optimization function
             verify_fn: Optional verification function
-            
+
         Returns:
             Benchmark results
         """
         results = []
-        
+
         for circuit in circuits:
             result = self.profile_optimization_with_timing(
                 circuit, optimization_fn, verify_fn
             )
             results.append(result)
-        
+
         gate_reductions = [r.gate_reduction_pct for r in results]
         depth_reductions = [r.depth_reduction_pct for r in results]
         times = [r.optimization_time for r in results]
-        
+
         return {
             'n_circuits': len(circuits),
             'avg_gate_reduction_pct': np.mean(gate_reductions),
@@ -209,14 +209,14 @@ class OptimizationProfiler:
             'success_rate': sum(1 for r in results if r.preserves_functionality) / len(results) if results else 0.0,
             'results': results
         }
-    
+
     def generate_report(self, result: OptimizationResult) -> str:
         """
         Generate a human-readable report for an optimization.
-        
+
         Args:
             result: Optimization result
-            
+
         Returns:
             Report string
         """
@@ -235,7 +235,7 @@ class OptimizationProfiler:
         report.append(f"Optimization Time: {result.optimization_time:.6f} seconds")
         report.append(f"Preserves Functionality: {'✓ Yes' if result.preserves_functionality else '✗ No'}")
         report.append("=" * 60)
-        
+
         return "\n".join(report)
 
 
@@ -244,12 +244,12 @@ def profile_optimization(original: UnifiedCircuit,
                         verify_fn: Optional[Callable] = None) -> OptimizationResult:
     """
     Convenience function to profile an optimization.
-    
+
     Args:
         original: Original circuit
         optimized: Optimized circuit
         verify_fn: Optional verification function
-        
+
     Returns:
         OptimizationResult
     """
