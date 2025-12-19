@@ -26,6 +26,23 @@ from .quantum_backend_interface import (
     create_ghz_state_circuit,
 )
 
+# High-performance simulators (optional dependencies)
+try:
+    from .qsim_backend import QsimBackend, create_qsim_backend
+    HAS_QSIM = True
+except ImportError:
+    HAS_QSIM = False
+    QsimBackend = None
+    create_qsim_backend = None
+
+try:
+    from .lightning_backend import LightningBackend, create_lightning_backend
+    HAS_LIGHTNING = True
+except ImportError:
+    HAS_LIGHTNING = False
+    LightningBackend = None
+    create_lightning_backend = None
+
 __all__ = [
     # Core abstraction
     "QuantumBackend",
@@ -41,6 +58,13 @@ __all__ = [
     "MockQuantumBackend",
     "create_default_backend_manager",
     "setup_ionq_backends",
+    # High-performance backends
+    "QsimBackend",
+    "create_qsim_backend",
+    "HAS_QSIM",
+    "LightningBackend",
+    "create_lightning_backend",
+    "HAS_LIGHTNING",
     # Utility functions
     "amplitude_encode_to_circuit",
     "create_bell_state_circuit",
