@@ -35,14 +35,14 @@ __all__ = [
     'ExtrapolationMethod',
     'ZNEResult',
     'create_zne_mitigator',
-    
+
     # Probabilistic Error Cancellation
     'ProbabilisticErrorCanceller',
     'AdaptivePEC',
     'PECResult',
     'QuasiProbabilityDecomposition',
     'create_pec_mitigator',
-    
+
     # Measurement Error Mitigation
     'MeasurementErrorMitigator',
     'CalibrationData',
