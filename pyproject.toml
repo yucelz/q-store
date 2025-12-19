@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "3.5.0"
+version = "4.0.0"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
 license = {text = "AGPL-3.0-or-later"}
