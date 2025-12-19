@@ -316,13 +316,13 @@ class TestKernelIntegration:
             # ZZFeatureMap.encode(data) returns circuit
             feature_map = ZZFeatureMap(n_features=len(x), reps=1)
             return feature_map.encode(x)
-        
+
         kernel = QuantumKernel(zz_map)
         X = np.array([[0.1, 0.2], [0.3, 0.4]])
-        
+
         K = kernel.compute_matrix(X)
         assert K.shape == (2, 2)
-    
+
     def test_multiple_kernel_types(self):
         """Test creating different kernel types."""
         X = np.array([[0.1, 0.2], [0.3, 0.4]])
