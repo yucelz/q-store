@@ -24,6 +24,7 @@ if HAS_TORCH:
     from ..core import UnifiedCircuit, GateType
     from ..backends import BackendManager
     from .circuit_executor import PyTorchCircuitExecutor
+    from .gradients import QuantumExecution
 
 
 class QuantumLayer(nn.Module):
@@ -142,33 +143,33 @@ class QuantumLayer(nn.Module):
         # Build base circuit
         circuit = self._build_circuit(x)
 
-        # Prepare parameter binding
-        params = {}
-
-        # Bind quantum weights
-        for i in range(self.n_params):
-            params[f'param_{i}'] = self.quantum_weights[i]
-
         # Bind input data if provided
         if x is not None and self.input_encoding is not None:
             batch_size = x.shape[0]
             n_features = min(self.n_qubits, x.shape[-1])
 
-            # Execute circuit for each sample in batch
+            # Execute circuit for each sample in batch using autograd function
             results = []
             for b in range(batch_size):
-                sample_params = params.copy()
-                for i in range(n_features):
-                    sample_params[f'input_{i}'] = x[b, i]
+                # Prepare all parameters including input encoding
+                all_params = torch.cat([
+                    x[b, :n_features],  # Input features
+                    self.quantum_weights  # Trainable weights
+                ])
 
-                # Execute circuit with bound parameters
-                result = self.executor.execute(circuit, sample_params)
+                # Create parameter name mapping
+                param_names = [f'input_{i}' for i in range(n_features)] + \
+                             [f'param_{i}' for i in range(self.n_params)]
+
+                # Execute with autograd support
+                result = QuantumExecution.apply(circuit, all_params, self.executor, param_names)
                 results.append(result)
 
             return torch.stack(results)
         else:
-            # Execute without input encoding
-            result = self.executor.execute(circuit, params)
+            # Execute without input encoding using autograd function
+            param_names = [f'param_{i}' for i in range(self.n_params)]
+            result = QuantumExecution.apply(circuit, self.quantum_weights, self.executor, param_names)
 
             # If input is batched, repeat result for each batch element
             if x is not None:
