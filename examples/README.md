@@ -1,18 +1,97 @@
 # Q-Store v4.0 Examples
 
-This directory contains example scripts demonstrating Q-Store v4.0 capabilities with both TensorFlow and PyTorch.
+This directory contains example scripts demonstrating Q-Store v4.0 capabilities.
 
 ## Directory Structure
 
 ```
 examples/
-├── tensorflow/          # TensorFlow/Keras examples
-│   └── fashion_mnist.py # Fashion MNIST classification
-├── pytorch/             # PyTorch examples
-│   └── fashion_mnist.py # Fashion MNIST classification  
-└── validation/          # Validation scripts
-    ├── gradient_validation.py      # Gradient correctness tests
-    └── simple_classification.py    # Simple classification validation
+├── basic_usage.py                    # Core operations and workflows
+├── advanced_features.py              # Verification, profiling, visualization
+├── qml_examples.py                   # Quantum machine learning
+├── chemistry_examples.py             # Quantum chemistry simulations
+├── error_correction_examples.py     # Error correction workflows
+├── tensorflow/                       # TensorFlow/Keras examples
+│   └── fashion_mnist.py
+├── pytorch/                          # PyTorch examples
+│   └── fashion_mnist.py
+└── validation/                       # Validation scripts
+    ├── gradient_validation.py
+    └── simple_classification.py
+```
+
+## Core Examples
+
+### Basic Usage (`basic_usage.py`)
+Fundamental Q-Store operations:
+- **Bell State Creation**: Entangled states with H and CNOT gates
+- **Parameterized Circuits**: Rotation gates with parameters
+- **Circuit Optimization**: Reduce gate count
+- **Backend Conversion**: Convert to Qiskit and Cirq
+- **State Visualization**: Visualize quantum states
+
+Run with:
+```bash
+python examples/basic_usage.py
+```
+
+### Advanced Features (`advanced_features.py`)
+Advanced capabilities:
+- **Circuit Verification**: Check equivalence and properties
+- **Property Verification**: Unitarity, reversibility, commutativity
+- **Performance Profiling**: Gate-level execution metrics
+- **Performance Analysis**: Optimization suggestions
+- **Optimization Profiling**: Benchmark optimization strategies
+- **Bloch Sphere**: State visualization on Bloch sphere
+
+Run with:
+```bash
+python examples/advanced_features.py
+```
+
+## Domain-Specific Examples
+
+### Quantum Machine Learning (`qml_examples.py`)
+QML workflows:
+- **Feature Maps**: Encode classical data into quantum states
+- **Quantum Kernels**: Compute quantum kernel matrices
+- **Quantum Models**: Variational quantum models
+- **Variational Training**: Train parameterized circuits
+- **Data Encoding**: Multiple encoding strategies
+- **Complete QML Workflow**: End-to-end ML pipeline
+
+Run with:
+```bash
+python examples/qml_examples.py
+```
+
+### Quantum Chemistry (`chemistry_examples.py`)
+Molecular simulations:
+- **Molecule Creation**: Define molecular systems (H2, etc.)
+- **Pauli Strings**: Pauli operators and Hamiltonians
+- **VQE Ansatz**: Variational quantum eigensolver circuits
+- **VQE Energy**: Calculate molecular energies
+- **UCCSD Ansatz**: Unitary coupled-cluster construction
+- **Complete Chemistry Workflow**: Full VQE simulation
+
+Run with:
+```bash
+python examples/chemistry_examples.py
+```
+
+### Error Correction (`error_correction_examples.py`)
+Quantum error correction:
+- **Surface Codes**: Create surface code lattices
+- **Stabilizer Measurements**: X and Z stabilizers
+- **Error Syndromes**: Extract and analyze syndromes
+- **Syndrome Decoding**: Decode syndromes to identify errors
+- **Error Detection**: Detect errors via stabilizers
+- **Logical Operations**: Gates on encoded qubits
+- **Complete Workflow**: Full error correction cycle
+
+Run with:
+```bash
+python examples/error_correction_examples.py
 ```
 
 ## TensorFlow Examples
@@ -80,6 +159,48 @@ This script:
 - Tests both frameworks on the same data
 - Validates that models can learn (>60% accuracy)
 - Provides fast smoke tests for CI/CD
+
+## Running All Examples
+
+To run core examples:
+
+```bash
+# Core Q-Store examples
+python examples/basic_usage.py
+python examples/advanced_features.py
+
+# Domain-specific examples
+python examples/qml_examples.py
+python examples/chemistry_examples.py
+python examples/error_correction_examples.py
+```
+
+To run ML framework examples:
+
+```bash
+# TensorFlow/Keras
+cd examples/tensorflow && python fashion_mnist.py
+
+# PyTorch
+cd examples/pytorch && python fashion_mnist.py
+
+# Validation
+cd examples/validation
+python gradient_validation.py
+python simple_classification.py
+```
+
+## Learning Path
+
+Recommended order for learning Q-Store:
+
+1. **Start**: `basic_usage.py` - Learn core concepts
+2. **Explore**: `advanced_features.py` - See verification and profiling
+3. **Specialize**: Choose domain examples:
+   - Machine Learning → `qml_examples.py` or ML framework examples
+   - Quantum Chemistry → `chemistry_examples.py`
+   - Error Correction → `error_correction_examples.py`
+4. **Validate**: Run validation scripts to understand testing
 
 ## Requirements
 
