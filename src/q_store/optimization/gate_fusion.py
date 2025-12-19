@@ -48,7 +48,7 @@ class GateFuser:
         """
         opportunities = []
         gates = self.circuit.gates
-        
+
         i = 0
         while i < len(gates):
             # Check for inverse gate cancellation first
@@ -57,23 +57,23 @@ class GateFuser:
                 opportunities.append(opp)
                 i = opp.end_idx + 1
                 continue
-            
+
             # Check for rotation gate fusion
             opp = self._find_rotation_sequence(i)
             if opp:
                 opportunities.append(opp)
                 i = opp.end_idx + 1
                 continue
-            
+
             # Check for single-qubit gate sequences
             opp = self._find_single_qubit_sequence(i)
             if opp:
                 opportunities.append(opp)
                 i = opp.end_idx + 1
                 continue
-            
+
             i += 1
-        
+
         return opportunities
 
     def apply_fusions(self, opportunities: List[FusionOpportunity] = None) -> UnifiedCircuit:
