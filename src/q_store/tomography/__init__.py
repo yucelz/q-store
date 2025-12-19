@@ -31,7 +31,7 @@ __all__ = [
     'generate_measurement_bases',
     'linear_inversion',
     'maximum_likelihood_estimation',
-    
+
     # Process tomography
     'ProcessTomography',
     'reconstruct_process',
