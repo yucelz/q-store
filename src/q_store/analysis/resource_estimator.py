@@ -16,7 +16,7 @@ from .complexity import CircuitComplexity
 class HardwareModel:
     """
     Model of quantum hardware characteristics.
-    
+
     Attributes:
         name: Hardware platform name
         single_qubit_gate_time: Time for single-qubit gate (μs)
@@ -91,14 +91,14 @@ HARDWARE_MODELS = {
 class ResourceEstimator:
     """
     Estimate quantum circuit resource requirements.
-    
+
     Provides estimates for:
     - Execution time
     - Error budget
     - Hardware compatibility
     - Approximate cost
     """
-    
+
     def __init__(
         self,
         circuit: UnifiedCircuit,
@@ -106,7 +106,7 @@ class ResourceEstimator:
     ):
         """
         Initialize resource estimator.
-        
+
         Args:
             circuit: Quantum circuit to analyze
             hardware_model: Hardware model for estimation (default: generic)
@@ -114,76 +114,76 @@ class ResourceEstimator:
         self.circuit = circuit
         self.hardware = hardware_model or HARDWARE_MODELS['generic']
         self.complexity = CircuitComplexity(circuit)
-    
+
     def estimate_execution_time(self) -> float:
         """
         Estimate total execution time in microseconds.
-        
+
         Returns:
             Estimated execution time (μs)
         """
         # Count gate types
         single_qubit_count = self.complexity.single_qubit_gate_count()
         two_qubit_count = self.complexity.two_qubit_gate_count()
-        
+
         # Estimate time based on circuit depth and gate times
         depth = self.complexity.depth()
         avg_gate_time = (
             single_qubit_count * self.hardware.single_qubit_gate_time +
             two_qubit_count * self.hardware.two_qubit_gate_time
         ) / max(self.complexity.total_gates(), 1)
-        
+
         circuit_time = depth * avg_gate_time
         measurement_time = self.hardware.measurement_time
-        
+
         return circuit_time + measurement_time
-    
+
     def estimate_error_rate(self) -> float:
         """
         Estimate total error rate for circuit execution.
-        
+
         Returns:
             Estimated error probability
         """
         single_qubit_count = self.complexity.single_qubit_gate_count()
         two_qubit_count = self.complexity.two_qubit_gate_count()
-        
+
         # Simple error model: 1 - (1 - p)^n ≈ n*p for small p
         gate_error = (
             single_qubit_count * self.hardware.single_qubit_error_rate +
             two_qubit_count * self.hardware.two_qubit_error_rate
         )
-        
+
         readout_error = self.circuit.n_qubits * self.hardware.readout_error_rate
-        
+
         return min(gate_error + readout_error, 1.0)
-    
+
     def estimate_decoherence_error(self) -> float:
         """
         Estimate error from decoherence during execution.
-        
+
         Returns:
             Estimated decoherence error probability
         """
         execution_time = self.estimate_execution_time()
-        
+
         # Exponential decay model
         t1_error = 1 - np.exp(-execution_time / self.hardware.t1)
         t2_error = 1 - np.exp(-execution_time / self.hardware.t2)
-        
+
         # Combined decoherence error
         return 1 - (1 - t1_error) * (1 - t2_error)
-    
+
     def check_hardware_compatibility(self) -> Dict:
         """
         Check if circuit is compatible with hardware.
-        
+
         Returns:
             Dictionary with compatibility information
         """
         compatible = True
         issues = []
-        
+
         # Check qubit count
         if self.circuit.n_qubits > self.hardware.max_qubits:
             compatible = False
@@ -191,16 +191,16 @@ class ResourceEstimator:
                 f"Circuit requires {self.circuit.n_qubits} qubits, "
                 f"hardware supports {self.hardware.max_qubits}"
             )
-        
+
         # Check gate support (simplified - assume all gates supported)
-        
+
         # Estimate if error rate is reasonable
         error_rate = self.estimate_error_rate()
         if error_rate > 0.5:
             issues.append(
                 f"High estimated error rate: {error_rate:.2%}"
             )
-        
+
         return {
             'compatible': compatible,
             'issues': issues,
@@ -208,42 +208,42 @@ class ResourceEstimator:
             'qubits_required': self.circuit.n_qubits,
             'estimated_error_rate': error_rate
         }
-    
+
     def estimate_cost(self, shots: int = 1024) -> Dict:
         """
         Estimate computational cost.
-        
+
         Args:
             shots: Number of circuit executions
-        
+
         Returns:
             Dictionary with cost estimates
         """
         time_per_shot = self.estimate_execution_time()
         total_time = time_per_shot * shots / 1e6  # Convert to seconds
-        
+
         # Arbitrary cost units (could be mapped to real pricing)
         qubit_cost = self.circuit.n_qubits * 0.1
         gate_cost = self.complexity.total_gates() * 0.01
         depth_cost = self.complexity.depth() * 0.05
-        
+
         base_cost = qubit_cost + gate_cost + depth_cost
         total_cost = base_cost * shots
-        
+
         return {
             'base_cost_per_shot': base_cost,
             'total_cost': total_cost,
             'execution_time_seconds': total_time,
             'shots': shots
         }
-    
+
     def summary(self, shots: int = 1024) -> Dict:
         """
         Get comprehensive resource summary.
-        
+
         Args:
             shots: Number of circuit executions
-        
+
         Returns:
             Dictionary with all resource estimates
         """
@@ -264,12 +264,12 @@ def estimate_resources(
 ) -> Dict:
     """
     Estimate resources for circuit execution.
-    
+
     Args:
         circuit: Quantum circuit
         hardware: Hardware model name ('generic', 'ibm_quantum', 'ionq', 'rigetti')
         shots: Number of circuit executions
-    
+
     Returns:
         Resource estimation summary
     """
@@ -284,11 +284,11 @@ def estimate_execution_time(
 ) -> float:
     """
     Estimate circuit execution time.
-    
+
     Args:
         circuit: Quantum circuit
         hardware: Hardware model name
-    
+
     Returns:
         Estimated execution time (μs)
     """
@@ -304,12 +304,12 @@ def estimate_hardware_cost(
 ) -> Dict:
     """
     Estimate hardware cost for circuit.
-    
+
     Args:
         circuit: Quantum circuit
         hardware: Hardware model name
         shots: Number of executions
-    
+
     Returns:
         Cost estimate dictionary
     """

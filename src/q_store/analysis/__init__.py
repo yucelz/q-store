@@ -41,14 +41,14 @@ __all__ = [
     'count_gates_by_type',
     'compute_t_depth',
     'compute_cnot_count',
-    
+
     # Resource estimation
     'ResourceEstimator',
     'estimate_resources',
     'estimate_execution_time',
     'estimate_hardware_cost',
     'HardwareModel',
-    
+
     # Circuit metrics
     'CircuitMetrics',
     'compute_entanglement_measure',
