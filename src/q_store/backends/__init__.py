@@ -10,6 +10,15 @@ from .backend_manager import (
     setup_ionq_backends,
 )
 
+# Enhanced backend manager (v4.0)
+from .enhanced_manager import (
+    EnhancedBackendManager,
+    BackendStatus,
+    BackendHealth,
+    BackendRegistry,
+    create_enhanced_manager,
+)
+
 # Keep legacy import for backward compatibility
 from .ionq_backend import IonQQuantumBackend
 from .quantum_backend_interface import (
@@ -58,6 +67,12 @@ __all__ = [
     "MockQuantumBackend",
     "create_default_backend_manager",
     "setup_ionq_backends",
+    # Enhanced management (v4.0)
+    "EnhancedBackendManager",
+    "BackendStatus",
+    "BackendHealth",
+    "BackendRegistry",
+    "create_enhanced_manager",
     # High-performance backends
     "QsimBackend",
     "create_qsim_backend",
