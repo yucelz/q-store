@@ -26,7 +26,7 @@ class BenchmarkResult:
         self.duration = duration
         self.iterations = iterations
         self.avg_time = duration / iterations
-    
+
     def __repr__(self):
         return f"{self.name}: {self.avg_time*1000:.3f}ms/iter ({self.iterations} iters)"
 
@@ -55,7 +55,7 @@ class TestCircuitCreationBenchmarks:
             circuit.add_gate(GateType.H, [0])
             circuit.add_gate(GateType.CNOT, [0, 1])
             return circuit
-        
+
         result = benchmark(create_bell, benchmark_iterations)
         assert result.avg_time < 0.001  # Less than 1ms per circuit
         print(f"\n{result}")
@@ -68,7 +68,7 @@ class TestCircuitCreationBenchmarks:
             circuit.add_gate(GateType.CNOT, [0, 1])
             circuit.add_gate(GateType.CNOT, [0, 2])
             return circuit
-        
+
         result = benchmark(create_ghz, benchmark_iterations)
         assert result.avg_time < 0.001
         print(f"\n{result}")
@@ -81,7 +81,7 @@ class TestCircuitCreationBenchmarks:
             circuit.add_gate(GateType.CNOT, [0, 1])
             circuit.add_gate(GateType.RZ, [1], parameters={'phi': 0.3})
             return circuit
-        
+
         result = benchmark(create_parameterized, benchmark_iterations)
         assert result.avg_time < 0.002
         print(f"\n{result}")
@@ -101,7 +101,7 @@ class TestCircuitCreationBenchmarks:
             for i in range(10):
                 circuit.add_gate(GateType.H, [i])
             return circuit
-        
+
         result = benchmark(create_large, benchmark_iterations)
         assert result.avg_time < 0.01  # Less than 10ms
         print(f"\n{result}")
@@ -120,10 +120,10 @@ class TestProfilingBenchmarks:
         circuit = UnifiedCircuit(2)
         circuit.add_gate(GateType.H, [0])
         circuit.add_gate(GateType.CNOT, [0, 1])
-        
+
         def profile_it():
             return profile_circuit(circuit)
-        
+
         result = benchmark(profile_it, benchmark_iterations)
         assert result.avg_time < 0.002
         print(f"\n{result}")
@@ -139,10 +139,10 @@ class TestProfilingBenchmarks:
             circuit.add_gate(GateType.RZ, [i], parameters={'theta': 0.1*i})
         for i in range(4):
             circuit.add_gate(GateType.CNOT, [i, i+1])
-        
+
         def profile_it():
             return profile_circuit(circuit)
-        
+
         result = benchmark(profile_it, benchmark_iterations)
         assert result.avg_time < 0.005
         print(f"\n{result}")
@@ -156,10 +156,10 @@ class TestProfilingBenchmarks:
             for _ in range(i):
                 circuit.add_gate(GateType.CNOT, [0, 1])
             circuits.append(circuit)
-        
+
         def profile_batch():
             return [profile_circuit(c) for c in circuits]
-        
+
         result = benchmark(profile_batch, benchmark_iterations)
         assert result.avg_time < 0.05  # 50ms for 10 circuits
         print(f"\n{result}")
@@ -179,10 +179,10 @@ class TestVerificationBenchmarks:
         circuit.add_gate(GateType.H, [0])
         circuit.add_gate(GateType.CNOT, [0, 1])
         verifier = PropertyVerifier()
-        
+
         def check_it():
             return verifier.verify_unitarity(circuit)
-        
+
         result = benchmark(check_it, benchmark_iterations)
         assert result.avg_time < 0.01
         print(f"\n{result}")
@@ -192,14 +192,14 @@ class TestVerificationBenchmarks:
         circuit1 = UnifiedCircuit(2)
         circuit1.add_gate(GateType.H, [0])
         circuit1.add_gate(GateType.CNOT, [0, 1])
-        
+
         circuit2 = UnifiedCircuit(2)
         circuit2.add_gate(GateType.H, [0])
         circuit2.add_gate(GateType.CNOT, [0, 1])
-        
+
         def check_equiv():
             return check_circuit_equivalence(circuit1, circuit2)
-        
+
         result = benchmark(check_equiv, benchmark_iterations)
         assert result.avg_time < 0.02
         print(f"\n{result}")
@@ -218,10 +218,10 @@ class TestVisualizationBenchmarks:
         circuit = UnifiedCircuit(2)
         circuit.add_gate(GateType.H, [0])
         circuit.add_gate(GateType.CNOT, [0, 1])
-        
+
         def visualize_it():
             return visualize_circuit(circuit)
-        
+
         result = benchmark(visualize_it, benchmark_iterations)
         assert result.avg_time < 0.005
         print(f"\n{result}")
@@ -233,10 +233,10 @@ class TestVisualizationBenchmarks:
             circuit.add_gate(GateType.H, [i])
         for i in range(3):
             circuit.add_gate(GateType.CNOT, [i, i+1])
-        
+
         def visualize_it():
             return visualize_circuit(circuit)
-        
+
         result = benchmark(visualize_it, benchmark_iterations)
         assert result.avg_time < 0.01
         print(f"\n{result}")
@@ -257,10 +257,10 @@ class TestTomographyBenchmarks:
             'X': [0] * 500 + [1] * 500,
             'Y': [0] * 500 + [1] * 500,
         }
-        
+
         def reconstruct_it():
             return reconstruct_state(measurements, n_qubits=1)
-        
+
         result = benchmark(reconstruct_it, benchmark_iterations)
         assert result.avg_time < 0.1  # 100ms
         print(f"\n{result}")
@@ -282,15 +282,15 @@ class TestWorkflowBenchmarks:
             circuit.add_gate(GateType.H, [0])
             circuit.add_gate(GateType.CNOT, [0, 1])
             circuit.add_gate(GateType.CNOT, [1, 2])
-            
+
             # Profile
             profile = profile_circuit(circuit)
-            
+
             # Visualize
             viz = visualize_circuit(circuit)
-            
+
             return circuit, profile, viz
-        
+
         result = benchmark(full_workflow, benchmark_iterations)
         assert result.avg_time < 0.02
         print(f"\n{result}")
@@ -298,21 +298,21 @@ class TestWorkflowBenchmarks:
     def test_benchmark_create_verify_profile(self, benchmark_iterations=100):
         """Benchmark workflow: create → verify → profile."""
         verifier = PropertyVerifier()
-        
+
         def workflow():
             # Create
             circuit = UnifiedCircuit(2)
             circuit.add_gate(GateType.RY, [0], parameters={'theta': 0.5})
             circuit.add_gate(GateType.CNOT, [0, 1])
-            
+
             # Verify
             valid = verifier.verify_unitarity(circuit)
-            
+
             # Profile
             profile = profile_circuit(circuit)
-            
+
             return circuit, valid, profile
-        
+
         result = benchmark(workflow, benchmark_iterations)
         assert result.avg_time < 0.02
         print(f"\n{result}")
@@ -327,16 +327,16 @@ class TestWorkflowBenchmarks:
                 circuit.add_gate(GateType.H, [0])
                 for _ in range(i):
                     circuit.add_gate(GateType.CNOT, [0, 1])
-                
+
                 # Profile
                 profile = profile_circuit(circuit)
-                
+
                 # Visualize
                 viz = visualize_circuit(circuit)
-                
+
                 results.append((circuit, profile, viz))
             return results
-        
+
         result = benchmark(batch_workflow, benchmark_iterations)
         assert result.avg_time < 0.1  # 100ms for 10 circuits
         print(f"\n{result}")
@@ -359,15 +359,15 @@ class TestScalingBenchmarks:
                 circuit.add_gate(GateType.H, [i])
             for i in range(n_qubits - 1):
                 circuit.add_gate(GateType.CNOT, [i, i+1])
-            
+
             # Profile
             start = time.time()
             profile = profile_circuit(circuit)
             duration = time.time() - start
-            
+
             results.append((n_qubits, duration))
             print(f"\n{n_qubits} qubits: {duration*1000:.3f}ms")
-        
+
         # Check scaling is reasonable (roughly linear or better)
         assert results[-1][1] < results[0][1] * 10  # 10x qubits shouldn't be >10x slower
 
@@ -381,15 +381,15 @@ class TestScalingBenchmarks:
                     circuit.add_gate(GateType.H, [i % 4])
                 else:
                     circuit.add_gate(GateType.CNOT, [i % 3, (i % 3) + 1])
-            
+
             # Profile
             start = time.time()
             profile = profile_circuit(circuit)
             duration = time.time() - start
-            
+
             results.append((n_gates, duration))
             print(f"\n{n_gates} gates: {duration*1000:.3f}ms")
-        
+
         # Check scaling is reasonable
         assert results[-1][1] < results[0][1] * 15  # 10x gates shouldn't be >15x slower
 
@@ -405,7 +405,7 @@ class TestRegressionBaselines:
     def test_baseline_bell_state_workflow(self):
         """Baseline: Complete Bell state workflow."""
         iterations = 200
-        
+
         start = time.time()
         for _ in range(iterations):
             circuit = UnifiedCircuit(2)
@@ -414,10 +414,10 @@ class TestRegressionBaselines:
             profile = profile_circuit(circuit)
             viz = visualize_circuit(circuit)
         duration = time.time() - start
-        
+
         avg_time = duration / iterations
         print(f"\nBaseline Bell state workflow: {avg_time*1000:.3f}ms/iter")
-        
+
         # Baseline: Should complete in < 5ms
         assert avg_time < 0.005
 
@@ -428,16 +428,16 @@ class TestRegressionBaselines:
         circuit.add_gate(GateType.CNOT, [0, 1])
         circuit.add_gate(GateType.CNOT, [1, 2])
         verifier = PropertyVerifier()
-        
+
         iterations = 100
         start = time.time()
         for _ in range(iterations):
             is_valid = verifier.verify_unitarity(circuit)
         duration = time.time() - start
-        
+
         avg_time = duration / iterations
         print(f"\nBaseline verification: {avg_time*1000:.3f}ms/iter")
-        
+
         # Baseline: Should complete in < 10ms
         assert avg_time < 0.01
 
@@ -448,16 +448,16 @@ class TestRegressionBaselines:
             circuit.add_gate(GateType.H, [i])
         for i in range(4):
             circuit.add_gate(GateType.CNOT, [i, i+1])
-        
+
         iterations = 200
         start = time.time()
         for _ in range(iterations):
             profile = profile_circuit(circuit)
         duration = time.time() - start
-        
+
         avg_time = duration / iterations
         print(f"\nBaseline profiling: {avg_time*1000:.3f}ms/iter")
-        
+
         # Baseline: Should complete in < 5ms
         assert avg_time < 0.005
 
