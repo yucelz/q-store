@@ -40,13 +40,13 @@ __all__ = [
     'create_h2_hamiltonian',
     'create_lih_hamiltonian',
     'create_beh2_hamiltonian',
-    
+
     # VQE for chemistry
     'MolecularVQE',
     'estimate_ground_state',
     'optimize_bond_length',
     'compute_molecular_properties',
-    
+
     # Operators
     'FermionOperator',
     'QubitOperator',
