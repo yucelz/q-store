@@ -485,7 +485,7 @@ class TestUtilityMethods:
 
         service_mock.run.return_value = job_mock
         mock_ionq.Service.return_value = service_mock
-        
+
         # Mock Cirq
         cirq_circuit_mock = Mock()
         cirq_circuit_mock.all_qubits.return_value = [Mock()]
