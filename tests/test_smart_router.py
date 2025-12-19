@@ -86,9 +86,9 @@ class TestCircuitComplexity:
         for i in range(3):
             circuit.add_gate(GateType.CNOT, targets=[i, i+1])
         circuit.add_gate(GateType.RZ, targets=[0], parameters={'angle': 'theta_0'})  # Symbolic parameter
-        
+
         complexity = CircuitComplexity.analyze(circuit)
-        
+
         assert complexity.n_qubits == 4
         assert complexity.n_gates == 8
         assert complexity.n_two_qubit_gates == 3
