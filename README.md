@@ -6,8 +6,14 @@
 
 A hardware-agnostic database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—for exponential performance advantages in vector similarity search, relationship management, pattern discovery, and **quantum-accelerated ML training**.
 
+## Community
+
+[![Slack](https://img.shields.io/badge/Slack-Join%20Group-4A154B?logo=slack&logoColor=white)]([https://your-slack-invite-link](https://q-storeworkspace.slack.com/archives/C0A4X3S055Y))
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/wYmXxEvm)
+
+
 <a href="http://www.q-store.tech" target="_blank">
-  <strong>Q-STORE website </strong>
+  <strong>Q-STORE website Link </strong>
 </a>
 
 ## 🆕 What's New in v3.4
