@@ -8,7 +8,7 @@ A hardware-agnostic database architecture that leverages quantum mechanical prop
 
 ## Community
 
-[![Slack](https://img.shields.io/badge/Slack-Join%20Group-4A154B?logo=slack&logoColor=white)]([https://your-slack-invite-link](https://q-storeworkspace.slack.com/archives/C0A4X3S055Y))
+[![Slack](https://img.shields.io/badge/Slack-Join%20Group-4A154B?logo=slack&logoColor=white)](https://q-storeworkspace.slack.com/archives/C0A4X3S055Y)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-5865F2?logo=discord&logoColor=white)](https://discord.gg/wYmXxEvm)
 
 <a href="http://www.q-store.tech" target="_blank">
