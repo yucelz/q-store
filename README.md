@@ -453,143 +453,6 @@ stats = db.get_stats()
 print(stats)
 ```
 
-## Examples
-
-### Quickstart Guide
-```bash
-python examples/quantum_db_quickstart.py
-```
-
-Comprehensive guide covering:
-- Basic vector operations
-- Context-aware retrieval
-- Batch operations
-- Query modes
-- Monitoring and metrics
-- Production patterns
-
-### Quantum ML Training Examples
-
-#### Basic Quantum Neural Network
-```bash
-python examples/quantum_ml_basic.py
-```
-
-Demonstrates:
-- **QuantumLayer** - Variational quantum circuit layers
-- **QuantumTrainer** - Training orchestration
-- **QuantumGradientComputer** - Parameter shift rule gradients
-- **QuantumDataEncoder** - Amplitude and angle encoding
-
-#### Hybrid Classical-Quantum Model
-```bash
-python examples/quantum_ml_hybrid.py
-```
-
-Features:
-- Classical preprocessing layers
-- Quantum processing with **QuantumLayer**
-- Classical output layers
-- End-to-end training pipeline
-
-#### Transfer Learning
-```bash
-python examples/quantum_transfer_learning.py
-```
-
-Shows:
-- Loading pre-trained quantum models
-- Fine-tuning on new tasks
-- Parameter freezing strategies
-- **CheckpointManager** - Model persistence
-
-### Quickstart Guide
-```bash
-python examples/quantum_db_quickstart.py
-```
-
-Comprehensive guide covering:
-- Basic vector operations
-- Context-aware retrieval
-- Batch operations
-- Query modes
-- Monitoring and metrics
-- Production patterns
-
-#### Hyperparameter Optimization
-```bash
-python examples/quantum_hpo.py
-```
-
-Demonstrates:
-- **QuantumHPOSearch** - Quantum-enhanced hyperparameter search
-- Search space definition
-- Quantum annealing for optimization
-- Multi-trial evaluation
-
-### Database Examples
-
-#### Basic Example
-```bash
-python examples/basic_example.py
-```
-
-Demonstrates core quantum database features.
-
-#### Financial Services
-```bash
-python examples/financial_example.py
-```
-
-Portfolio correlation management and crisis pattern detection.
-
-### ML Training
-```bash
-python examples/ml_training_example.py
-```
-
-Training data selection, hyperparameter optimization, and active learning.
-
-### TinyLlama React Fine-Tuning
-```bash
-python examples/tinyllama_react_training.py
-```
-
-Advanced example demonstrating quantum-enhanced LLM fine-tuning:
-- Intelligent training data selection with quantum superposition
-- Curriculum learning (easy → hard examples)
-- Hard negative mining using quantum tunneling
-- Context-aware batch sampling
-- Multi-context storage for training samples
-- Integration with **QuantumDataLoader** and **QuantumTrainer**
-
-See [TINYLLAMA_TRAINING_README.md](examples/TINYLLAMA_TRAINING_README.md) for detailed documentation.
-
-## Testing
-
-Run the comprehensive test suite:
-
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio pytest-cov psutil
-
-# Run all tests with coverage
-python -m pytest tests/test_simple.py tests/test_constants_exceptions.py tests/test_core.py::TestStateManager::test_state_manager_creation tests/test_core.py::TestStateManager::test_start_stop -v --cov=src/q_store --cov-report=term --cov-report=html:htmlcov
-
-# Run unit and integration tests
-pytest tests/ -v
-
-# Run with integration tests (requires API keys)
-pytest tests/ -v --run-integration
-
-# Run specific test categories
-pytest tests/ -v -k "test_state"
-pytest tests/ -v -k "test_performance"
-
-# View HTML coverage report
-firefox htmlcov/index.html  # or your preferred browser
-```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -987,35 +850,11 @@ See [LICENSE](LICENCE) file for details.
 
 ## References
 
-- [Quantum-Native Database Design Document v3.4](docs/Quantum_Native_Database_Architecture_v3_4_DESIGN.md)
-- [v3.4 Analysis Summary](docs/v3_4_ANALYSIS_SUMMARY.md)
-- [v3.4 Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
-- [Architecture Overview](docs/ARCHITECTURE.md)
-- [IonQ Documentation](https://docs.ionq.com/)
 - [IonQ Getting Started](https://github.com/ionq-samples/getting-started)
 - [Cirq Documentation](https://quantumai.google/cirq)
 - [Qiskit Documentation](https://qiskit.org/documentation/)
 - [Pinecone Documentation](https://docs.pinecone.io/)
 
-## Project Structure
-
-Q-Store follows modern Python packaging best practices:
-
-```
-q-store/
-├── src/q_store/          # Source code (PEP 420 namespace)
-│   ├── core/            # Core quantum database components
-│   ├── backends/        # Quantum backend implementations (Cirq, Qiskit)
-│   ├── ml/              # Quantum ML training components (v3.2)
-│   └── utils/           # Utility functions
-├── tests/               # Test suite
-├── docs/                # Documentation
-├── examples/            # Example implementations
-├── pyproject.toml      # Modern Python project configuration
-└── Makefile            # Development task automation
-```
-
-For detailed structure documentation, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 
 ### Development Commands
 
@@ -1165,25 +1004,6 @@ All code quality checks run automatically on commit:
 pre-commit run --all-files
 ```
 
-### Project Structure
-
-```
-q-store/
-├── src/q_store/           # Main package
-│   ├── core/             # Core database operations
-│   ├── backends/         # Quantum backend adapters
-│   ├── ml/              # ML training components
-│   ├── exceptions.py    # Custom exceptions
-│   └── constants.py     # Configuration constants
-├── tests/               # Test suite
-├── examples/            # Example scripts and demos
-├── docs/                # Documentation
-│   ├── ARCHITECTURE.md  # System architecture
-│   └── archive/         # Old version docs
-├── pyproject.toml       # Project configuration
-└── .pre-commit-config.yaml  # Code quality hooks
-```
-
 ### Running Tests
 
 ```bash
@@ -1211,7 +1031,3 @@ pytest -m integration
 6. Commit changes (pre-commit hooks will run automatically)
 7. Push to your fork: `git push origin feature/my-feature`
 8. Create a Pull Request
-
-### Architecture
-
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system architecture, module descriptions, and design patterns.
