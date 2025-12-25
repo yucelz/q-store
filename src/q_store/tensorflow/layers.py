@@ -21,7 +21,18 @@ except ImportError:
     keras = None
 
 from ..core import UnifiedCircuit, GateType
-from ..backends import BackendManager
+from ..backends import BackendManager, create_default_backend_manager
+
+# Global backend manager instance (singleton pattern)
+_global_backend_manager = None
+
+
+def get_backend_manager() -> BackendManager:
+    """Get or create the global backend manager instance."""
+    global _global_backend_manager
+    if _global_backend_manager is None:
+        _global_backend_manager = create_default_backend_manager()
+    return _global_backend_manager
 
 
 class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
@@ -112,7 +123,8 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
         )
 
         # Initialize backend
-        self.backend = BackendManager.get_backend(self.backend_name)
+        backend_manager = get_backend_manager()
+        self.backend = backend_manager.get_backend(self.backend_name)
 
         super().build(input_shape)
 
