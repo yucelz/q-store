@@ -311,52 +311,64 @@ class IonQHardwareBackend(QuantumBackend):
 
         # Submit job
         try:
-            job = self.service.run(
+            job_result = self.service.run(
                 circuit=cirq_circuit,
                 repetitions=shots,
                 name=f"q_store_{int(time.time())}"
             )
 
-            job_id = job.job_id()
-            self._job_history.append(job_id)
-            logger.info(f"Job submitted: {job_id}")
+            # Check if we got a job object or direct results
+            # Simulator returns results directly, QPU returns a job object
+            if hasattr(job_result, 'job_id'):
+                # Real QPU - need to poll for completion
+                job_id = job_result.job_id()
+                self._job_history.append(job_id)
+                logger.info(f"Job submitted: {job_id}")
+
+                # Poll for completion
+                start_time = time.time()
+                while True:
+                    elapsed = time.time() - start_time
+
+                    if elapsed > self.timeout:
+                        raise TimeoutError(
+                            f"Job {job_id} did not complete within {self.timeout}s. "
+                            f"Check status at cloud.ionq.com"
+                        )
+
+                    # Check status
+                    try:
+                        status = job_result.status()
+                        logger.debug(f"Job {job_id} status: {status} (elapsed={elapsed:.1f}s)")
+
+                        if status == 'completed':
+                            break
+                        elif status in ['failed', 'cancelled']:
+                            raise RuntimeError(f"Job {job_id} {status}")
+
+                    except RuntimeError:
+                        # Re-raise job failure/cancellation immediately
+                        raise
+                    except Exception as e:
+                        logger.warning(f"Status check failed: {e}, retrying...")
+
+                    time.sleep(self.poll_interval)
+
+                # Retrieve results from completed job
+                results = job_result.results()
+            else:
+                # Simulator - results are returned directly
+                job_id = f"simulator_{int(time.time())}"
+                logger.info(f"Simulator execution completed (id: {job_id})")
+                results = job_result
+                elapsed = 0.0
 
         except Exception as e:
-            logger.error(f"Job submission failed: {e}")
-            raise RuntimeError(f"Failed to submit job to IonQ: {e}")
+            logger.error(f"Job submission/execution failed: {e}")
+            raise RuntimeError(f"Failed to execute on IonQ: {e}")
 
-        # Poll for completion
-        start_time = time.time()
-        while True:
-            elapsed = time.time() - start_time
-
-            if elapsed > self.timeout:
-                raise TimeoutError(
-                    f"Job {job_id} did not complete within {self.timeout}s. "
-                    f"Check status at cloud.ionq.com"
-                )
-
-            # Check status
-            try:
-                status = job.status()
-                logger.debug(f"Job {job_id} status: {status} (elapsed={elapsed:.1f}s)")
-
-                if status == 'completed':
-                    break
-                elif status in ['failed', 'cancelled']:
-                    raise RuntimeError(f"Job {job_id} {status}")
-
-            except RuntimeError:
-                # Re-raise job failure/cancellation immediately
-                raise
-            except Exception as e:
-                logger.warning(f"Status check failed: {e}, retrying...")
-
-            time.sleep(self.poll_interval)
-
-        # Retrieve results
+        # Process results
         try:
-            results = job.results()
             measurements = results.measurements['result']
 
             # Calculate statistics
@@ -390,7 +402,7 @@ class IonQHardwareBackend(QuantumBackend):
             )
 
         except Exception as e:
-            logger.error(f"Failed to retrieve results for job {job_id}: {e}")
+            logger.error(f"Failed to process results: {e}")
             raise
 
     def execute_batch(
