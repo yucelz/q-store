@@ -14,7 +14,7 @@ import time
 
 try:
     from q_store.tensorflow import QuantumLayer, AmplitudeEncoding
-    from q_store.core import UnifiedCircuit, GateType, create_default_backend_manager
+    from q_store.core import UnifiedCircuit, GateType
     HAS_DEPENDENCIES = True
 except ImportError as e:
     print(f"Missing dependencies: {e}")

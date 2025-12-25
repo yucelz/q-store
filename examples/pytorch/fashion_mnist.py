@@ -22,7 +22,7 @@ except ImportError:
 
 try:
     from q_store.torch import QuantumLayer, AmplitudeEncoding
-    from q_store.core import create_default_backend_manager
+    from q_store.core import UnifiedCircuit, GateType
     HAS_QSTORE = True
 except ImportError as e:
     print(f"Missing Q-Store dependencies: {e}")
