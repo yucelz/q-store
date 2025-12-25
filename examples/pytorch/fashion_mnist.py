@@ -98,15 +98,23 @@ def setup_backend():
 
         # Configure backend manager with IonQ credentials
         from q_store.torch.layers import get_backend_manager
+        from q_store.backends.ionq_hardware_backend import IonQHardwareBackend
         backend_manager = get_backend_manager()
 
         # Register IonQ backend
         try:
+            # Create IonQ backend instance
+            ionq_backend = IonQHardwareBackend(
+                api_key=IONQ_API_KEY,
+                target=IONQ_TARGET or 'simulator',
+                use_native_gates=True,
+                timeout=300
+            )
+            # Register the backend instance
             backend_manager.register_backend(
                 'ionq_simulator',
-                backend_type='ionq',
-                api_key=IONQ_API_KEY,
-                target=IONQ_TARGET or 'simulator'
+                ionq_backend,
+                set_as_default=True
             )
             print("✓ IonQ backend registered successfully")
         except Exception as e:
