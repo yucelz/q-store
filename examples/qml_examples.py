@@ -105,11 +105,11 @@ def example_variational_training():
     # Create a simple variational circuit
     def create_ansatz(params):
         circuit = UnifiedCircuit(2)
-        circuit.add_gate(GateType.RY, [0], parameters=[params[0]])
-        circuit.add_gate(GateType.RY, [1], parameters=[params[1]])
+        circuit.add_gate(GateType.RY, [0], parameters={'angle': params[0]})
+        circuit.add_gate(GateType.RY, [1], parameters={'angle': params[1]})
         circuit.add_gate(GateType.CNOT, [0, 1])
-        circuit.add_gate(GateType.RY, [0], parameters=[params[2]])
-        circuit.add_gate(GateType.RY, [1], parameters=[params[3]])
+        circuit.add_gate(GateType.RY, [0], parameters={'angle': params[2]})
+        circuit.add_gate(GateType.RY, [1], parameters={'angle': params[3]})
         return circuit
 
     # Initial parameters
@@ -143,8 +143,8 @@ def example_data_encoding():
     # Angle encoding
     print("\n1. Angle Encoding (RY rotations):")
     circuit_angle = UnifiedCircuit(2)
-    circuit_angle.add_gate(GateType.RY, [0], parameters=[x[0] * np.pi])
-    circuit_angle.add_gate(GateType.RY, [1], parameters=[x[1] * np.pi])
+    circuit_angle.add_gate(GateType.RY, [0], parameters={'angle': x[0] * np.pi})
+    circuit_angle.add_gate(GateType.RY, [1], parameters={'angle': x[1] * np.pi})
     print(visualize_circuit(circuit_angle))
 
     # IQP encoding
@@ -152,8 +152,8 @@ def example_data_encoding():
     circuit_iqp = UnifiedCircuit(2)
     circuit_iqp.add_gate(GateType.H, [0])
     circuit_iqp.add_gate(GateType.H, [1])
-    circuit_iqp.add_gate(GateType.RZ, [0], parameters=[x[0] * 2 * np.pi])
-    circuit_iqp.add_gate(GateType.RZ, [1], parameters=[x[1] * 2 * np.pi])
+    circuit_iqp.add_gate(GateType.RZ, [0], parameters={'angle': x[0] * 2 * np.pi})
+    circuit_iqp.add_gate(GateType.RZ, [1], parameters={'angle': x[1] * 2 * np.pi})
     circuit_iqp.add_gate(GateType.CNOT, [0, 1])
     print(visualize_circuit(circuit_iqp))
 

@@ -41,10 +41,10 @@ def example_parameterized_circuit():
     circuit = UnifiedCircuit(2)
 
     # Add parameterized rotation gates
-    circuit.add_gate(GateType.RX, [0], parameters=[np.pi/4])
-    circuit.add_gate(GateType.RY, [1], parameters=[np.pi/2])
+    circuit.add_gate(GateType.RX, [0], parameters={'angle': np.pi/4})
+    circuit.add_gate(GateType.RY, [1], parameters={'angle': np.pi/2})
     circuit.add_gate(GateType.CNOT, [0, 1])
-    circuit.add_gate(GateType.RZ, [1], parameters=[np.pi/3])
+    circuit.add_gate(GateType.RZ, [1], parameters={'angle': np.pi/3})
 
     print("\nCircuit:")
     print(visualize_circuit(circuit))
@@ -52,7 +52,8 @@ def example_parameterized_circuit():
     print(f"\nGates with parameters:")
     for i, gate in enumerate(circuit.gates):
         if gate.parameters:
-            print(f"  Gate {i}: {gate.gate_type.name} with θ={gate.parameters[0]:.4f}")
+            angle_val = gate.parameters.get('angle', list(gate.parameters.values())[0] if gate.parameters else 0)
+            print(f"  Gate {i}: {gate.gate_type.name} with θ={angle_val:.4f}")
 
 
 def example_circuit_optimization():

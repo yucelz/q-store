@@ -84,7 +84,7 @@ def example_vqe_ansatz():
         # Parameterized layer
         idx = 0
         for q in range(n_qubits):
-            circuit.add_gate(GateType.RY, [q], parameters=[params[idx]])
+            circuit.add_gate(GateType.RY, [q], parameters={'angle': params[idx]})
             idx += 1
 
         # Entangling layer
@@ -93,7 +93,7 @@ def example_vqe_ansatz():
 
         # Second parameterized layer
         for q in range(n_qubits):
-            circuit.add_gate(GateType.RZ, [q], parameters=[params[idx]])
+            circuit.add_gate(GateType.RZ, [q], parameters={'angle': params[idx]})
             idx += 1
 
         return circuit
@@ -160,15 +160,15 @@ def example_uccsd_ansatz():
 
         # Single excitations
         # 0->2 excitation
-        circuit.add_gate(GateType.RY, [0], parameters=[params[0]])
+        circuit.add_gate(GateType.RY, [0], parameters={'angle': params[0]})
         circuit.add_gate(GateType.CNOT, [0, 2])
-        circuit.add_gate(GateType.RY, [2], parameters=[-params[0]])
+        circuit.add_gate(GateType.RY, [2], parameters={'angle': -params[0]})
         circuit.add_gate(GateType.CNOT, [0, 2])
 
         # 1->3 excitation
-        circuit.add_gate(GateType.RY, [1], parameters=[params[1]])
+        circuit.add_gate(GateType.RY, [1], parameters={'angle': params[1]})
         circuit.add_gate(GateType.CNOT, [1, 3])
-        circuit.add_gate(GateType.RY, [3], parameters=[-params[1]])
+        circuit.add_gate(GateType.RY, [3], parameters={'angle': -params[1]})
         circuit.add_gate(GateType.CNOT, [1, 3])
 
         return circuit
