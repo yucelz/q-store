@@ -98,33 +98,85 @@ python examples/error_correction_examples.py
 
 ### Fashion MNIST Classification
 
-Train a hybrid quantum-classical model on Fashion MNIST using Keras:
+Train a hybrid quantum-classical model on Fashion MNIST using Keras.
 
+**Quick Start (Mock Mode - No API Keys Required):**
 ```bash
-cd examples/tensorflow
-python fashion_mnist.py
+python examples/tensorflow/fashion_mnist.py
+```
+
+**With Custom Parameters:**
+```bash
+# Train with 100 samples for 2 epochs
+python examples/tensorflow/fashion_mnist.py --samples 100 --epochs 2 --batch-size 32
+
+# Use real IonQ quantum backend (requires IONQ_API_KEY in examples/.env)
+python examples/tensorflow/fashion_mnist.py --no-mock --samples 50 --epochs 1
+```
+
+**Command-Line Options:**
+- `--no-mock`: Use real IonQ quantum backend instead of mock (requires API key)
+- `--samples N`: Number of training samples to use (default: 1000)
+- `--epochs N`: Number of training epochs (default: 10)
+- `--batch-size N`: Batch size for training (default: 32)
+
+**Configuration:**
+To use real quantum backends, create `examples/.env` from `examples/.env.example`:
+```bash
+cd examples
+cp .env.example .env
+# Edit .env and add your IONQ_API_KEY
 ```
 
 This example demonstrates:
 - Using `QuantumLayer` in a Keras Sequential model
 - `AmplitudeEncoding` for quantum state preparation
+- Mock mode for testing without quantum hardware
+- Real quantum backend integration with IonQ
 - End-to-end training with TensorFlow's optimizers
 - Model saving and evaluation
+
+**Note:** TensorFlow examples run on CPU only (quantum layers use `tf.py_function` which is not XLA-compatible).
 
 ## PyTorch Examples
 
 ### Fashion MNIST Classification
 
-Train a hybrid quantum-classical model on Fashion MNIST using PyTorch:
+Train a hybrid quantum-classical model on Fashion MNIST using PyTorch.
 
+**Quick Start (Mock Mode - No API Keys Required):**
 ```bash
-cd examples/pytorch
-python fashion_mnist.py
+python examples/pytorch/fashion_mnist.py
+```
+
+**With Custom Parameters:**
+```bash
+# Train with 100 samples for 2 epochs
+python examples/pytorch/fashion_mnist.py --samples 100 --epochs 2 --batch-size 32
+
+# Use real IonQ quantum backend (requires IONQ_API_KEY in examples/.env)
+python examples/pytorch/fashion_mnist.py --no-mock --samples 50 --epochs 1
+```
+
+**Command-Line Options:**
+- `--no-mock`: Use real IonQ quantum backend instead of mock (requires API key)
+- `--samples N`: Number of training samples to use (default: 1000)
+- `--epochs N`: Number of training epochs (default: 10)
+- `--batch-size N`: Batch size for training (default: 32)
+
+**Configuration:**
+To use real quantum backends, create `examples/.env` from `examples/.env.example`:
+```bash
+cd examples
+cp .env.example .env
+# Edit .env and add your IONQ_API_KEY
 ```
 
 This example demonstrates:
 - Using `QuantumLayer` as a PyTorch `nn.Module`
 - Integration with PyTorch's autograd system
+- Mock mode for rapid prototyping and testing
+- Real quantum backend integration with IonQ
 - Training with standard PyTorch optimizers
 - Model checkpointing
 
@@ -178,11 +230,17 @@ python examples/error_correction_examples.py
 To run ML framework examples:
 
 ```bash
-# TensorFlow/Keras
-cd examples/tensorflow && python fashion_mnist.py
+# TensorFlow/Keras (mock mode - fast, no API keys)
+python examples/tensorflow/fashion_mnist.py --samples 100 --epochs 2
 
-# PyTorch
-cd examples/pytorch && python fashion_mnist.py
+# TensorFlow with real quantum backend (requires IONQ_API_KEY)
+python examples/tensorflow/fashion_mnist.py --no-mock --samples 50 --epochs 1
+
+# PyTorch (mock mode - fast, no API keys)
+python examples/pytorch/fashion_mnist.py --samples 100 --epochs 2
+
+# PyTorch with real quantum backend (requires IONQ_API_KEY)
+python examples/pytorch/fashion_mnist.py --no-mock --samples 50 --epochs 1
 
 # Validation
 cd examples/validation
@@ -220,33 +278,82 @@ pip install tensorflow
 pip install torch torchvision
 ```
 
+### Optional Dependencies
+
+**python-dotenv (for .env configuration):**
+```bash
+pip install python-dotenv
+```
+*Note: Examples work without this - they'll fall back to environment variables or defaults.*
+
 ### Installing All Dependencies
 
 ```bash
 pip install q-store[tensorflow,torch]
+pip install python-dotenv  # Optional but recommended
 ```
+
+### Real Quantum Backend Setup
+
+To use real quantum hardware/simulators (IonQ):
+
+1. **Copy the environment template:**
+   ```bash
+   cd examples
+   cp .env.example .env
+   ```
+
+2. **Edit `examples/.env` and add your API keys:**
+   ```bash
+   # IonQ Configuration
+   IONQ_API_KEY=your_ionq_api_key_here
+   IONQ_TARGET=simulator  # or qpu.harmony for real hardware
+   
+   # Backend Selection
+   DEFAULT_BACKEND=mock_ideal  # Use mock by default
+   ```
+
+3. **Run with real backend:**
+   ```bash
+   python examples/tensorflow/fashion_mnist.py --no-mock
+   ```
+
+**Getting API Keys:**
+- **IonQ**: Sign up at [ionq.com](https://ionq.com/) for quantum simulator/hardware access
 
 ## Expected Output
 
 All examples should run successfully and produce reasonable results:
 
-- **Fashion MNIST**: 60-75% test accuracy (varies with quantum circuit depth)
+- **Fashion MNIST (Mock Mode)**: ~10-20% test accuracy (mock backend returns random results)
+- **Fashion MNIST (Real Backend)**: 60-75% test accuracy (varies with quantum circuit depth)
 - **Gradient Validation**: Max gradient difference < 1e-3
 - **Simple Classification**: >60% test accuracy
+
+**Note:** Mock mode is designed for testing workflows, not for achieving high accuracy. Use `--no-mock` with a real quantum backend for actual ML performance.
 
 ## Performance Notes
 
 The examples use small datasets and simple quantum circuits for fast execution:
 
-- Fashion MNIST examples use 1000 training samples (vs 60,000 in full dataset)
+- Fashion MNIST examples default to 1000 training samples (configurable with `--samples`)
 - Test sets use 200 samples
 - Quantum circuits use 4 qubits and 2 layers
+- Mock mode executes instantly (no real quantum simulation)
+- Real backends may take longer due to API calls and queue times
 
 For production use, scale up:
-- Increase training samples
+- Increase training samples: `--samples 10000`
+- Increase epochs: `--epochs 50`
 - Add more quantum layers
-- Tune hyperparameters
+- Tune hyperparameters (learning rate, batch size)
 - Use more qubits if available
+
+**Quick Testing:**
+```bash
+# Fast test run (completes in ~10 seconds)
+python examples/tensorflow/fashion_mnist.py --samples 50 --epochs 1 --batch-size 16
+```
 
 ## Troubleshooting
 
@@ -255,18 +362,31 @@ For production use, scale up:
 pip install -e .
 ```
 
-**TensorFlow warnings**: TF may show compilation warnings - these are normal
+**TensorFlow warnings**: TF may show compilation warnings - these are normal and can be ignored
 
-**Slow execution**: Quantum simulation is computationally intensive. Consider:
-- Using GPU backends (when available in Phase 3)
-- Reducing circuit depth
-- Reducing batch size
+**TensorFlow GPU disabled warning**: This is expected - quantum layers run on CPU only (tf.py_function not XLA-compatible)
 
-**Low accuracy**: This is expected for toy examples. To improve:
-- Increase training data
-- Add more quantum layers
-- Tune learning rate
-- Train for more epochs
+**"python-dotenv not installed" message**: This is informational - examples work without it using environment variables
+
+**"IONQ_API_KEY not found" error**: 
+- You used `--no-mock` but didn't configure API keys
+- Either remove `--no-mock` flag (use mock mode) or add IONQ_API_KEY to `examples/.env`
+
+**Slow execution**: 
+- Use mock mode for fast testing (default)
+- Real quantum backends involve API calls and queue times
+- Reduce samples/epochs for faster iteration: `--samples 50 --epochs 1`
+- Reduce batch size: `--batch-size 16`
+
+**Low accuracy in mock mode**: This is expected - mock backend returns random quantum results (~10% accuracy for 10-class problem). Use `--no-mock` with real backend for actual performance.
+
+**"Gradients do not exist" warning**: This is expected - the quantum encoding layer blocks gradient flow by design (using `tf.stop_gradient`). Only the quantum layer parameters and classical layers receive gradients.
+
+**Real backend errors**: 
+- Check your API key is valid
+- Verify you have credits/access
+- Some backends have qubit limits
+- Check IonQ service status
 
 ## Next Steps
 

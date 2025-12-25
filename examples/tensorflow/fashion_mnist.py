@@ -30,6 +30,11 @@ import numpy as np
 import time
 from pathlib import Path
 
+# IMPORTANT: Q-Store quantum layers use tf.py_function which is not compatible with XLA/GPU
+# Force CPU-only execution to avoid "EagerPyFunc not supported on XLA_GPU_JIT" error
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Disable GPU
+tf.config.set_visible_devices([], 'GPU')    # Also disable via TF API
+
 # Try to load dotenv if available
 try:
     from dotenv import load_dotenv
@@ -130,12 +135,12 @@ def create_quantum_model(n_qubits=4, depth=2, backend='mock_ideal'):
         keras.layers.BatchNormalization(),
 
         # Quantum layer with amplitude encoding
-        AmplitudeEncoding(n_qubits=n_qubits, backend=backend, name='quantum_encoding'),
+        AmplitudeEncoding(n_qubits=n_qubits, name='quantum_encoding'),
         QuantumLayer(
             n_qubits=n_qubits,
             depth=depth,
             backend=backend,
-            name=f'quantum_layer_1'
+            name='quantum_layer_1'
         ),
 
         # Classical postprocessing

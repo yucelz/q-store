@@ -142,7 +142,7 @@ class HybridQuantumNet(nn.Module):
         )
 
         # Quantum layers
-        self.quantum_encoding = AmplitudeEncoding(n_qubits=n_qubits, backend=backend)
+        self.quantum_encoding = AmplitudeEncoding(n_qubits=n_qubits)
         self.quantum_layer = QuantumLayer(
             n_qubits=n_qubits,
             depth=depth,
