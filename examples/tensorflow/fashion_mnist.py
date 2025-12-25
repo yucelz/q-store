@@ -67,31 +67,31 @@ DEFAULT_BACKEND = 'mock_ideal'
 
 def setup_backend():
     """Setup quantum backend based on configuration.
-    
+
     Returns:
         Tuple of (backend_name, backend_manager)
     """
     global USE_MOCK, IONQ_API_KEY, IONQ_TARGET, DEFAULT_BACKEND
-    
+
     backend_name = DEFAULT_BACKEND
     backend_manager = None
-    
+
     if not USE_MOCK:
         # Real quantum connection
         if not IONQ_API_KEY:
             print("\n⚠️  ERROR: --no-mock specified but IONQ_API_KEY not found in .env")
             print("   Please set IONQ_API_KEY in examples/.env or use mock mode")
             sys.exit(1)
-        
+
         backend_name = 'ionq_simulator'
         print(f"\n✓ Using real IonQ connection")
         print(f"  Backend: {backend_name}")
         print(f"  Target: {IONQ_TARGET or 'simulator'}")
-        
+
         # Configure backend manager with IonQ credentials
         from q_store.tensorflow.layers import get_backend_manager
         backend_manager = get_backend_manager()
-        
+
         # Register IonQ backend
         try:
             backend_manager.register_backend(
@@ -108,7 +108,7 @@ def setup_backend():
     else:
         print(f"\n✓ Using mock backend (no API keys required)")
         print(f"  Backend: {backend_name}")
-    
+
     return backend_name, backend_manager
 
 
@@ -211,7 +211,7 @@ def parse_args():
 def main():
     """Main training function."""
     global USE_MOCK, IONQ_API_KEY, IONQ_TARGET, DEFAULT_BACKEND
-    
+
     if not HAS_DEPENDENCIES:
         print("Cannot run example - missing dependencies")
         return
@@ -219,7 +219,7 @@ def main():
     # Parse arguments
     args = parse_args()
     USE_MOCK = not args.no_mock
-    
+
     # Load configuration from environment
     IONQ_API_KEY = os.getenv('IONQ_API_KEY')
     IONQ_TARGET = os.getenv('IONQ_TARGET', 'simulator')
@@ -269,13 +269,13 @@ def main():
     )
 
     training_time = time.time() - start_time
-    
+
     # Evaluation
     print("\n" + "=" * 80)
     print("EVALUATION")
     print("=" * 80)
     test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
-    
+
     # Results summary
     print("\n" + "=" * 80)
     print("RESULTS SUMMARY")
@@ -284,21 +284,21 @@ def main():
     print(f"  Duration: {training_time:.2f} seconds")
     print(f"  Final training accuracy: {history.history['accuracy'][-1]:.4f}")
     print(f"  Final validation accuracy: {history.history['val_accuracy'][-1]:.4f}")
-    
+
     print(f"\nTest Set:")
     print(f"  Test accuracy: {test_accuracy:.4f}")
     print(f"  Test loss: {test_loss:.4f}")
-    
+
     print(f"\nBackend:")
     print(f"  Mode: {'Real Quantum ({})'.format(backend_name) if not USE_MOCK else 'Mock (Testing)'}")
     print(f"  Backend: {backend_name}")
-    
+
     # Save model
     model_path = '/tmp/fashion_mnist_quantum_tf.keras'
     print(f"\nSaving model to {model_path}...")
     model.save(model_path)
     print("✓ Model saved successfully!")
-    
+
     print("\n" + "=" * 80)
 
     return model, history
