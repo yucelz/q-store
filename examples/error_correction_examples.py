@@ -1,17 +1,21 @@
 """
-Error correction examples using Q-Store.
+Error mitigation examples using Q-Store.
 
-Demonstrates surface codes, stabilizer measurements, and error correction workflows.
+Demonstrates error mitigation techniques including ZNE, PEC, and measurement error mitigation.
 """
 
 import numpy as np
 from q_store.core import UnifiedCircuit, GateType
-from q_store.error_correction import (
-    SurfaceCode,
-    StabilizerMeasurement,
-    ErrorSyndrome,
-    Decoder
+from q_store.mitigation import (
+    ZeroNoiseExtrapolator,
+    ExtrapolationMethod,
+    ProbabilisticErrorCanceller,
+    MeasurementErrorMitigator,
+    create_zne_mitigator,
+    create_pec_mitigator,
+    create_measurement_mitigator
 )
+from q_store.noise import NoiseModel, DepolarizingNoise
 from q_store.visualization import visualize_circuit
 
 
