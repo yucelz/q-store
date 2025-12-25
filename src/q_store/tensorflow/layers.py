@@ -171,35 +171,35 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
         def quantum_forward(inputs_np, params_np):
             """
             Execute quantum circuits for a batch (runs eagerly)
-            
+
             This function processes all quantum operations outside the TensorFlow graph
             """
             batch_size = inputs_np.shape[0]
-            
+
             # Prepare and execute circuits
             circuits = self._prepare_circuits_numpy(inputs_np, params_np)
             results = self._execute_circuits_numpy(circuits)
-            
+
             # Ensure proper shape [batch_size, n_qubits]
             return results.reshape(batch_size, self.n_qubits).astype(np.float32)
-        
+
         # Use tf.py_function to execute quantum operations outside the graph
         expectations = tf.py_function(
             func=lambda x, p: quantum_forward(x.numpy(), p.numpy()),
             inp=[inputs, self.theta],
             Tout=tf.float32
         )
-        
+
         # Set shape for TensorFlow's shape inference
         batch_size = tf.shape(inputs)[0]
         expectations.set_shape([None, self.n_qubits])
-        
+
         return expectations
 
     def _prepare_circuits_numpy(self, inputs_np, params_np):
         """
         Prepare a batch of quantum circuits with input encoding and parameters
-        
+
         This operates on numpy arrays (executed eagerly outside TensorFlow graph)
 
         Args:
@@ -211,7 +211,7 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
         """
         circuits = []
         batch_size = inputs_np.shape[0]
-        
+
         for i in range(batch_size):
             input_vector = inputs_np[i]
             circuit = self.circuit_template.copy()
@@ -240,23 +240,23 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
             # Bind all parameters
             bound_circuit = circuit.bind_parameters(param_dict)
             circuits.append(bound_circuit)
-            
+
         return circuits
 
     def _execute_circuits_numpy(self, circuits):
         """
         Execute circuits and compute expectation values
-        
+
         This operates on circuit objects (executed eagerly outside TensorFlow graph)
-        
+
         Args:
             circuits: List of quantum circuits
-            
+
         Returns:
             Numpy array of expectation values [batch_size, n_qubits]
         """
         import asyncio
-        
+
         results = []
         for circuit in circuits:
             # Execute circuit - handle both sync and async backends
@@ -383,17 +383,17 @@ class AmplitudeEncoding(keras.layers.Layer if HAS_TENSORFLOW else object):
         else:
             # Dynamic shape - must use tf.cond
             input_dim = tf.shape(inputs)[1]
-            
+
             def pad_inputs():
                 padding = [[0, 0], [0, self.n_features - input_dim]]
                 return tf.pad(inputs, padding)
-            
+
             def truncate_inputs():
                 return inputs[:, :self.n_features]
-            
+
             def keep_inputs():
                 return inputs
-            
+
             inputs = tf.cond(
                 input_dim < self.n_features,
                 pad_inputs,
