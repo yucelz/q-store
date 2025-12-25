@@ -37,14 +37,14 @@ def example_zero_noise_extrapolation():
 
     # Create ZNE mitigator
     zne = create_zne_mitigator()
-    
+
     print(f"\nZNE Configuration:")
     print(f"  Extrapolation method: {zne.extrapolation_method.name}")
     print(f"  Noise factors: {zne.noise_factors}")
 
     # Amplify noise to create calibration circuits
     amplified_circuit = zne.amplify_noise(circuit, noise_factor=3)
-    
+
     print(f"\nNoise-amplified circuit (factor=3):")
     print(f"  Number of gates: {len(amplified_circuit.gates)}")
     print("  (Uses unitary folding: G → G†G†G)")
@@ -52,11 +52,11 @@ def example_zero_noise_extrapolation():
     # Simulate extrapolation with mock noisy results
     noise_factors_list = [1, 2, 3]
     measured_values_list = [0.9, 0.8, 0.7]  # Simulated expectation values
-    
+
     print(f"\nExtrapolation process:")
     print(f"  Noisy measurements: {measured_values_list}")
     print(f"  At noise factors: {noise_factors_list}")
-    
+
     # Demonstrate the concept (actual extrapolation may have Cython issues)
     print(f"\n  Linear fit: y = mx + b")
     print(f"  Extrapolate to x=0 (zero noise)")
@@ -79,7 +79,7 @@ def example_extrapolation_methods():
 
     # Describe different extrapolation methods
     print("\nExtrapolation Methods:")
-    
+
     print("\n1. Linear Extrapolation:")
     print("   y = mx + b")
     print("   Fast, works well for low noise")
@@ -128,7 +128,7 @@ def example_measurement_error_mitigation():
 
     # Noisy measurement results
     noisy_counts = {'0': 560, '1': 440}  # Should be 50/50 for uniform superposition
-    
+
     print(f"\nRaw noisy measurements: {noisy_counts}")
     print("  (Expected 500/500 for perfect |+⟩ state)")
 
@@ -240,7 +240,7 @@ def example_mitigation_workflow():
     circuit.add_gate(GateType.CNOT, [0, 1])
     circuit.add_gate(GateType.RZ, [0], parameters={'angle': np.pi/4})
     circuit.add_gate(GateType.RZ, [1], parameters={'angle': np.pi/4})
-    
+
     print(visualize_circuit(circuit))
     print(f"  Circuit depth: {circuit.depth}")
     print(f"  Total gates: {len(circuit.gates)}")
@@ -262,8 +262,8 @@ def example_mitigation_workflow():
 
     # 4. Simulate noisy execution
     print("\nStep 4: Execute at different noise levels")
-    print("  (Would run on hardware or noisy simulator)") 
-    
+    print("  (Would run on hardware or noisy simulator)")
+
     # Simulated results
     noisy_results = [0.88, 0.78, 0.70]
     print(f"  Measured values: {noisy_results}")
