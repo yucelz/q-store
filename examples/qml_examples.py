@@ -114,29 +114,29 @@ def example_entangled_feature_map():
     def zz_feature_map(x):
         n_qubits = len(x)
         circuit = UnifiedCircuit(n_qubits)
-        
+
         # Hadamard layer
         for i in range(n_qubits):
             circuit.add_gate(GateType.H, [i])
-        
+
         # Encode data
         for i in range(n_qubits):
             circuit.add_gate(GateType.RZ, [i], parameters={'angle': x[i]})
-        
+
         # Entanglement layer
         for i in range(n_qubits - 1):
             circuit.add_gate(GateType.CNOT, [i, i + 1])
             angle = x[i] * x[i + 1]  # Second-order interaction
             circuit.add_gate(GateType.RZ, [i + 1], parameters={'angle': angle})
             circuit.add_gate(GateType.CNOT, [i, i + 1])
-        
+
         return circuit
 
     # Sample data
     x = np.array([0.5, 0.3])
 
     print(f"Input data: {x}")
-    
+
     circuit = zz_feature_map(x)
     print("\nZZ Feature Map Circuit:")
     print(visualize_circuit(circuit))
