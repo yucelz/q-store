@@ -168,33 +168,52 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
         Returns:
             Expectation values [batch_size, n_qubits]
         """
+        def quantum_forward(inputs_np, params_np):
+            """
+            Execute quantum circuits for a batch (runs eagerly)
+            
+            This function processes all quantum operations outside the TensorFlow graph
+            """
+            batch_size = inputs_np.shape[0]
+            
+            # Prepare and execute circuits
+            circuits = self._prepare_circuits_numpy(inputs_np, params_np)
+            results = self._execute_circuits_numpy(circuits)
+            
+            # Ensure proper shape [batch_size, n_qubits]
+            return results.reshape(batch_size, self.n_qubits).astype(np.float32)
+        
+        # Use tf.py_function to execute quantum operations outside the graph
+        expectations = tf.py_function(
+            func=lambda x, p: quantum_forward(x.numpy(), p.numpy()),
+            inp=[inputs, self.theta],
+            Tout=tf.float32
+        )
+        
+        # Set shape for TensorFlow's shape inference
         batch_size = tf.shape(inputs)[0]
+        expectations.set_shape([None, self.n_qubits])
+        
+        return expectations
 
-        # Prepare circuits for batch execution
-        circuits = self._prepare_circuits_batch(inputs, self.theta)
-
-        # Execute circuits and get expectation values
-        expectations = self._execute_circuits(circuits)
-
-        # Reshape to [batch_size, n_qubits]
-        return tf.reshape(expectations, [batch_size, self.n_qubits])
-
-    def _prepare_circuits_batch(self, inputs, parameters):
+    def _prepare_circuits_numpy(self, inputs_np, params_np):
         """
         Prepare a batch of quantum circuits with input encoding and parameters
+        
+        This operates on numpy arrays (executed eagerly outside TensorFlow graph)
 
         Args:
-            inputs: Input data [batch_size, n_features]
-            parameters: Quantum parameters [n_parameters]
+            inputs_np: Input data as numpy array [batch_size, n_features]
+            params_np: Quantum parameters as numpy array [n_parameters]
 
         Returns:
             List of circuits ready for execution
         """
-        # For now, use TensorFlow py_function to prepare circuits
-        # In production, this would be optimized with vectorized operations
-
-        def prepare_single_circuit(input_vector, params):
-            """Prepare a single circuit"""
+        circuits = []
+        batch_size = inputs_np.shape[0]
+        
+        for i in range(batch_size):
+            input_vector = inputs_np[i]
             circuit = self.circuit_template.copy()
 
             # Bind parameters
@@ -204,62 +223,61 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
             # Handle input encoding
             if self.input_encoding == 'angle':
                 # Encode first n_qubits features as rotation angles
-                for i in range(min(self.n_qubits, len(input_vector))):
-                    param_dict[f'input_encoding_{i}'] = float(input_vector[i])
+                for j in range(min(self.n_qubits, len(input_vector))):
+                    param_dict[f'input_encoding_{j}'] = float(input_vector[j])
 
                 # Bind trainable parameters (skip input encoding params)
                 trainable_params = [p for p in param_names if not p.startswith('input_encoding')]
-                for i, param_name in enumerate(trainable_params):
-                    if i < len(params):
-                        param_dict[param_name] = float(params[i])
+                for j, param_name in enumerate(trainable_params):
+                    if j < len(params_np):
+                        param_dict[param_name] = float(params_np[j])
             else:
                 # No input encoding, just use trainable parameters
-                for i, param_name in enumerate(param_names):
-                    if i < len(params):
-                        param_dict[param_name] = float(params[i])
+                for j, param_name in enumerate(param_names):
+                    if j < len(params_np):
+                        param_dict[param_name] = float(params_np[j])
 
             # Bind all parameters
             bound_circuit = circuit.bind_parameters(param_dict)
-            return bound_circuit
-
-        # Process batch (simplified - in production would be vectorized)
-        circuits = []
-        batch_size = tf.shape(inputs)[0]
-
-        for i in range(batch_size):
-            circuit = prepare_single_circuit(inputs[i].numpy(), parameters.numpy())
-            circuits.append(circuit)
-
+            circuits.append(bound_circuit)
+            
         return circuits
 
-    @tf.function
-    def _execute_circuits(self, circuits):
+    def _execute_circuits_numpy(self, circuits):
         """
         Execute circuits and compute expectation values
-
-        This uses tf.py_function to wrap the backend execution
+        
+        This operates on circuit objects (executed eagerly outside TensorFlow graph)
+        
+        Args:
+            circuits: List of quantum circuits
+            
+        Returns:
+            Numpy array of expectation values [batch_size, n_qubits]
         """
-        def execute_batch(circuits_):
-            """Execute circuits on backend"""
-            results = []
-            for circuit in circuits_:
-                # Execute circuit and measure
-                result = self.backend.execute(circuit, shots=1000)
+        import asyncio
+        
+        results = []
+        for circuit in circuits:
+            # Execute circuit - handle both sync and async backends
+            try:
+                # Try async execution first
+                result = asyncio.run(self.backend.execute_circuit(circuit, shots=1000))
+            except AttributeError:
+                # Fall back to sync execute method if available
+                try:
+                    result = self.backend.execute(circuit, shots=1000)
+                except AttributeError:
+                    raise AttributeError(
+                        f"Backend {type(self.backend).__name__} has neither "
+                        f"execute_circuit() nor execute() method"
+                    )
 
-                # Compute expectation values for each qubit
-                expectations = self._compute_expectations(result)
-                results.append(expectations)
+            # Compute expectation values for each qubit
+            expectations = self._compute_expectations(result)
+            results.append(expectations)
 
-            return np.array(results, dtype=np.float32)
-
-        # Wrap in tf.py_function for gradient compatibility
-        expectations = tf.py_function(
-            execute_batch,
-            [circuits],
-            tf.float32
-        )
-
-        return expectations
+        return np.array(results, dtype=np.float32)
 
     def _compute_expectations(self, measurement_result) -> np.ndarray:
         """
@@ -350,24 +368,46 @@ class AmplitudeEncoding(keras.layers.Layer if HAS_TENSORFLOW else object):
         Returns:
             Encoded quantum states (as parameter tensor)
         """
-        # Pad or truncate to match 2^n_qubits
-        batch_size = tf.shape(inputs)[0]
-        input_dim = tf.shape(inputs)[1]
-
-        if input_dim < self.n_features:
-            # Pad with zeros
-            padding = [[0, 0], [0, self.n_features - input_dim]]
-            inputs = tf.pad(inputs, padding)
-        elif input_dim > self.n_features:
-            # Truncate
-            inputs = inputs[:, :self.n_features]
+        # Get input dimension - use static shape if available
+        input_shape = inputs.shape
+        if input_shape[-1] is not None:
+            # Static shape available - use Python conditionals
+            input_dim_static = int(input_shape[-1])
+            if input_dim_static < self.n_features:
+                # Pad with zeros
+                padding = [[0, 0], [0, self.n_features - input_dim_static]]
+                inputs = tf.pad(inputs, padding)
+            elif input_dim_static > self.n_features:
+                # Truncate
+                inputs = inputs[:, :self.n_features]
+        else:
+            # Dynamic shape - must use tf.cond
+            input_dim = tf.shape(inputs)[1]
+            
+            def pad_inputs():
+                padding = [[0, 0], [0, self.n_features - input_dim]]
+                return tf.pad(inputs, padding)
+            
+            def truncate_inputs():
+                return inputs[:, :self.n_features]
+            
+            def keep_inputs():
+                return inputs
+            
+            inputs = tf.cond(
+                input_dim < self.n_features,
+                pad_inputs,
+                lambda: tf.cond(input_dim > self.n_features, truncate_inputs, keep_inputs)
+            )
 
         # Normalize to unit vector (quantum state requirement)
         if self.normalize:
             norms = tf.norm(inputs, axis=1, keepdims=True)
             inputs = inputs / (norms + 1e-8)
 
-        return inputs
+        # Stop gradient - encoding layer is not trainable
+        # This prevents gradient flow issues with shape changes
+        return tf.stop_gradient(inputs)
 
     def get_config(self):
         config = super().get_config()
