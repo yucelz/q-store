@@ -6,7 +6,7 @@ Demonstrates QML features including feature maps, kernels, and training.
 
 import numpy as np
 from q_store.core import UnifiedCircuit, GateType
-from q_store.ml import QuantumFeatureMap, QuantumKernel, QuantumModel
+from q_store.kernels import QuantumKernel
 from q_store.visualization import visualize_circuit
 
 
@@ -16,14 +16,20 @@ def example_feature_map():
     print("Example 1: Quantum Feature Maps")
     print("=" * 60)
 
-    # Create feature map
-    feature_map = QuantumFeatureMap(n_qubits=3, depth=2)
+    # Create a simple feature map function
+    def angle_feature_map(x):
+        """Angle encoding feature map."""
+        n_qubits = len(x)
+        circuit = UnifiedCircuit(n_qubits)
+        for i in range(n_qubits):
+            circuit.add_gate(GateType.RY, [i], parameters={'angle': x[i] * np.pi})
+        return circuit
 
     # Sample data
     x = np.array([0.5, 0.3, 0.8])
 
     # Create circuit
-    circuit = feature_map.create_circuit(x)
+    circuit = angle_feature_map(x)
 
     print("\nFeature map circuit for x=[0.5, 0.3, 0.8]:")
     print(visualize_circuit(circuit))
@@ -37,8 +43,16 @@ def example_quantum_kernel():
     print("Example 2: Quantum Kernels")
     print("=" * 60)
 
+    # Define a simple feature map
+    def simple_feature_map(x):
+        n_qubits = len(x)
+        circuit = UnifiedCircuit(n_qubits)
+        for i in range(n_qubits):
+            circuit.add_gate(GateType.RY, [i], parameters={'angle': x[i]})
+        return circuit
+
     # Create kernel
-    kernel = QuantumKernel(n_qubits=2, feature_map_depth=1)
+    kernel = QuantumKernel(simple_feature_map, n_qubits=2)
 
     # Sample data points
     x1 = np.array([0.1, 0.2])
@@ -46,9 +60,9 @@ def example_quantum_kernel():
     x3 = np.array([0.9, 0.8])
 
     # Compute kernel values
-    k11 = kernel.compute(x1, x1)
-    k12 = kernel.compute(x1, x2)
-    k13 = kernel.compute(x1, x3)
+    k11 = kernel.evaluate(x1, x1)
+    k12 = kernel.evaluate(x1, x2)
+    k13 = kernel.evaluate(x1, x3)
 
     print(f"\nKernel values:")
     print(f"  K(x1, x1) = {k11:.4f}  (should be ~1.0)")
@@ -63,47 +77,14 @@ def example_quantum_kernel():
     print(K)
 
 
-def example_quantum_model():
-    """Demonstrate quantum model creation and inference."""
+def example_variational_circuit():
+    """Demonstrate creating variational quantum circuits."""
     print("\n" + "=" * 60)
-    print("Example 3: Quantum Model")
+    print("Example 3: Variational Quantum Circuit")
     print("=" * 60)
 
-    # Create model
-    model = QuantumModel(n_qubits=2, n_layers=2)
-
-    # Initialize parameters
-    n_params = model.get_n_parameters()
-    print(f"Model has {n_params} parameters")
-
-    # Random initial parameters
-    params = np.random.randn(n_params) * 0.1
-    model.set_parameters(params)
-
-    # Sample input
-    x = np.array([0.5, 0.3])
-
-    # Forward pass
-    output = model.forward(x)
-
-    print(f"\nInput: {x}")
-    print(f"Output: {output}")
-    print(f"Output shape: {output.shape}")
-
-    # Get model circuit
-    circuit = model.get_circuit(x)
-    print(f"\nModel circuit:")
-    print(visualize_circuit(circuit))
-
-
-def example_variational_training():
-    """Demonstrate variational circuit training."""
-    print("\n" + "=" * 60)
-    print("Example 4: Variational Training")
-    print("=" * 60)
-
-    # Create a simple variational circuit
-    def create_ansatz(params):
+    # Create a parameterized variational circuit
+    def create_variational_ansatz(params):
         circuit = UnifiedCircuit(2)
         circuit.add_gate(GateType.RY, [0], parameters={'angle': params[0]})
         circuit.add_gate(GateType.RY, [1], parameters={'angle': params[1]})
@@ -115,18 +96,52 @@ def example_variational_training():
     # Initial parameters
     params = np.array([0.1, 0.2, 0.3, 0.4])
 
-    print("Initial ansatz:")
-    circuit = create_ansatz(params)
+    print("Variational ansatz:")
+    circuit = create_variational_ansatz(params)
     print(visualize_circuit(circuit))
 
     print(f"\nParameters: {params}")
     print(f"Circuit depth: {circuit.depth}")
+    print(f"Total gates: {len(circuit.gates)}")
 
-    # Simulate parameter update
-    params_updated = params - 0.1 * np.random.randn(4)
+def example_entangled_feature_map():
+    """Demonstrate entangled feature maps."""
+    print("\n" + "=" * 60)
+    print("Example 4: Entangled Feature Maps")
+    print("=" * 60)
 
-    print(f"\nUpdated parameters: {params_updated}")
-    print("(In real training, these would be optimized via gradient descent)")
+    # ZZ-style feature map with entanglement
+    def zz_feature_map(x):
+        n_qubits = len(x)
+        circuit = UnifiedCircuit(n_qubits)
+        
+        # Hadamard layer
+        for i in range(n_qubits):
+            circuit.add_gate(GateType.H, [i])
+        
+        # Encode data
+        for i in range(n_qubits):
+            circuit.add_gate(GateType.RZ, [i], parameters={'angle': x[i]})
+        
+        # Entanglement layer
+        for i in range(n_qubits - 1):
+            circuit.add_gate(GateType.CNOT, [i, i + 1])
+            angle = x[i] * x[i + 1]  # Second-order interaction
+            circuit.add_gate(GateType.RZ, [i + 1], parameters={'angle': angle})
+            circuit.add_gate(GateType.CNOT, [i, i + 1])
+        
+        return circuit
+
+    # Sample data
+    x = np.array([0.5, 0.3])
+
+    print(f"Input data: {x}")
+    
+    circuit = zz_feature_map(x)
+    print("\nZZ Feature Map Circuit:")
+    print(visualize_circuit(circuit))
+    print(f"\nCircuit depth: {circuit.depth}")
+    print(f"Total gates: {len(circuit.gates)}")
 
 
 def example_data_encoding():
@@ -158,39 +173,6 @@ def example_data_encoding():
     print(visualize_circuit(circuit_iqp))
 
 
-def example_qml_workflow():
-    """Demonstrate complete QML workflow."""
-    print("\n" + "=" * 60)
-    print("Example 6: Complete QML Workflow")
-    print("=" * 60)
-
-    # 1. Create dataset
-    np.random.seed(42)
-    X_train = np.random.randn(5, 2) * 0.5
-    y_train = np.array([0, 1, 0, 1, 0])
-
-    print(f"Training data: {X_train.shape[0]} samples, {X_train.shape[1]} features")
-
-    # 2. Create quantum model
-    model = QuantumModel(n_qubits=2, n_layers=2)
-    n_params = model.get_n_parameters()
-
-    # 3. Initialize parameters
-    params = np.random.randn(n_params) * 0.1
-    model.set_parameters(params)
-
-    print(f"Model initialized with {n_params} parameters")
-
-    # 4. Forward pass on training data
-    print("\nPredictions on training data:")
-    for i, x in enumerate(X_train):
-        output = model.forward(x)
-        pred_class = 1 if output[0] > 0.5 else 0
-        print(f"  Sample {i}: true={y_train[i]}, pred={pred_class}, output={output[0]:.3f}")
-
-    print("\n(In practice, you would optimize parameters using a training loop)")
-
-
 if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("Q-STORE QUANTUM ML EXAMPLES")
@@ -198,10 +180,9 @@ if __name__ == "__main__":
 
     example_feature_map()
     example_quantum_kernel()
-    example_quantum_model()
-    example_variational_training()
+    example_variational_circuit()
+    example_entangled_feature_map()
     example_data_encoding()
-    example_qml_workflow()
 
     print("\n" + "=" * 60)
     print("QML examples completed!")
