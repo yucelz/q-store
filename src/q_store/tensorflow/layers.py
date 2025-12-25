@@ -76,7 +76,7 @@ class QuantumLayer(keras.layers.Layer if HAS_TENSORFLOW else object):
         self,
         n_qubits: int,
         depth: int = 2,
-        backend: str = 'qsim',
+        backend: str = 'mock_ideal',
         entanglement: str = 'linear',
         measurement: Union[str, List[str]] = 'Z',
         input_encoding: str = 'angle',
