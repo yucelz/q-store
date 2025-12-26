@@ -1,12 +1,19 @@
 """
-PyTorch integration for Q-Store v4.0.
+PyTorch integration for Q-Store v4.0 + v4.1.
 
 This module provides PyTorch nn.Module compatible quantum layers that integrate
 seamlessly with PyTorch's training infrastructure, autograd system, and distributed
 training capabilities.
 
+v4.1 Additions:
+- Quantum-first layers (QuantumLinear for nn.Linear replacement)
+- Async execution support
+- SPSA gradient estimation
+- Storage integration
+
 Key Components:
-    - QuantumLayer: PyTorch nn.Module for parameterized quantum circuits
+    - QuantumLayer: PyTorch nn.Module for parameterized quantum circuits (v4.0 + v4.1)
+    - QuantumLinear: Quantum replacement for nn.Linear (v4.1)
     - AmplitudeEncoding: Encode classical data as quantum amplitudes
     - AngleEncoding: Encode classical data as rotation angles
     - PyTorchCircuitExecutor: Execute quantum circuits within PyTorch computation graph
@@ -14,13 +21,13 @@ Key Components:
 
 Example:
     >>> import torch
-    >>> from q_store.torch import QuantumLayer, AngleEncoding
+    >>> from q_store.torch import QuantumLinear
     >>>
-    >>> # Create a quantum model
+    >>> # v4.1: Quantum-first architecture (70% quantum)
     >>> model = torch.nn.Sequential(
-    ...     AngleEncoding(n_qubits=4),
-    ...     QuantumLayer(n_qubits=4, depth=2),
-    ...     torch.nn.Linear(4, 2)
+    ...     torch.nn.Flatten(),
+    ...     QuantumLinear(n_qubits=7),  # Replaces nn.Linear(in, 128)
+    ...     torch.nn.Linear(21, 10),
     ... )
     >>>
     >>> # Train with PyTorch
@@ -41,8 +48,9 @@ except ImportError:
     HAS_TORCH = False
 
 if HAS_TORCH:
+    # v4.0 components
     from .layers import (
-        QuantumLayer,
+        QuantumLayer as QuantumLayerV4,
         AmplitudeEncoding,
         AngleEncoding,
     )
@@ -52,15 +60,32 @@ if HAS_TORCH:
         ParameterShiftGradient,
         AdjointGradient,
     )
+    
+    # v4.1 components (new)
+    try:
+        from .quantum_layer import QuantumLayer
+        from .quantum_linear import QuantumLinear
+        from .spsa_gradients import spsa_gradient
+        HAS_V4_1 = True
+    except ImportError:
+        HAS_V4_1 = False
+        QuantumLayer = None
+        QuantumLinear = None
+        spsa_gradient = None
 
     __all__ = [
-        'QuantumLayer',
+        # v4.0
+        'QuantumLayerV4',
         'AmplitudeEncoding',
         'AngleEncoding',
         'PyTorchCircuitExecutor',
         'QuantumExecution',
         'ParameterShiftGradient',
         'AdjointGradient',
+        # v4.1
+        'QuantumLayer',
+        'QuantumLinear',
+        'spsa_gradient',
     ]
 else:
     __all__ = []
