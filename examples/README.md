@@ -47,10 +47,10 @@ pip install -e ".[all]"
 
 ```bash
 # Basic quantum operations
-python basic_usage.py
+python examples/basic_usage.py
 
 # Or try async features
-python async_features/basic_async_usage.py
+python examples/async_features/basic_async_usage.py
 ```
 
 ---
@@ -162,7 +162,7 @@ examples/
 - State visualization
 
 ```bash
-python basic_usage.py
+python examples/basic_usage.py
 ```
 
 ### 2. Machine Learning Integration
@@ -171,13 +171,13 @@ python basic_usage.py
 
 ```bash
 # Basic quantum layers (v4.0 style)
-python ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py
+python examples/ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py
 
 # Full quantum database integration
-python ml_frameworks/tensorflow/fashion_mnist_quantum_db.py
+python examples/ml_frameworks/tensorflow/fashion_mnist_quantum_db.py
 
 # v4.1 quantum-first architecture (70% quantum computation)
-python ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
+python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
 ```
 
 **Expected Results:**
@@ -189,13 +189,13 @@ python ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
 
 ```bash
 # Basic quantum layers (v4.0 style)
-python ml_frameworks/pytorch/fashion_mnist_quantum_layers.py
+python examples/ml_frameworks/pytorch/fashion_mnist_quantum_layers.py
 
 # Full quantum database integration
-python ml_frameworks/pytorch/fashion_mnist_quantum_db.py
+python examples/ml_frameworks/pytorch/fashion_mnist_quantum_db.py
 
 # v4.1 quantum-first architecture (70% quantum computation)
-python ml_frameworks/pytorch/fashion_mnist_pytorch.py
+python examples/ml_frameworks/pytorch/fashion_mnist_pytorch.py
 ```
 
 **Expected Results:**
@@ -208,20 +208,20 @@ python ml_frameworks/pytorch/fashion_mnist_pytorch.py
 
 ```bash
 # Compare TensorFlow vs PyTorch implementations
-python ml_frameworks/framework_integration_demo.py
+python examples/ml_frameworks/framework_integration_demo.py
 ```
 
 ### 3. Async Features (v4.1)
 
 ```bash
 # Learn async patterns
-python async_features/basic_async_usage.py
+python examples/async_features/basic_async_usage.py
 
 # Benchmark async vs sync
-python async_features/async_performance_demo.py
+python examples/async_features/async_performance_demo.py
 
 # Production storage (Zarr + Parquet)
-python async_features/storage_demo.py
+python examples/async_features/storage_demo.py
 ```
 
 **Key Features:**
@@ -233,7 +233,7 @@ python async_features/storage_demo.py
 ### 4. Performance Optimization (v4.1)
 
 ```bash
-python optimization/optimization_demo.py
+python examples/optimization/optimization_demo.py
 ```
 
 **Demonstrates:**
@@ -246,27 +246,27 @@ python optimization/optimization_demo.py
 
 ```bash
 # Advanced quantum features
-python quantum_algorithms/advanced_features.py
+python examples/quantum_algorithms/advanced_features.py
 
 # Quantum machine learning patterns
-python quantum_algorithms/qml_examples.py
+python examples/quantum_algorithms/qml_examples.py
 
 # Quantum chemistry
-python quantum_algorithms/chemistry_examples.py
+python examples/quantum_algorithms/chemistry_examples.py
 
 # Error correction
-python quantum_algorithms/error_correction_examples.py
+python examples/quantum_algorithms/error_correction_examples.py
 ```
 
 ### 6. Validation & Testing
 
 ```bash
 # Run all validation examples
-python run_all_validation.py
+python examples/run_all_validation.py
 
 # Individual validation tests
-python validation/gradient_validation.py
-python validation/simple_classification.py
+python examples/validation/gradient_validation.py
+python examples/validation/simple_classification.py
 ```
 
 ---
@@ -278,8 +278,8 @@ python validation/simple_classification.py
 All examples work with mock quantum backends:
 
 ```bash
-python basic_usage.py
-python ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
+python examples/basic_usage.py
+python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
 ```
 
 ### Real Quantum Hardware/Simulators
@@ -325,8 +325,8 @@ DEFAULT_BACKEND=ionq_simulator  # Change from mock_ideal to use IonQ
 pip install python-dotenv
 
 # Run examples - they'll automatically use your .env configuration
-python basic_usage.py
-python ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
+python examples/basic_usage.py
+python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
 ```
 
 ---
@@ -417,7 +417,7 @@ pip install "q-store[v4.1]"
 - Check internet connection for cloud backends
 
 **For Production:**
-- Use adaptive batching (optimization_demo.py)
+- Use adaptive batching (examples/optimization/optimization_demo.py)
 - Enable caching
 - Consider IonQ native compilation
 - Use async execution patterns
@@ -425,7 +425,7 @@ pip install "q-store[v4.1]"
 ### Getting Help
 
 1. **Check logs**: Most examples print detailed progress information
-2. **Start simple**: Run `basic_usage.py` first to verify setup
+2. **Start simple**: Run `examples/basic_usage.py` first to verify setup
 3. **Use mock mode**: Test code without API keys
 4. **Check version**: Ensure Python 3.11+ and latest q-store
 5. **GitHub Issues**: https://github.com/yucelz/q-store/issues
@@ -435,20 +435,20 @@ pip install "q-store[v4.1]"
 ## 📚 Learning Path
 
 ### Beginner
-1. `basic_usage.py` - Core concepts
-2. `basic_pinecone_setup.py` - Vector database setup
-3. `async_features/basic_async_usage.py` - Async patterns
+1. `examples/basic_usage.py` - Core concepts
+2. `examples/basic_pinecone_setup.py` - Vector database setup
+3. `examples/async_features/basic_async_usage.py` - Async patterns
 
 ### Intermediate
-4. `ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py` - TensorFlow integration
-5. `ml_frameworks/pytorch/fashion_mnist_quantum_layers.py` - PyTorch integration
-6. `quantum_algorithms/qml_examples.py` - QML patterns
+4. `examples/ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py` - TensorFlow integration
+5. `examples/ml_frameworks/pytorch/fashion_mnist_quantum_layers.py` - PyTorch integration
+6. `examples/quantum_algorithms/qml_examples.py` - QML patterns
 
 ### Advanced
-7. `ml_frameworks/tensorflow/fashion_mnist_tensorflow.py` - v4.1 quantum-first
-8. `optimization/optimization_demo.py` - Performance tuning
-9. `async_features/storage_demo.py` - Production storage
-10. `quantum_algorithms/chemistry_examples.py` - Domain applications
+7. `examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py` - v4.1 quantum-first
+8. `examples/optimization/optimization_demo.py` - Performance tuning
+9. `examples/async_features/storage_demo.py` - Production storage
+10. `examples/quantum_algorithms/chemistry_examples.py` - Domain applications
 
 ---
 
