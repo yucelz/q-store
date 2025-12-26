@@ -192,14 +192,16 @@ google-chrome htmlcov/index.html
      - `setup.py`
 
 2. **Pre-Release Checks:**
-   - Verifies clean working directory (no uncommitted changes)
-   - Checks current git branch
-   - Verifies tag doesn't already exist
+   - Validates version format (X.Y.Z)
+   - Checks if tag already exists (with option to recreate)
+   - Warns about uncommitted changes (with option to continue)
+   - Shows current git branch
 
 3. **Release Process:**
    - Creates annotated git tag (v{VERSION})
-   - Pushes tag to remote repository
-   - Triggers GitHub Actions workflow for wheel building
+   - Pushes current branch code to origin
+   - Pushes tag to origin to trigger GitHub Actions
+   - Includes rollback on failure
 
 4. **Post-Release:**
    - Provides release instructions
@@ -208,21 +210,18 @@ google-chrome htmlcov/index.html
 **Usage:**
 
 ```bash
-# Interactive release (recommended)
+# Use version from pyproject.toml (recommended)
 ./scripts/release.sh
 
-# Automatic release (skips confirmation)
-./scripts/release.sh --yes
-
-# Specify remote repository
-./scripts/release.sh --remote upstream
+# Override with specific version
+./scripts/release.sh 4.1.0
 ```
 
 **Prerequisites:**
-- Clean git working directory (no uncommitted changes)
-- Consistent version numbers across project files
-- Git configured with remote repository
+- Consistent version numbers across project files (pyproject.toml and __init__.py)
+- Git configured with remote repository (origin)
 - GitHub Actions workflow configured
+- (Optional) Clean working directory - script warns but allows proceeding
 
 **Version Update Workflow:**
 
@@ -238,11 +237,6 @@ Before running `release.sh`, update version in:
    __version__ = "4.0.0"
    ```
 
-3. `setup.py` (if present):
-   ```python
-   version="4.0.0"
-   ```
-
 **Example Session:**
 
 ```bash
@@ -256,26 +250,65 @@ Version found in pyproject.toml: 4.0.0
 
 Checking version consistency...
   ✓ __init__.py: 4.0.0
-  ✓ setup.py: 4.0.0
 
-Verifying git status...
-  ✓ Working directory is clean
-  ✓ Current branch: main
-  ✓ Tag v4.0.0 does not exist
+Using version from pyproject.toml: 4.0.0
+Preparing release: v4.0.0
 
-Ready to release v4.0.0
-Continue? [y/N] y
+Current branch: dev
 
-Creating release tag v4.0.0...
-  ✓ Tag created
+You are about to:
+  1. Create tag: v4.0.0
+  2. Push tag to origin
+  3. Trigger build-wheels workflow on GitHub Actions
 
-Pushing to remote...
-  ✓ Tag pushed
+Continue with release? (y/N): y
 
-Release v4.0.0 completed!
+Step 1: Creating release tag...
+  ✓ Tag v4.0.0 created
 
-Monitor the build:
-  https://github.com/yourusername/q-store/actions
+Step 2: Pushing code to origin...
+  ✓ Code pushed to origin/dev
+
+Step 3: Pushing release tag...
+  ✓ Tag pushed to origin
+
+==========================================
+Release v4.0.0 Complete!
+==========================================
+
+What happens next:
+  1. GitHub Actions will automatically start the build-wheels workflow
+  2. Wheels will be built for:
+     - Linux (x86_64)
+     - macOS (x86_64 and ARM64)
+     - Windows (AMD64)
+  3. Check workflow progress at:
+     https://github.com/YOUR_USERNAME/q-store/actions
+
+Usage:
+  ./scripts/release.sh              # Use version from pyproject.toml (4.0.0)
+  ./scripts/release.sh <version>    # Override with specific version
+
+To monitor the build:
+  gh run list --workflow=build-wheels.yml
+  gh run watch
+
+To download artifacts after build completes:
+  gh run download
+```
+
+**Handling Conflicts:**
+
+If tag already exists:
+```bash
+Warning: Tag v4.0.0 already exists locally
+Do you want to delete and recreate it? (y/N):
+```
+
+If uncommitted changes exist:
+```bash
+Warning: You have uncommitted changes
+Do you want to continue anyway? (y/N):
 ```
 
 **When to use:**
