@@ -21,6 +21,7 @@ Design:
 """
 
 import zarr
+import numcodecs
 import numpy as np
 from pathlib import Path
 import asyncio
@@ -64,20 +65,26 @@ class CheckpointManager:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.keep_last = keep_last
+        self.compression = compression
+        self.compression_level = compression_level
 
-        # Compression settings
-        if compression == 'zstd':
-            self.compressor = zarr.Blosc(cname='zstd', clevel=compression_level)
-        elif compression == 'lz4':
-            self.compressor = zarr.Blosc(cname='lz4', clevel=compression_level)
-        elif compression == 'gzip':
-            self.compressor = zarr.Blosc(cname='gzip', clevel=compression_level)
+        # Detect zarr version and setup accordingly
+        zarr_version = tuple(map(int, zarr.__version__.split('.')[:2]))
+        self.is_zarr_v3 = zarr_version >= (3, 0)
+
+        if self.is_zarr_v3:
+            # Zarr v3: Use native codecs
+            from zarr.codecs import BloscCodec
+            self.compressor = BloscCodec(cname=compression, clevel=compression_level)
+            # Zarr v3 API
+            from zarr.storage import LocalStore
+            self.store = LocalStore(str(self.checkpoint_dir))
+            self.root = zarr.open_group(store=self.store, mode='a')
         else:
-            raise ValueError(f"Unknown compression: {compression}")
-
-        # Open Zarr store
-        self.store = zarr.DirectoryStore(str(self.checkpoint_dir))
-        self.root = zarr.group(store=self.store)
+            # Zarr v2: Use numcodecs
+            self.compressor = numcodecs.Blosc(cname=compression, clevel=compression_level)
+            self.store = zarr.DirectoryStore(str(self.checkpoint_dir))
+            self.root = zarr.open_group(store=self.store, mode='a')
 
     async def save(
         self,
@@ -141,12 +148,21 @@ class CheckpointManager:
             else:
                 param_np = np.asarray(param)
 
-            model_group.array(
-                name,
-                data=param_np,
-                compressor=self.compressor,
-                overwrite=True
-            )
+            # Create array with version-specific API
+            if self.is_zarr_v3:
+                model_group.create_array(
+                    name=name,
+                    data=param_np,
+                    compressor=self.compressor,
+                    overwrite=True
+                )
+            else:
+                model_group.array(
+                    name,
+                    data=param_np,
+                    compressor=self.compressor,
+                    overwrite=True
+                )
 
         # Save optimizer state
         if optimizer_state:
@@ -162,14 +178,22 @@ class CheckpointManager:
                             value = value.numpy()
                         else:
                             value = np.asarray(value)
-                        state_group.array(key, data=value, compressor=self.compressor)
+                        if self.is_zarr_v3:
+                            state_group.create_array(name=key, data=value, compressor=self.compressor, overwrite=True)
+                        else:
+                            state_group.array(key, data=value, compressor=self.compressor)
                 else:
-                    # Scalar state
+                    # Scalar state - ensure it's a numpy array
                     if hasattr(state, 'cpu'):
                         state = state.cpu().detach().numpy()
                     elif hasattr(state, 'numpy'):
                         state = state.numpy()
-                    opt_group.array(name, data=state, compressor=self.compressor)
+                    else:
+                        state = np.asarray(state)
+                    if self.is_zarr_v3:
+                        opt_group.create_array(name=name, data=state, compressor=self.compressor, overwrite=True)
+                    else:
+                        opt_group.array(name, data=state, compressor=self.compressor)
 
         # Save metadata
         epoch_group.attrs['epoch'] = epoch
@@ -219,7 +243,9 @@ class CheckpointManager:
         model_state = {}
         if 'model' in epoch_group:
             for name in epoch_group['model'].keys():
-                model_state[name] = epoch_group['model'][name][:]
+                arr = epoch_group['model'][name]
+                # Handle scalar arrays (0-dimensional)
+                model_state[name] = arr[()] if arr.ndim == 0 else arr[:]
 
         # Load optimizer state
         optimizer_state = {}
@@ -227,11 +253,13 @@ class CheckpointManager:
             for name in epoch_group['optimizer'].keys():
                 item = epoch_group['optimizer'][name]
                 if isinstance(item, zarr.Group):
-                    optimizer_state[name] = {
-                        key: item[key][:] for key in item.keys()
-                    }
+                    optimizer_state[name] = {}
+                    for key in item.keys():
+                        arr = item[key]
+                        optimizer_state[name][key] = arr[()] if arr.ndim == 0 else arr[:]
                 else:
-                    optimizer_state[name] = item[:]
+                    # Handle scalar arrays
+                    optimizer_state[name] = item[()] if item.ndim == 0 else item[:]
 
         # Load metadata
         metadata = dict(epoch_group.attrs)

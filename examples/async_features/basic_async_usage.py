@@ -12,6 +12,7 @@ Expected runtime: 2-3 minutes
 """
 
 import asyncio
+import os
 import time
 import numpy as np
 from typing import List
@@ -26,6 +27,16 @@ from q_store.layers import (
     DecodingLayer,
 )
 
+# Backend configuration - use simulator if no API key
+BACKEND = "simulator" if not os.getenv("IONQ_API_KEY") else "ionq"
+BACKEND_KWARGS = {}
+
+print(f"Using backend: {BACKEND}")
+if BACKEND == "simulator":
+    print("ℹ️  Running with local simulator (no API key needed)")
+    print("   To use IonQ cloud, set IONQ_API_KEY environment variable")
+
+
 
 async def example_1_basic_layer():
     """Example 1: Basic quantum layer usage."""
@@ -38,7 +49,9 @@ async def example_1_basic_layer():
         n_qubits=8,
         depth=3,
         entanglement='full',
-        measurement_bases=['Z', 'X', 'Y']
+        measurement_bases=['Z', 'X', 'Y'],
+        backend=BACKEND,
+        **BACKEND_KWARGS
     )
 
     print(f"\nLayer Configuration:")
@@ -76,11 +89,11 @@ async def example_2_multiple_layers():
     # Build a simple quantum model
     layers = [
         EncodingLayer(target_dim=256),  # Encode for 8 qubits (2^8 = 256)
-        QuantumFeatureExtractor(n_qubits=8, depth=3),  # Extract features
-        QuantumNonlinearity(n_qubits=8, nonlinearity_type='amplitude_damping'),
-        QuantumPooling(n_qubits=8, pool_size=2),  # Reduce to 4 qubits
-        QuantumFeatureExtractor(n_qubits=4, depth=2),  # Second extraction
-        QuantumReadout(n_qubits=4, n_classes=10),  # Classification
+        QuantumFeatureExtractor(n_qubits=8, depth=3, backend=BACKEND, **BACKEND_KWARGS),  # Extract features
+        QuantumNonlinearity(n_qubits=8, nonlinearity_type='amplitude_damping', backend=BACKEND, **BACKEND_KWARGS),
+        QuantumPooling(n_qubits=8, pool_size=2, backend=BACKEND, **BACKEND_KWARGS),  # Reduce to 4 qubits
+        QuantumFeatureExtractor(n_qubits=4, depth=2, backend=BACKEND, **BACKEND_KWARGS),  # Second extraction
+        QuantumReadout(n_qubits=4, n_classes=10, backend=BACKEND, **BACKEND_KWARGS),  # Classification
     ]
 
     print(f"\nModel architecture:")
@@ -128,7 +141,7 @@ async def example_3_parallel_execution():
 
     # Create multiple quantum layers
     layers = [
-        QuantumFeatureExtractor(n_qubits=6, depth=2) for _ in range(4)
+        QuantumFeatureExtractor(n_qubits=6, depth=2, backend=BACKEND, **BACKEND_KWARGS) for _ in range(4)
     ]
 
     print(f"\nCreated {len(layers)} quantum layers")
@@ -193,19 +206,21 @@ async def example_4_quantum_first_model():
 
             # Primary quantum feature extraction (40% compute)
             self.quantum_layer1 = QuantumFeatureExtractor(
-                n_qubits=8, depth=4, entanglement='full'
+                n_qubits=8, depth=4, entanglement='full',
+                backend=BACKEND, **BACKEND_KWARGS
             )
 
             # Quantum pooling (15% compute)
-            self.pooling = QuantumPooling(n_qubits=8, pool_size=2)
+            self.pooling = QuantumPooling(n_qubits=8, pool_size=2, backend=BACKEND, **BACKEND_KWARGS)
 
             # Secondary quantum features (30% compute)
             self.quantum_layer2 = QuantumFeatureExtractor(
-                n_qubits=4, depth=3, entanglement='circular'
+                n_qubits=4, depth=3, entanglement='circular',
+                backend=BACKEND, **BACKEND_KWARGS
             )
 
             # Quantum readout (5% compute)
-            self.readout = QuantumReadout(n_qubits=4, n_classes=10)
+            self.readout = QuantumReadout(n_qubits=4, n_classes=10, backend=BACKEND, **BACKEND_KWARGS)
 
             # Minimal classical decoding (5% compute)
             self.decoder = DecodingLayer(output_dim=10)
