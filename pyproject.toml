@@ -7,7 +7,8 @@ name = "q-store"
 version = "4.0.0"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
-license = {text = "AGPL-3.0-or-later"}
+license = "AGPL-3.0-or-later"
+license-files = ["LICENCE"]
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
@@ -29,7 +30,6 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Physics",
-    "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -89,7 +89,10 @@ Issues = "https://github.com/yucelz/q-store/issues"
 [tool.setuptools]
 package-dir = {"" = "src"}
 zip-safe = false
-license-files = ["LICENCE"]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+# No dynamic fields currently
 
 [tool.setuptools.packages.find]
 where = ["src"]
