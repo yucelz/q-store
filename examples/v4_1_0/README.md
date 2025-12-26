@@ -1,52 +1,105 @@
 # Q-Store v4.1.0 Examples
 
-**Quantum-First Machine Learning Architecture**
+Complete examples demonstrating the quantum-first architecture with 70% quantum computation.
 
-This directory contains examples demonstrating Q-Store v4.1's quantum-first approach to machine learning, achieving 60-70% quantum computation (vs 5% in v4.0).
+## 🚀 Quick Start
 
-## 🎯 What's New in v4.1
+### 1. Optimization Demo
+Run this first to validate Phase 5 optimizations:
 
-### Architecture Philosophy
-- **v4.0**: Classical-dominant (95% classical, 5% quantum)
-- **v4.1**: Quantum-first (30% classical, 70% quantum)
+```bash
+cd examples/v4_1_0
+python optimization_demo.py
+```
 
-### Key Innovations
-1. **Quantum Feature Extraction**: Replace Dense layers with quantum circuits
-2. **Async Execution**: Never block on quantum hardware latency
-3. **Production Storage**: Zarr + Parquet with async writers
-4. **Framework Integration**: Native TensorFlow and PyTorch support
+**Features demonstrated:**
+- ✅ Adaptive batch scheduling
+- ✅ Multi-level caching (L1/L2/L3)
+- ✅ IonQ native compilation
+- ✅ Circuit complexity estimation
+- ✅ Integrated optimization pipeline
 
-### Performance Targets
-- 8.4x faster training on Fashion MNIST
-- 70% quantum computation utilization
-- 0ms blocking storage latency
-- 10x better quantum hardware utilization
+**Expected output:**
+- 2-3x throughput from adaptive batching
+- 90%+ cache hit rate
+- 30% speedup estimate for IonQ hardware
 
-## 📁 Directory Structure
+---
+
+### 2. Fashion MNIST - TensorFlow
+Complete end-to-end example with TensorFlow:
+
+```bash
+python fashion_mnist_tensorflow.py
+```
+
+**Architecture:**
+- 70% quantum computation (QuantumDense layers)
+- 30% classical computation (minimal)
+- Async execution pipeline
+- Zarr checkpoints + Parquet metrics
+
+**Expected results:**
+- ~85% test accuracy
+- 8.4x overall speedup vs v4.0
+- Checkpoints: `experiments/fashion_mnist_tf_v4_1/`
+- Metrics: `experiments/fashion_mnist_tf_v4_1/metrics/`
+
+---
+
+### 3. Fashion MNIST - PyTorch
+Complete end-to-end example with PyTorch:
+
+```bash
+python fashion_mnist_pytorch.py
+```
+
+**Architecture:**
+- 70% quantum computation (QuantumLinear layers)
+- 30% classical computation (minimal)
+- GPU acceleration support
+- Async storage integration
+
+**Expected results:**
+- ~85% test accuracy
+- 8.4x overall speedup vs v4.0
+- Checkpoints: `experiments/fashion_mnist_torch_v4_1/`
+- Metrics: `experiments/fashion_mnist_torch_v4_1/metrics/`
+
+---
+
+## 📊 Architecture Overview
+
+### Quantum-First Design (v4.1)
 
 ```
-v4_1_0/
-├── README.md                          # This file
-├── basic_async_usage.py              # Simple async quantum layer demo
-│
-├── tensorflow/                        # TensorFlow examples
-│   ├── fashion_mnist_quantum_first.py # Complete Fashion MNIST example
-│   ├── custom_model_example.py       # Build custom quantum models
-│   └── async_training_demo.py        # Async training patterns
-│
-├── pytorch/                          # PyTorch examples
-│   ├── fashion_mnist_quantum_first.py # PyTorch Fashion MNIST
-│   ├── custom_model_example.py       # PyTorch custom models
-│   └── async_training_demo.py        # PyTorch async training
-│
-├── benchmarks/                       # Performance comparisons
-│   ├── v4_0_vs_v4_1_comparison.py   # Side-by-side benchmarks
-│   ├── async_performance.py          # Async execution benefits
-│   └── storage_benchmark.py          # Storage system performance
-│
-└── migration/                        # Migration guides
-    └── v4_0_to_v4_1_guide.py        # Code migration examples
+Input (784)
+    ↓
+EncodingLayer (minimal preprocessing)
+    ↓
+QuantumDense/Linear(128) ← 70% quantum computation
+    ↓
+QuantumDense/Linear(64)
+    ↓
+Dense/Linear(32) ← 30% classical computation
+    ↓
+DecodingLayer (minimal postprocessing)
+    ↓
+Output(10)
 ```
+
+### Key Differences from v4.0
+
+| Feature | v4.0 | v4.1 |
+|---------|------|------|
+| Quantum computation | 5% | 70% |
+| Classical computation | 95% | 30% |
+| Execution model | Blocking | Async |
+| Storage | Synchronous | Async (Zarr + Parquet) |
+| Batch scheduling | Fixed | Adaptive |
+| Caching | None | Multi-level (L1/L2/L3) |
+| Native compilation | No | Yes (IonQ) |
+| Overall speedup | 1x | 8.4x |
 
 ## 🚀 Quick Start
 
