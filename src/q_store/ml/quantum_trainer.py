@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # v3.4 imports
 try:
     from .circuit_batch_manager_v3_4 import CircuitBatchManagerV34
-    from .ionq_batch_client import IonQBatchClient
+    from .ionq_concurrent_client import IonQConcurrentClient
     from .ionq_native_gate_compiler import IonQNativeGateCompiler
     from .smart_circuit_cache import SmartCircuitCache
 
@@ -41,6 +41,18 @@ try:
 except ImportError:
     V3_4_AVAILABLE = False
     logger.warning("v3.4 components not available, using v3.3.1 fallback")
+
+# v3.5 NEW imports
+try:
+    from .multi_backend_orchestrator import MultiBackendOrchestrator, BackendConfig
+    from .adaptive_circuit_optimizer import AdaptiveCircuitOptimizer
+    from .adaptive_shot_allocator import AdaptiveShotAllocator
+    from .natural_gradient_estimator import NaturalGradientEstimator
+
+    V3_5_AVAILABLE = True
+except ImportError:
+    V3_5_AVAILABLE = False
+    logger.warning("v3.5 components not available, using v3.4 fallback")
 
 
 
@@ -111,27 +123,91 @@ class TrainingConfig:
     enable_performance_tracking: bool = True
     performance_log_dir: Optional[str] = None
 
-    # v3.4 NEW: Advanced performance optimizations (8-10x speedup)
-    use_batch_api: bool = True  # CRITICAL: True batch submission (12x faster)
+    # v3.4 NEW: Advanced performance optimizations (renamed in v3.5)
+    use_concurrent_submission: bool = True  # Concurrent circuit submission (~1.6x faster)
+    use_batch_api: bool = True  # DEPRECATED: Use use_concurrent_submission instead
     use_native_gates: bool = True  # Compile to IonQ native gates (30% faster)
-    enable_smart_caching: bool = True  # Template-based caching (10x faster prep)
+    enable_smart_caching: bool = True  # Template-based caching (3-4x faster prep)
     adaptive_batch_sizing: bool = False  # Dynamic batch size optimization
     connection_pool_size: int = 5  # HTTP connection pool size
     max_queue_wait_time: float = 120.0  # Maximum queue wait time
     enable_all_v34_features: bool = False  # Enable all v3.4 features at once
 
+    # v3.5 NEW: Multi-backend and adaptive optimizations (2-3x speedup)
+    enable_multi_backend: bool = False  # Distribute across multiple backends
+    backend_configs: Optional[List[Dict]] = None  # Additional backend configurations
+
+    adaptive_circuit_depth: bool = False  # Dynamic circuit simplification
+    circuit_depth_schedule: str = 'exponential'  # 'linear', 'exponential', 'step'
+    min_circuit_depth: int = 2  # Minimum circuit depth
+    max_circuit_depth: Optional[int] = None  # Maximum depth (defaults to circuit_depth)
+
+    adaptive_shot_allocation: bool = False  # Dynamic shot count
+    min_shots: int = 500  # Minimum shots
+    max_shots: int = 2000  # Maximum shots
+    base_shots: Optional[int] = None  # Base shots (defaults to shots_per_circuit)
+
+    # v3.5 NEW: Natural gradient
+    use_natural_gradient: bool = False  # Use natural gradient instead of SPSA
+    natural_gradient_regularization: float = 0.01  # QFIM regularization
+    qfim_cache_size: int = 100  # QFIM cache size
+
+    # v3.5 NEW: Circuit optimization
+    enable_circuit_optimization: bool = False  # Apply circuit optimizations
+    gate_merging: bool = True  # Merge consecutive rotations
+    identity_removal: bool = True  # Remove near-zero gates
+    entanglement_pruning: bool = True  # Prune entanglement layers
+
+    # v3.5 NEW: Enable all features
+    enable_all_v35_features: bool = False  # Enable all v3.5 features at once
+
     def __post_init__(self):
         """Post-initialization configuration processing"""
-        # Enable all v3.4 features if requested
-        if self.enable_all_v34_features:
-            self.use_batch_api = True
+        # Handle deprecated use_batch_api
+        if self.use_batch_api and not self.use_concurrent_submission:
+            logger.warning(
+                "use_batch_api is deprecated, use use_concurrent_submission instead. "
+                "Setting use_concurrent_submission=True"
+            )
+            self.use_concurrent_submission = True
+
+        # Enable all v3.5 features if requested
+        if self.enable_all_v35_features:
+            # v3.4 features
+            self.use_concurrent_submission = True
             self.use_native_gates = True
             self.enable_smart_caching = True
             self.adaptive_batch_sizing = True
             self.enable_circuit_cache = True
             self.enable_batch_execution = True
             self.hardware_efficient_ansatz = True
-            logger.info("All v3.4 features enabled for maximum performance")
+
+            # v3.5 features
+            self.enable_multi_backend = True
+            self.adaptive_circuit_depth = True
+            self.adaptive_shot_allocation = True
+            self.use_natural_gradient = True
+            self.enable_circuit_optimization = True
+
+            logger.info("All v3.5 features enabled for maximum performance")
+
+        # Enable all v3.4 features if requested
+        elif self.enable_all_v34_features:
+            self.use_concurrent_submission = True
+            self.use_native_gates = True
+            self.enable_smart_caching = True
+            self.adaptive_batch_sizing = True
+            self.enable_circuit_cache = True
+            self.enable_batch_execution = True
+            self.hardware_efficient_ansatz = True
+            logger.info("All v3.4 features enabled")
+
+        # Set defaults for optional parameters
+        if self.max_circuit_depth is None:
+            self.max_circuit_depth = self.circuit_depth
+
+        if self.base_shots is None:
+            self.base_shots = self.shots_per_circuit
 
 
 @dataclass

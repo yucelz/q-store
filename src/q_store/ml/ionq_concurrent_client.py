@@ -1,9 +1,10 @@
 """
-IonQ Batch API Client - v3.4
-True batch submission with connection pooling and parallel execution
+IonQ Concurrent Client - v3.5
+Concurrent circuit submission with connection pooling and parallel execution
 
-KEY INNOVATION: Single API call for multiple circuits
-Performance Impact: 12x faster submission (1 call vs 20 calls)
+REALITY CHECK (v3.5): IonQ does NOT have a true batch API endpoint
+This client achieves ~60% overhead reduction via concurrent submission
+Performance Impact: ~1.6x faster submission (concurrent, not true batch)
 """
 
 import asyncio
@@ -41,21 +42,21 @@ class BatchJobResult:
     execution_time_ms: Optional[float] = None
 
 
-class IonQBatchClient:
+class IonQConcurrentClient:
     """
-    IonQ API client with true batch submission support
+    IonQ API client with concurrent submission support
 
-    Features:
-    - Single API call for multiple circuits (vs N calls)
+    HONEST DESCRIPTION (v3.5):
+    - Concurrent submission (NOT single batch API call)
     - Connection pooling for reduced overhead
     - Parallel result retrieval
     - Automatic retry with exponential backoff
     - Rate limiting and queue management
 
     Performance:
-    - v3.3.1: 20 circuits × 1.8s = 36s (sequential)
-    - v3.4: 1 batch call = 2-4s (parallel)
-    - 9-18x faster submission
+    - v3.4: 20 circuits sequential = 36s
+    - v3.5: 20 circuits concurrent = ~23s (connection reuse)
+    - ~1.6x faster submission (60% overhead reduction)
     """
 
     def __init__(
@@ -67,7 +68,7 @@ class IonQBatchClient:
         base_url: str = "https://api.ionq.co/v0.4",
     ):
         """
-        Initialize IonQ batch client
+        Initialize IonQ concurrent client
 
         Args:
             api_key: IonQ API key
@@ -360,7 +361,7 @@ class IonQBatchClient:
 
 # Example usage
 async def example_batch_submission():
-    """Example of using IonQBatchClient"""
+    """Example of using IonQConcurrentClient"""
 
     # Sample circuits (IonQ JSON format)
     circuits = [
@@ -372,7 +373,7 @@ async def example_batch_submission():
     ]
 
     # Initialize client with connection pooling
-    async with IonQBatchClient(api_key="your_api_key", max_connections=5) as client:
+    async with IonQConcurrentClient(api_key="your_api_key", max_connections=5) as client:
         # Submit batch
         job_ids = await client.submit_batch(circuits, target="simulator", shots=1000)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "3.4.4"
+version = "4.0.0"
 description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
 readme = "README.md"
 license = {text = "AGPL-3.0-or-later"}
@@ -166,6 +166,7 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "benchmark: marks tests as performance benchmarks",
 ]
 
 [tool.coverage.run]

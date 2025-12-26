@@ -1,0 +1,107 @@
+name: Create Release Branch
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'  # Matches v4.0.0, v3.5.1, etc.
+
+jobs:
+  create-release-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "branch_name=release/${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "Version tag: ${TAG_NAME}"
+          echo "Release branch: release/${TAG_NAME}"
+
+      - name: Check if branch exists
+        id: check_branch
+        run: |
+          BRANCH_NAME="${{ steps.extract_version.outputs.branch_name }}"
+          if git ls-remote --heads origin "${BRANCH_NAME}" | grep -q "${BRANCH_NAME}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Branch ${BRANCH_NAME} already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Branch ${BRANCH_NAME} does not exist"
+          fi
+
+      - name: Create release branch
+        if: steps.check_branch.outputs.exists == 'false'
+        run: |
+          TAG_NAME="${{ steps.extract_version.outputs.tag_name }}"
+          BRANCH_NAME="${{ steps.extract_version.outputs.branch_name }}"
+
+          # Create branch from the tag
+          git checkout -b "${BRANCH_NAME}" "${TAG_NAME}"
+
+          # Push the new branch
+          git push origin "${BRANCH_NAME}"
+
+          echo "✓ Created and pushed branch: ${BRANCH_NAME}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.extract_version.outputs.tag_name }}
+          name: Release ${{ steps.extract_version.outputs.tag_name }}
+          body: |
+            ## Release ${{ steps.extract_version.outputs.tag_name }}
+
+            ### 🎉 What's New
+
+            <!-- Add release notes here -->
+
+            ### 📦 Installation
+
+            ```bash
+            pip install q-store==${{ steps.extract_version.outputs.tag_name }}
+            ```
+
+            ### 🔗 Links
+
+            - Release branch: `${{ steps.extract_version.outputs.branch_name }}`
+            - Documentation: [Q-Store Docs](https://github.com/${{ github.repository }})
+
+            ### 🚀 Build Artifacts
+
+            Platform-specific wheels are being built and will be available shortly.
+            Check the [Actions](https://github.com/${{ github.repository }}/actions) tab for build progress.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: steps.check_branch.outputs.exists == 'false'
+        run: |
+          echo "## Release Branch Created ✓" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ steps.extract_version.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ steps.extract_version.outputs.branch_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release:** Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Monitor wheel builds in [Actions](https://github.com/${{ github.repository }}/actions)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update release notes if needed" >> $GITHUB_STEP_SUMMARY
+          echo "3. Publish to PyPI once builds complete" >> $GITHUB_STEP_SUMMARY
+
+      - name: Skip - branch exists
+        if: steps.check_branch.outputs.exists == 'true'
+        run: |
+          echo "## Release Branch Already Exists ⚠️" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Branch ${{ steps.extract_version.outputs.branch_name }} already exists." >> $GITHUB_STEP_SUMMARY
+          echo "Skipping branch creation." >> $GITHUB_STEP_SUMMARY
