@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run all Q-Store v4.0 validation examples.
+Run all Q-Store v4.1 validation examples.
 
 This script runs all validation examples in sequence and reports results.
 """
@@ -40,7 +40,7 @@ def main():
     validation_dir = examples_dir / "validation"
 
     print("=" * 70)
-    print("Q-Store v4.0 Example Runner")
+    print("Q-Store v4.1 Example Runner")
     print("=" * 70)
 
     scripts = [

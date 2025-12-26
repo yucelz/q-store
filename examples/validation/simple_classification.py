@@ -1,5 +1,5 @@
 """
-Simple Classification Task Example for Q-Store v4.0.
+Simple Classification Task Example for Q-Store v4.1.
 
 This example uses a toy dataset to quickly validate both TensorFlow
 and PyTorch implementations work correctly for classification tasks.
@@ -217,7 +217,7 @@ def pytorch_classification():
 def main():
     """Run all classification tests."""
     print("\n" + "=" * 60)
-    print("Q-Store v4.0 Simple Classification Validation")
+    print("Q-Store v4.1 Simple Classification Validation")
     print("=" * 60)
 
     results = {}

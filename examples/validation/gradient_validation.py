@@ -1,5 +1,5 @@
 """
-Gradient Computation Validation for Q-Store v4.0.
+Gradient Computation Validation for Q-Store v4.1.
 
 This script validates that gradients are computed correctly for both
 TensorFlow and PyTorch implementations using numerical gradient checking.
@@ -191,7 +191,7 @@ def validate_pytorch_gradients():
 def main():
     """Run all gradient validation tests."""
     print("\n" + "=" * 60)
-    print("Q-Store v4.0 Gradient Validation Suite")
+    print("Q-Store v4.1 Gradient Validation Suite")
     print("=" * 60)
 
     results = {}

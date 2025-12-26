@@ -1,5 +1,5 @@
 """
-Fashion MNIST Classification Example using Q-Store v4.0 with TensorFlow/Keras.
+Fashion MNIST Classification Example using Q-Store v4.1 with TensorFlow/Keras.
 
 This example demonstrates:
 - Using QuantumLayer in a Keras model
@@ -239,7 +239,7 @@ def main():
     DEFAULT_BACKEND = os.getenv('DEFAULT_BACKEND', 'mock_ideal')
 
     print("=" * 80)
-    print("Fashion MNIST Classification with Q-Store v4.0 (TensorFlow)")
+    print("Fashion MNIST Classification with Q-Store v4.1 (TensorFlow)")
     print("=" * 80)
     print(f"\nConfiguration:")
     print(f"  Mode: {'REAL QUANTUM' if not USE_MOCK else 'MOCK (Testing)'}")

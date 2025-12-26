@@ -1,5 +1,5 @@
 """
-Fashion MNIST Classification Example using Q-Store v4.0 with PyTorch.
+Fashion MNIST Classification Example using Q-Store v4.1 with PyTorch.
 
 This example demonstrates:
 - Using QuantumLayer in a PyTorch model
