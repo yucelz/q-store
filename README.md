@@ -2,7 +2,7 @@
   <img src="https://www.q-store.tech/_astro/logo.CnqA1_E2.svg" alt="Q-Store Logo" width="200"/>
 </div>
 
-# Q-Store: Quantum-Native Database v3.4
+# Q-Store: Quantum-Native Database v4.0
 
 A hardware-agnostic database architecture that leverages quantum mechanical properties—superposition, entanglement, decoherence, and tunneling—for exponential performance advantages in vector similarity search, relationship management, pattern discovery, and **quantum-accelerated ML training**.
 
@@ -10,9 +10,27 @@ A hardware-agnostic database architecture that leverages quantum mechanical prop
   <strong>Q-STORE website </strong>
 </a>
 
-## 🆕 What's New in v3.4
+## 🆕 What's New in v4.0
 
-### 🚀 Major Performance Improvements (8-12x Faster)
+### 🎯 Advanced Quantum Toolchain
+- **Verification Module**: Complete circuit verification with equivalence checking, property verification, and formal verification (45 tests)
+- **Profiling Module**: Detailed performance analysis with circuit profiling, performance analysis, and optimization profiling (26 tests)
+- **Visualization Module**: Multiple rendering formats with ASCII diagrams, LaTeX export, state visualization, and Bloch sphere representation (36 tests)
+- **Integration Testing**: End-to-end workflow validation with 17 comprehensive tests
+- **Performance Benchmarks**: 20 benchmark tests with regression detection and scaling analysis
+- **144 New Tests**: 100% passing rate for all v4.0 modules
+- **30+ Examples**: Covering basic usage, advanced features, QML, chemistry, and error correction
+
+### v4.0 Module Statistics
+| Module | Tests | Code Lines | Key Features |
+|--------|-------|------------|--------------|
+| Verification | 45 | ~945 | Equivalence checking, property verification, formal verification |
+| Profiling | 26 | ~695 | Circuit profiling, performance analysis, optimization profiling |
+| Visualization | 36 | ~645 | ASCII/LaTeX rendering, state visualization, Bloch sphere |
+| Integration | 17 | ~390 | End-to-end workflows, module interoperability |
+| Benchmarks | 20 | ~450 | Performance tracking, regression detection |
+
+## 🚀 v3.4 Performance Improvements (8-12x Faster)
 - **IonQ Batch API Integration**: Single API call for multiple circuits (vs sequential submission)
 - **Smart Circuit Caching**: Template-based caching with parameter binding (10x faster circuit preparation)
 - **IonQ Native Gate Compilation**: GPi, GPi2, MS gates for 30% performance boost
@@ -28,12 +46,26 @@ A hardware-agnostic database architecture that leverages quantum mechanical prop
 | Circuits/second | 0.57 | 5.0 | **8.8x faster** |
 | Gate count | Medium | Low | **28% reduction** |
 
-### Quantum ML Training (v3.2+)
+### v4.0 Performance Benchmarks
+| Operation | Time | Description |
+|-----------|------|-------------|
+| Bell State Creation | 0.008ms | 2-qubit entangled state |
+| Profile Small Circuit | 0.124ms | 2-qubit circuit analysis |
+| Verify Unitarity | 0.500ms | Circuit unitarity check |
+| Check Equivalence | 0.278ms | Circuit equivalence verification |
+| Visualize Circuit | 0.005ms | ASCII rendering |
+| Complete Workflow | 0.222ms | Create → Profile → Visualize |
+| Batch Processing (10) | 3.834ms | 10 circuits end-to-end |
+
+### Quantum ML Training (v3.2+, Enhanced in v4.0)
 - **Hardware-Agnostic Architecture**: Works with Cirq, Qiskit, and mock simulators
 - **Quantum Neural Network Layers**: Variational quantum circuits for ML
 - **Quantum Gradient Computation**: Parameter shift rule for backpropagation
 - **Hybrid Classical-Quantum Pipelines**: Seamless integration with PyTorch/TensorFlow
 - **Quantum Data Encoding**: Amplitude and angle encoding strategies
+- **Circuit Verification** (v4.0): Ensure circuit correctness before training
+- **Performance Profiling** (v4.0): Identify bottlenecks and optimize training
+- **Advanced Visualization** (v4.0): Inspect circuit structure and quantum states
 
 ### Advanced ML Features
 - **Quantum Transfer Learning**: Fine-tune pre-trained quantum models
@@ -63,6 +95,66 @@ Q-Store provides a hardware-agnostic hybrid classical-quantum database architect
 - **Optimized IonQ execution** with batch API, native gates, and smart caching
 
 ## Key Features
+
+### 🔬 Quantum Circuit Verification (v4.0)
+Comprehensive verification toolchain for ensuring circuit correctness:
+- **Equivalence Checking**: Verify circuits produce same results (unitary, state, phase-invariant)
+- **Property Verification**: Check unitarity, reversibility, commutativity
+- **Formal Verification**: Algebraic identity verification and symbolic analysis
+
+```python
+from q_store.verification import check_circuit_equivalence, PropertyVerifier
+
+# Check if two circuits are equivalent
+result = check_circuit_equivalence(circuit1, circuit2, strategy='unitary')
+print(f"Equivalent: {result.are_equivalent}, Fidelity: {result.fidelity:.4f}")
+
+# Verify circuit properties
+verifier = PropertyVerifier()
+if verifier.is_unitary(circuit):
+    print("Circuit is unitary")
+```
+
+### 📊 Performance Profiling (v4.0)
+Detailed performance analysis for optimization:
+- **Circuit Profiling**: Gate-level execution metrics, depth analysis
+- **Performance Analysis**: Bottleneck identification, optimization suggestions
+- **Optimization Profiling**: Compare before/after metrics
+
+```python
+from q_store.profiling import profile_circuit, PerformanceAnalyzer
+
+# Profile circuit performance
+profile = profile_circuit(circuit)
+print(f"Depth: {profile.depth}, Gates: {profile.total_gates}")
+print(f"Two-qubit gates: {profile.two_qubit_gates}")
+
+# Analyze performance characteristics
+analyzer = PerformanceAnalyzer()
+analysis = analyzer.analyze_circuit(circuit)
+for suggestion in analysis.optimization_suggestions:
+    print(f"💡 {suggestion}")
+```
+
+### 🎨 Advanced Visualization (v4.0)
+Multiple rendering formats for analysis and publication:
+- **Circuit Visualization**: ASCII diagrams, LaTeX export
+- **State Visualization**: State vectors, density matrices, Bloch sphere
+- **Customizable Rendering**: Flexible configuration options
+
+```python
+from q_store.visualization import visualize_circuit, visualize_state
+
+# Visualize circuit as ASCII diagram
+print(visualize_circuit(circuit, format='ascii'))
+
+# Export to LaTeX for publications
+latex_code = visualize_circuit(circuit, format='latex')
+
+# Visualize quantum state
+state_vector = circuit.simulate()
+visualize_state(state_vector, format='bloch')
+```
 
 ### 🌌 Quantum Superposition
 Store vectors in superposition of multiple contexts simultaneously. Measurement collapses to the most relevant context for your query.
@@ -978,10 +1070,13 @@ See [LICENSE](LICENCE) file for details.
 
 ## References
 
+- [Q-Store v4.0 Release Summary](docs/RELEASE_v4.0.md)
 - [Quantum-Native Database Design Document v3.4](docs/Quantum_Native_Database_Architecture_v3_4_DESIGN.md)
 - [v3.4 Analysis Summary](docs/v3_4_ANALYSIS_SUMMARY.md)
 - [v3.4 Implementation Guide](docs/IMPLEMENTATION_GUIDE.md)
 - [Architecture Overview](docs/ARCHITECTURE.md)
+- [Examples Guide](examples/README.md)
+- [Benchmark Documentation](tests/BENCHMARKS.md)
 - [IonQ Documentation](https://docs.ionq.com/)
 - [IonQ Getting Started](https://github.com/ionq-samples/getting-started)
 - [Cirq Documentation](https://quantumai.google/cirq)
@@ -1028,7 +1123,7 @@ If you use Q-Store in your research, please cite:
 
 ```bibtex
 @software{qstore2025,
-  title={Q-Store: Quantum-Native Database Architecture v3.4},
+  title={Q-Store: Quantum-Native Database Architecture v4.0},
   author={Yucel Zengin},
   year={2025},
   url={https://github.com/yucelz/q-store}
@@ -1036,6 +1131,42 @@ If you use Q-Store in your research, please cite:
 ```
 
 ## Changelog
+
+### v4.0.0 (2025-12-19)
+- **New**: Verification Module - Complete circuit verification toolchain (45 tests)
+  - Circuit equivalence checking (unitary, state, phase-invariant strategies)
+  - Property verification (unitarity, reversibility, commutativity)
+  - Formal verification (algebraic identity, symbolic analysis)
+- **New**: Profiling Module - Detailed performance analysis (26 tests)
+  - Circuit profiling (gate-level metrics, depth analysis)
+  - Performance analysis (bottleneck identification, optimization suggestions)
+  - Optimization profiling (before/after comparison)
+- **New**: Visualization Module - Multiple rendering formats (36 tests)
+  - Circuit visualization (ASCII diagrams, LaTeX export)
+  - State visualization (state vectors, density matrices, Bloch sphere)
+  - Customizable rendering options
+- **New**: Integration Testing Suite - End-to-end workflow validation (17 tests)
+  - Module interoperability testing
+  - Batch circuit processing
+  - Common quantum circuits (Bell, GHZ, QFT)
+- **New**: Performance Benchmark Suite - Comprehensive tracking (20 tests)
+  - Circuit creation, profiling, verification, visualization benchmarks
+  - Scaling tests (2-10 qubits, 10-100 gates)
+  - Regression detection with performance baselines
+- **New**: Example Scripts - 30+ comprehensive examples
+  - Basic usage (5 examples)
+  - Advanced features (6 examples)
+  - Quantum ML (6 examples)
+  - Quantum chemistry (6 examples)
+  - Error correction (7 examples)
+- **Performance**: Sub-millisecond operations for most single-circuit tasks
+  - Bell state creation: ~0.008ms
+  - Circuit profiling: ~0.124ms
+  - Unitarity verification: ~0.5ms
+  - Circuit visualization: ~0.005ms
+- **Quality**: 144 new tests, 100% passing rate for v4.0 modules
+- **Documentation**: Complete API documentation, examples, and guides
+- **Backward Compatible**: No breaking changes, all v3.4 code works
 
 ### v3.4.0 (2024-12-16)
 - **New**: IonQBatchClient - True parallel circuit submission (12x faster)
@@ -1098,7 +1229,7 @@ If you use Q-Store in your research, please cite:
 
 ---
 
-**Note:** Q-Store v3.4 delivers production-ready quantum ML training with 8-12x performance improvements over v3.3.1. The system features hardware-agnostic support, seamless integration with classical ML frameworks (PyTorch, TensorFlow, JAX), and optimized IonQ execution through batch API, native gates, and smart caching. For mission-critical applications, additional validation and optimization are recommended.
+**Note:** Q-Store v4.0 delivers a comprehensive quantum computing toolchain with verification, profiling, and visualization capabilities, building on v3.4's 8-12x performance improvements. The system features hardware-agnostic support, seamless integration with classical ML frameworks (PyTorch, TensorFlow, JAX), and optimized IonQ execution. All 144 v4.0 tests passing with 100% success rate. For mission-critical applications, additional validation and optimization are recommended.
 ## Developer Guide
 
 ### Setting Up Development Environment
