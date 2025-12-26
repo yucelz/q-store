@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 import zarr
 
-from q_store.profiling import (
+from q_store.storage import (
     AsyncBuffer,
     AsyncMetricsWriter,
     CheckpointManager,

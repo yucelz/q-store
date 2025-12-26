@@ -16,8 +16,7 @@ from unittest.mock import Mock, patch, AsyncMock
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from q_store.backends import AsyncQuantumExecutor, BackendClient
-from q_store.core import ResultCache
+from q_store.runtime import AsyncQuantumExecutor, BackendClient, ResultCache
 
 
 # ============================================================================

@@ -21,8 +21,9 @@ from q_store.layers import (
     QuantumNonlinearity,
     QuantumPooling,
     QuantumReadout,
+    EncodingLayer,
+    DecodingLayer,
 )
-from q_store.core import EncodingLayer, DecodingLayer
 
 
 # ============================================================================
