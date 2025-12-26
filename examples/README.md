@@ -11,10 +11,14 @@ examples/
 ├── qml_examples.py                   # Quantum machine learning
 ├── chemistry_examples.py             # Quantum chemistry simulations
 ├── error_correction_examples.py     # Error correction workflows
+
+├── 
 ├── tensorflow/                       # TensorFlow/Keras examples
-│   └── fashion_mnist.py
+│   └── fashion_mnist.py             # Quantum layers only
+│   └── fashion_mnist_quantum_db_tf.py   # **NEW** Full integration: QML + Quantum DB (TensorFlow)
 ├── pytorch/                          # PyTorch examples
-│   └── fashion_mnist.py
+│   └── fashion_mnist.py             # Quantum layers only
+├── fashion_mnist_quantum_db.py      # **NEW** Full integration: QML + Quantum DB (PyTorch)
 └── validation/                       # Validation scripts
     ├── gradient_validation.py
     └── simple_classification.py
@@ -96,7 +100,7 @@ python examples/error_correction_examples.py
 
 ## TensorFlow Examples
 
-### Fashion MNIST Classification
+### Fashion MNIST Classification (Quantum Layers Only)
 
 Train a hybrid quantum-classical model on Fashion MNIST using Keras.
 
@@ -120,14 +124,6 @@ python examples/tensorflow/fashion_mnist.py --no-mock --samples 50 --epochs 1
 - `--epochs N`: Number of training epochs (default: 10)
 - `--batch-size N`: Batch size for training (default: 32)
 
-**Configuration:**
-To use real quantum backends, create `examples/.env` from `examples/.env.example`:
-```bash
-cd examples
-cp .env.example .env
-# Edit .env and add your IONQ_API_KEY
-```
-
 This example demonstrates:
 - Using `QuantumLayer` in a Keras Sequential model
 - `AmplitudeEncoding` for quantum state preparation
@@ -136,11 +132,56 @@ This example demonstrates:
 - End-to-end training with TensorFlow's optimizers
 - Model saving and evaluation
 
+**Note:** This example focuses on quantum layers in neural networks only.
+
+### Fashion MNIST + Quantum Database (Full Integration)
+
+**NEW!** Comprehensive example combining quantum neural networks AND quantum database features.
+
+**Quick Start (Mock Mode - No API Keys Required):**
+```bash
+python examples/tensorflow/fashion_mnist_quantum_db_tf.py
+```
+
+**With Real Backends (Requires Both IONQ_API_KEY and PINECONE_API_KEY):**
+```bash
+# Configure your API keys in examples/.env first
+python examples/tensorflow/fashion_mnist_quantum_db_tf.py --no-mock --samples 500 --epochs 3 --store-items 100
+```
+
+**Command-Line Options:**
+- `--no-mock`: Use real IonQ quantum backend + Pinecone database (requires API keys)
+- `--samples N`: Number of training samples (default: 500)
+- `--epochs N`: Number of training epochs (default: 3)
+- `--batch-size N`: Batch size for training (default: 32)
+- `--store-items N`: Number of embeddings to store in database (default: 100)
+
+**Configuration:**
+Create `examples/.env` with both quantum and database credentials:
+```bash
+cd examples
+cp .env.example .env
+# Edit .env and add:
+#   IONQ_API_KEY=your_ionq_key
+#   PINECONE_API_KEY=your_pinecone_key
+#   PINECONE_ENVIRONMENT=us-east-1
+```
+
+This comprehensive example demonstrates:
+1. **Quantum Neural Networks**: Train with quantum circuit layers
+2. **Embedding Extraction**: Extract learned embeddings from trained model
+3. **Quantum Database Storage**: Store embeddings in Pinecone with quantum superposition
+4. **Multi-Context Superposition**: Each embedding stored with multiple contexts (class, category, style)
+5. **Context-Aware Search**: Query database with quantum-enhanced similarity search
+6. **Classical vs Quantum Comparison**: Compare search results with and without quantum features
+
+**This is the only example that demonstrates the complete Q-Store workflow: Train → Store → Query**
+
 **Note:** TensorFlow examples run on CPU only (quantum layers use `tf.py_function` which is not XLA-compatible).
 
 ## PyTorch Examples
 
-### Fashion MNIST Classification
+### Fashion MNIST Classification (Quantum Layers Only)
 
 Train a hybrid quantum-classical model on Fashion MNIST using PyTorch.
 
@@ -164,14 +205,6 @@ python examples/pytorch/fashion_mnist.py --no-mock --samples 50 --epochs 1
 - `--epochs N`: Number of training epochs (default: 10)
 - `--batch-size N`: Batch size for training (default: 32)
 
-**Configuration:**
-To use real quantum backends, create `examples/.env` from `examples/.env.example`:
-```bash
-cd examples
-cp .env.example .env
-# Edit .env and add your IONQ_API_KEY
-```
-
 This example demonstrates:
 - Using `QuantumLayer` as a PyTorch `nn.Module`
 - Integration with PyTorch's autograd system
@@ -179,6 +212,51 @@ This example demonstrates:
 - Real quantum backend integration with IonQ
 - Training with standard PyTorch optimizers
 - Model checkpointing
+
+**Note:** This example focuses on quantum layers in neural networks only.
+
+### Fashion MNIST + Quantum Database (Full Integration)
+
+**NEW!** Comprehensive example combining quantum neural networks AND quantum database features.
+
+**Quick Start (Mock Mode - No API Keys Required):**
+```bash
+python examples/pytorch/fashion_mnist_quantum_db.py
+```
+
+**With Real Backends (Requires Both IONQ_API_KEY and PINECONE_API_KEY):**
+```bash
+# Configure your API keys in examples/.env first
+python examples/pytorch/fashion_mnist_quantum_db.py --no-mock --samples 500 --epochs 3 --store-items 100
+```
+
+**Command-Line Options:**
+- `--no-mock`: Use real IonQ quantum backend + Pinecone database (requires API keys)
+- `--samples N`: Number of training samples (default: 500)
+- `--epochs N`: Number of training epochs (default: 3)
+- `--batch-size N`: Batch size for training (default: 32)
+- `--store-items N`: Number of embeddings to store in database (default: 100)
+
+**Configuration:**
+Create `examples/.env` with both quantum and database credentials:
+```bash
+cd examples
+cp .env.example .env
+# Edit .env and add:
+#   IONQ_API_KEY=your_ionq_key
+#   PINECONE_API_KEY=your_pinecone_key
+#   PINECONE_ENVIRONMENT=us-east-1
+```
+
+This comprehensive example demonstrates:
+1. **Quantum Neural Networks**: Train with quantum circuit layers
+2. **Embedding Extraction**: Extract learned embeddings from trained model
+3. **Quantum Database Storage**: Store embeddings in Pinecone with quantum superposition
+4. **Multi-Context Superposition**: Each embedding stored with multiple contexts (class, category, style)
+5. **Context-Aware Search**: Query database with quantum-enhanced similarity search
+6. **Classical vs Quantum Comparison**: Compare search results with and without quantum features
+
+**This is the only example that demonstrates the complete Q-Store workflow: Train → Store → Query**
 
 ## Validation Scripts
 
@@ -230,17 +308,29 @@ python examples/error_correction_examples.py
 To run ML framework examples:
 
 ```bash
-# TensorFlow/Keras (mock mode - fast, no API keys)
+# TensorFlow/Keras - Quantum Layers Only (mock mode - fast, no API keys)
 python examples/tensorflow/fashion_mnist.py --samples 100 --epochs 2
 
-# TensorFlow with real quantum backend (requires IONQ_API_KEY)
+# TensorFlow - Quantum Layers Only with real quantum backend (requires IONQ_API_KEY)
 python examples/tensorflow/fashion_mnist.py --no-mock --samples 50 --epochs 1
 
-# PyTorch (mock mode - fast, no API keys)
+# TensorFlow - Full Quantum Database Integration (mock mode)
+python examples/tensorflow/fashion_mnist_quantum_db_tf.py --samples 500 --epochs 3
+
+# TensorFlow - Full Integration with Real Backends (requires IONQ_API_KEY + PINECONE_API_KEY)
+python examples/tensorflow/fashion_mnist_quantum_db_tf.py --no-mock --samples 500 --epochs 3 --store-items 100
+
+# PyTorch - Quantum Layers Only (mock mode - fast, no API keys)
 python examples/pytorch/fashion_mnist.py --samples 100 --epochs 2
 
-# PyTorch with real quantum backend (requires IONQ_API_KEY)
+# PyTorch - Quantum Layers Only with real quantum backend (requires IONQ_API_KEY)
 python examples/pytorch/fashion_mnist.py --no-mock --samples 50 --epochs 1
+
+# PyTorch - Full Quantum Database Integration (mock mode)
+python examples/pytorch/fashion_mnist_quantum_db.py --samples 500 --epochs 3
+
+# PyTorch - Full Integration with Real Backends (requires IONQ_API_KEY + PINECONE_API_KEY)
+python examples/pytorch/fashion_mnist_quantum_db.py --no-mock --samples 500 --epochs 3 --store-items 100
 
 # Validation
 cd examples/validation
@@ -279,6 +369,11 @@ pip install torch torchvision
 ```
 
 ### Optional Dependencies
+
+**pinecone (for pinecone vector DB):**
+```bash
+pip install pinecone
+```
 
 **python-dotenv (for .env configuration):**
 ```bash

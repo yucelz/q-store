@@ -115,3 +115,7 @@ htmlcov/
 
 #bin
 bin/
+
+#test ENVs
+test_env/
+

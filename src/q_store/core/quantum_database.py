@@ -63,6 +63,7 @@ class DatabaseConfig:
     pinecone_index_name: str = "quantum-vectors"
     pinecone_dimension: int = 768
     pinecone_metric: str = "cosine"
+    use_mock_pinecone: bool = False  # Use mock Pinecone for testing
 
     # Quantum backend configuration (hardware-agnostic)
     quantum_backend_name: Optional[str] = None  # Use default if None
@@ -164,6 +165,12 @@ class ConnectionPool:
 
     async def _init_pinecone(self):
         """Initialize Pinecone connection"""
+        # Use mock Pinecone for testing
+        if self.config.use_mock_pinecone:
+            logger.info("Using MockPineconeIndex for testing")
+            self._pinecone_client = MockPineconeIndex()
+            return
+            
         try:
             from pinecone import ServerlessSpec
             from pinecone.grpc import PineconeGRPC as Pinecone
