@@ -30,7 +30,7 @@ from q_store.storage.async_writer import AsyncMetricsWriter
 class TrainingMetrics:
     """
     Schema for training metrics.
-    
+
     Attributes
     ----------
     epoch : int
@@ -69,7 +69,7 @@ class TrainingMetrics:
         Batch processing time
     throughput_samples_per_sec : float
         Throughput in samples/sec
-    
+
     Examples
     --------
     >>> metrics = TrainingMetrics(
@@ -81,39 +81,39 @@ class TrainingMetrics:
     ...     # ... other fields
     ... )
     """
-    
+
     # Step info
     epoch: int
     step: int
     timestamp: float
-    
+
     # Loss
     train_loss: float
     val_loss: Optional[float] = None
-    
+
     # Gradients
     grad_norm: float = 0.0
     grad_max: float = 0.0
     grad_min: float = 0.0
-    
+
     # Quantum metrics
     circuit_execution_time_ms: float = 0.0
     circuits_executed: int = 0
     qubits_used: int = 0
     shots_per_circuit: int = 1024
-    
+
     # Backend info
     backend: str = 'simulator'
     queue_time_ms: Optional[float] = None
-    
+
     # Cost tracking
     cost_usd: Optional[float] = None
     credits_used: Optional[float] = None
-    
+
     # Performance
     batch_time_ms: float = 0.0
     throughput_samples_per_sec: float = 0.0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dict for DataFrame."""
         return asdict(self)
@@ -122,9 +122,9 @@ class TrainingMetrics:
 class AsyncMetricsLogger:
     """
     Async metrics logger with Parquet backend.
-    
+
     Never blocks training loop!
-    
+
     Parameters
     ----------
     output_path : Path or str
@@ -133,11 +133,11 @@ class AsyncMetricsLogger:
         Buffer size
     flush_interval : int, default=100
         Flush interval
-    
+
     Examples
     --------
     >>> logger = AsyncMetricsLogger('metrics.parquet')
-    >>> 
+    >>>
     >>> # Log step metrics
     >>> await logger.log_step(
     ...     epoch=1,
@@ -145,14 +145,14 @@ class AsyncMetricsLogger:
     ...     train_loss=0.5,
     ...     grad_norm=0.1
     ... )
-    >>> 
+    >>>
     >>> # Log epoch summary
     >>> await logger.log_epoch(1, train_metrics={...}, val_metrics={...})
-    >>> 
+    >>>
     >>> # Shutdown
     >>> logger.stop()
     """
-    
+
     def __init__(
         self,
         output_path: Path,
@@ -160,7 +160,7 @@ class AsyncMetricsLogger:
         flush_interval: int = 100,
     ):
         self.output_path = Path(output_path)
-        
+
         # Create async buffer and writer
         self.buffer = AsyncBuffer(maxsize=buffer_size, name='metrics')
         self.writer = AsyncMetricsWriter(
@@ -168,10 +168,10 @@ class AsyncMetricsLogger:
             output_path=self.output_path,
             flush_interval=flush_interval,
         )
-        
+
         # Start writer
         self.writer.start()
-    
+
     async def log_step(
         self,
         epoch: int,
@@ -182,7 +182,7 @@ class AsyncMetricsLogger:
     ):
         """
         Log training step metrics.
-        
+
         Parameters
         ----------
         epoch : int
@@ -204,10 +204,10 @@ class AsyncMetricsLogger:
             grad_norm=grad_norm,
             **kwargs
         )
-        
+
         # Push to buffer (non-blocking!)
         self.buffer.push(metrics.to_dict())
-    
+
     async def log_epoch(
         self,
         epoch: int,
@@ -216,7 +216,7 @@ class AsyncMetricsLogger:
     ):
         """
         Log epoch summary.
-        
+
         Parameters
         ----------
         epoch : int
@@ -238,24 +238,24 @@ class AsyncMetricsLogger:
             qubits_used=train_metrics.get('qubits_used', 0),
             backend=train_metrics.get('backend', 'simulator'),
         )
-        
+
         self.buffer.push(metrics.to_dict())
-    
+
     async def log(self, metrics: TrainingMetrics):
         """
         Log metrics directly.
-        
+
         Parameters
         ----------
         metrics : TrainingMetrics
             Metrics to log
         """
         self.buffer.push(metrics.to_dict())
-    
+
     def stop(self):
         """Stop async writer."""
         self.writer.stop()
-    
+
     def stats(self) -> Dict[str, Any]:
         """Get logger statistics."""
         return {

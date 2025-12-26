@@ -32,9 +32,9 @@ import shutil
 class CheckpointManager:
     """
     Async checkpoint manager using Zarr.
-    
+
     Checkpoints are atomic and compressed.
-    
+
     Parameters
     ----------
     checkpoint_dir : Path or str
@@ -45,7 +45,7 @@ class CheckpointManager:
         Compression algorithm ('zstd', 'lz4', 'gzip')
     compression_level : int, default=3
         Compression level (1-9)
-    
+
     Examples
     --------
     >>> manager = CheckpointManager('checkpoints/')
@@ -53,7 +53,7 @@ class CheckpointManager:
     >>> state = await manager.load(epoch=10)
     >>> checkpoints = manager.list_checkpoints()
     """
-    
+
     def __init__(
         self,
         checkpoint_dir: Path,
@@ -64,7 +64,7 @@ class CheckpointManager:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.keep_last = keep_last
-        
+
         # Compression settings
         if compression == 'zstd':
             self.compressor = zarr.Blosc(cname='zstd', clevel=compression_level)
@@ -74,11 +74,11 @@ class CheckpointManager:
             self.compressor = zarr.Blosc(cname='gzip', clevel=compression_level)
         else:
             raise ValueError(f"Unknown compression: {compression}")
-        
+
         # Open Zarr store
         self.store = zarr.DirectoryStore(str(self.checkpoint_dir))
         self.root = zarr.group(store=self.store)
-    
+
     async def save(
         self,
         epoch: int,
@@ -88,9 +88,9 @@ class CheckpointManager:
     ):
         """
         Save checkpoint (async).
-        
+
         Runs in thread pool to not block training.
-        
+
         Parameters
         ----------
         epoch : int
@@ -110,7 +110,7 @@ class CheckpointManager:
             optimizer_state,
             metadata
         )
-    
+
     def _save_sync(
         self,
         epoch: int,
@@ -120,16 +120,16 @@ class CheckpointManager:
     ):
         """Synchronous save operation."""
         start_time = time.time()
-        
+
         # Create epoch group
         epoch_name = f'epoch_{epoch:04d}'
-        
+
         # Delete if exists (overwrite)
         if epoch_name in self.root:
             del self.root[epoch_name]
-        
+
         epoch_group = self.root.create_group(epoch_name)
-        
+
         # Save model parameters
         model_group = epoch_group.create_group('model')
         for name, param in model_state.items():
@@ -140,14 +140,14 @@ class CheckpointManager:
                 param_np = param.numpy()
             else:
                 param_np = np.asarray(param)
-            
+
             model_group.array(
                 name,
                 data=param_np,
                 compressor=self.compressor,
                 overwrite=True
             )
-        
+
         # Save optimizer state
         if optimizer_state:
             opt_group = epoch_group.create_group('optimizer')
@@ -170,31 +170,31 @@ class CheckpointManager:
                     elif hasattr(state, 'numpy'):
                         state = state.numpy()
                     opt_group.array(name, data=state, compressor=self.compressor)
-        
+
         # Save metadata
         epoch_group.attrs['epoch'] = epoch
         epoch_group.attrs['timestamp'] = time.time()
         epoch_group.attrs['save_duration_ms'] = (time.time() - start_time) * 1000
-        
+
         if metadata:
             for key, value in metadata.items():
                 epoch_group.attrs[key] = value
-        
+
         # Cleanup old checkpoints
         if self.keep_last > 0:
             self._cleanup_old_checkpoints()
-        
+
         print(f"✓ Checkpoint saved: {epoch_name} ({time.time() - start_time:.2f}s)")
-    
+
     async def load(self, epoch: int) -> Dict[str, Any]:
         """
         Load checkpoint (async).
-        
+
         Parameters
         ----------
         epoch : int
             Epoch number to load
-        
+
         Returns
         -------
         state : dict
@@ -205,22 +205,22 @@ class CheckpointManager:
             self._load_sync,
             epoch
         )
-    
+
     def _load_sync(self, epoch: int) -> Dict[str, Any]:
         """Synchronous load operation."""
         epoch_name = f'epoch_{epoch:04d}'
-        
+
         if epoch_name not in self.root:
             raise ValueError(f"Checkpoint not found: {epoch_name}")
-        
+
         epoch_group = self.root[epoch_name]
-        
+
         # Load model state
         model_state = {}
         if 'model' in epoch_group:
             for name in epoch_group['model'].keys():
                 model_state[name] = epoch_group['model'][name][:]
-        
+
         # Load optimizer state
         optimizer_state = {}
         if 'optimizer' in epoch_group:
@@ -232,21 +232,21 @@ class CheckpointManager:
                     }
                 else:
                     optimizer_state[name] = item[:]
-        
+
         # Load metadata
         metadata = dict(epoch_group.attrs)
-        
+
         return {
             'epoch': epoch,
             'model_state': model_state,
             'optimizer_state': optimizer_state,
             'metadata': metadata,
         }
-    
+
     def list_checkpoints(self) -> List[int]:
         """
         List available checkpoints.
-        
+
         Returns
         -------
         epochs : List[int]
@@ -258,19 +258,19 @@ class CheckpointManager:
                 epoch = int(key.split('_')[1])
                 epochs.append(epoch)
         return sorted(epochs)
-    
+
     def latest_checkpoint(self) -> Optional[int]:
         """Get latest checkpoint epoch number."""
         checkpoints = self.list_checkpoints()
         return max(checkpoints) if checkpoints else None
-    
+
     def _cleanup_old_checkpoints(self):
         """Remove old checkpoints, keeping only last N."""
         checkpoints = self.list_checkpoints()
-        
+
         if len(checkpoints) <= self.keep_last:
             return
-        
+
         # Remove oldest
         to_remove = checkpoints[:-self.keep_last]
         for epoch in to_remove:
@@ -278,34 +278,34 @@ class CheckpointManager:
             if epoch_name in self.root:
                 del self.root[epoch_name]
                 print(f"  Removed old checkpoint: {epoch_name}")
-    
+
     def get_checkpoint_info(self, epoch: int) -> Dict[str, Any]:
         """
         Get checkpoint metadata without loading full state.
-        
+
         Parameters
         ----------
         epoch : int
             Epoch number
-        
+
         Returns
         -------
         info : dict
             Checkpoint metadata
         """
         epoch_name = f'epoch_{epoch:04d}'
-        
+
         if epoch_name not in self.root:
             raise ValueError(f"Checkpoint not found: {epoch_name}")
-        
+
         epoch_group = self.root[epoch_name]
-        
+
         # Get sizes
         model_size = sum(
             epoch_group['model'][name].nbytes
             for name in epoch_group['model'].keys()
         ) if 'model' in epoch_group else 0
-        
+
         return {
             'epoch': epoch,
             'timestamp': epoch_group.attrs.get('timestamp'),
