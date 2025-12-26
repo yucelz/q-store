@@ -533,7 +533,7 @@ async def main_async():
             print("\n⚠️  ERROR: --no-mock requires PINECONE_API_KEY and PINECONE_ENVIRONMENT")
             print("   Please set them in examples/.env or use mock mode")
             sys.exit(1)
-        
+
         print(f"\n✓ Pinecone Configuration:")
         print(f"  API Key: {'*' * 20}")
         print(f"  Environment: {PINECONE_ENVIRONMENT}")

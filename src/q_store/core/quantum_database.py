@@ -170,7 +170,7 @@ class ConnectionPool:
             logger.info("Using MockPineconeIndex for testing")
             self._pinecone_client = MockPineconeIndex()
             return
-            
+
         try:
             from pinecone import ServerlessSpec
             from pinecone.grpc import PineconeGRPC as Pinecone
