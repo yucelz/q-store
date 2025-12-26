@@ -60,7 +60,7 @@ ml = [
     "torch>=2.0.0",
     "tensorflow>=2.13.0",
 ]
-v4.1 = [
+"v4.1" = [
     "zarr>=2.16.0",
     "pyarrow>=14.0.0",
     "aiohttp>=3.9.0",
