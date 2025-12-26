@@ -23,14 +23,14 @@ from q_store.torch.quantum_layer import QuantumLayer
 class QuantumLinear(QuantumLayer):
     """
     Quantum Linear layer (replacement for nn.Linear).
-    
+
     Usage identical to nn.Linear:
     >>> # Classical
     >>> linear = nn.Linear(in_features=16, out_features=128)
-    >>> 
+    >>>
     >>> # Quantum (70% of computation)
     >>> linear = QuantumLinear(n_qubits=7)  # 2^7=128 dimensional output
-    
+
     Parameters
     ----------
     n_qubits : int
@@ -43,7 +43,7 @@ class QuantumLinear(QuantumLayer):
         Quantum backend
     shots : int, default=1024
         Measurement shots
-    
+
     Examples
     --------
     >>> # Replace Linear in existing model
@@ -53,7 +53,7 @@ class QuantumLinear(QuantumLayer):
     ...     nn.Linear(128, 10),
     ... )
     """
-    
+
     def __init__(
         self,
         n_qubits: int,
@@ -68,12 +68,12 @@ class QuantumLinear(QuantumLayer):
             backend=backend,
             shots=shots,
         )
-        
+
         self.use_bias = bias
-        
+
         # Output dimension (n_qubits * n_measurement_bases)
         self.out_features = n_qubits * 3  # X, Y, Z bases
-        
+
         # Add bias if requested
         if self.use_bias:
             self.bias = nn.Parameter(
@@ -82,14 +82,14 @@ class QuantumLinear(QuantumLayer):
             )
         else:
             self.register_parameter('bias', None)
-    
+
     def forward(self, inputs):
         """Forward pass."""
         # Quantum computation
         output = super().forward(inputs)
-        
+
         # Add bias
         if self.use_bias:
             output = output + self.bias
-        
+
         return output

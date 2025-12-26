@@ -60,7 +60,7 @@ if HAS_TORCH:
         ParameterShiftGradient,
         AdjointGradient,
     )
-    
+
     # v4.1 components (new)
     try:
         from .quantum_layer import QuantumLayer

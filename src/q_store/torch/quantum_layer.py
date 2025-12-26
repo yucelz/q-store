@@ -24,15 +24,15 @@ from q_store.runtime import AsyncQuantumExecutor
 class QuantumFunction(torch.autograd.Function):
     """
     Custom autograd function for quantum circuits.
-    
+
     Implements forward and backward passes with SPSA gradients.
     """
-    
+
     @staticmethod
     def forward(ctx, inputs, params, quantum_layer, epsilon):
         """
         Forward pass.
-        
+
         Parameters
         ----------
         ctx : context
@@ -45,7 +45,7 @@ class QuantumFunction(torch.autograd.Function):
             Quantum layer instance
         epsilon : float
             SPSA epsilon
-        
+
         Returns
         -------
         outputs : torch.Tensor
@@ -55,25 +55,25 @@ class QuantumFunction(torch.autograd.Function):
         ctx.save_for_backward(inputs, params)
         ctx.quantum_layer = quantum_layer
         ctx.epsilon = epsilon
-        
+
         # Execute quantum circuits
         with torch.no_grad():
             outputs = quantum_layer._forward_pass(inputs, params)
-        
+
         return outputs
-    
+
     @staticmethod
     def backward(ctx, grad_output):
         """
         Backward pass with SPSA gradients.
-        
+
         Parameters
         ----------
         ctx : context
             Saved context
         grad_output : torch.Tensor
             Upstream gradients
-        
+
         Returns
         -------
         grad_inputs : None
@@ -88,13 +88,13 @@ class QuantumFunction(torch.autograd.Function):
         inputs, params = ctx.saved_tensors
         quantum_layer = ctx.quantum_layer
         epsilon = ctx.epsilon
-        
+
         # Compute SPSA gradients
         with torch.no_grad():
             grad_params = quantum_layer._spsa_gradient(
                 inputs, params, grad_output, epsilon
             )
-        
+
         # Return gradients (None for non-parameter inputs)
         return None, grad_params, None, None
 
@@ -102,10 +102,10 @@ class QuantumFunction(torch.autograd.Function):
 class QuantumLayer(nn.Module):
     """
     Base quantum layer for PyTorch.
-    
+
     Compatible with nn.Module API.
     Uses SPSA for gradient estimation.
-    
+
     Parameters
     ----------
     n_qubits : int
@@ -122,14 +122,14 @@ class QuantumLayer(nn.Module):
         SPSA perturbation size
     async_execution : bool, default=True
         Use async execution
-    
+
     Examples
     --------
     >>> layer = QuantumLayer(n_qubits=4, n_layers=2)
     >>> x = torch.randn(32, 16)  # batch_size=32, features=16
     >>> y = layer(x)  # (32, 4*3) - 4 qubits, 3 bases
     """
-    
+
     def __init__(
         self,
         n_qubits: int,
@@ -141,7 +141,7 @@ class QuantumLayer(nn.Module):
         async_execution: bool = True,
     ):
         super().__init__()
-        
+
         self.n_qubits = n_qubits
         self.n_layers = n_layers
         self.backend_name = backend
@@ -149,7 +149,7 @@ class QuantumLayer(nn.Module):
         self.gradient_method = gradient_method
         self.spsa_epsilon = spsa_epsilon
         self.async_execution = async_execution
-        
+
         # Create quantum feature extractor
         self.quantum_extractor = QuantumFeatureExtractor(
             n_qubits=n_qubits,
@@ -159,7 +159,7 @@ class QuantumLayer(nn.Module):
             backend=backend,
             shots=shots,
         )
-        
+
         # Create async executor if needed
         if self.async_execution:
             self.executor = AsyncQuantumExecutor(
@@ -167,23 +167,23 @@ class QuantumLayer(nn.Module):
                 max_concurrent=10,
             )
             self.quantum_extractor.executor = self.executor
-        
+
         # Create trainable parameters
         n_params = self.quantum_extractor.n_params
         self.quantum_params = nn.Parameter(
             torch.rand(n_params) * 2 * np.pi,
             requires_grad=True
         )
-    
+
     def forward(self, inputs):
         """
         Forward pass.
-        
+
         Parameters
         ----------
         inputs : torch.Tensor
             Input tensor (batch_size, features)
-        
+
         Returns
         -------
         outputs : torch.Tensor
@@ -195,16 +195,16 @@ class QuantumLayer(nn.Module):
             self,
             self.spsa_epsilon
         )
-    
+
     def _forward_pass(self, inputs, params):
         """Execute forward pass."""
         # Convert to numpy
         x_np = inputs.detach().cpu().numpy()
         params_np = params.detach().cpu().numpy()
-        
+
         # Update quantum parameters
         self.quantum_extractor.params = params_np
-        
+
         # Execute quantum circuits
         if self.async_execution:
             # Async execution
@@ -219,15 +219,15 @@ class QuantumLayer(nn.Module):
         else:
             # Sync execution
             output_np = self.quantum_extractor(x_np)
-        
+
         # Convert back to PyTorch
         device = inputs.device
         return torch.tensor(output_np, dtype=torch.float32, device=device)
-    
+
     def _spsa_gradient(self, inputs, params, grad_output, epsilon):
         """
         Estimate gradient using SPSA.
-        
+
         Parameters
         ----------
         inputs : torch.Tensor
@@ -238,7 +238,7 @@ class QuantumLayer(nn.Module):
             Upstream gradients
         epsilon : float
             Perturbation size
-        
+
         Returns
         -------
         grad_params : torch.Tensor
@@ -247,23 +247,23 @@ class QuantumLayer(nn.Module):
         # Random perturbation direction
         delta = torch.rand_like(params)
         delta = torch.where(delta < 0.5, -1.0, 1.0)
-        
+
         # Perturbed parameters
         params_plus = params + epsilon * delta
         params_minus = params - epsilon * delta
-        
+
         # Forward passes
         output_plus = self._forward_pass(inputs, params_plus)
         output_minus = self._forward_pass(inputs, params_minus)
-        
+
         # Finite difference
         output_diff = output_plus - output_minus
-        
+
         # Chain rule
         grad_output_flat = grad_output.sum(dim=0)  # Sum over batch
         grad_params = (grad_output_flat * output_diff.sum(dim=0)) / (2 * epsilon * delta)
-        
+
         # Average
         grad_params = grad_params.mean()
-        
+
         return grad_params

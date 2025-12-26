@@ -23,10 +23,10 @@ from q_store.runtime import AsyncQuantumExecutor
 class QuantumLayer(tf.keras.layers.Layer):
     """
     Base quantum layer for TensorFlow.
-    
+
     Compatible with tf.keras.layers.Layer API.
     Uses SPSA for gradient estimation.
-    
+
     Parameters
     ----------
     n_qubits : int
@@ -45,14 +45,14 @@ class QuantumLayer(tf.keras.layers.Layer):
         Use async execution
     **kwargs
         Additional layer arguments
-    
+
     Examples
     --------
     >>> layer = QuantumLayer(n_qubits=4, n_layers=2)
     >>> x = tf.random.normal((32, 16))  # batch_size=32, features=16
     >>> y = layer(x)  # (32, 4*3) - 4 qubits, 3 bases
     """
-    
+
     def __init__(
         self,
         n_qubits: int,
@@ -65,7 +65,7 @@ class QuantumLayer(tf.keras.layers.Layer):
         **kwargs
     ):
         super().__init__(**kwargs)
-        
+
         self.n_qubits = n_qubits
         self.n_layers = n_layers
         self.backend_name = backend
@@ -73,13 +73,13 @@ class QuantumLayer(tf.keras.layers.Layer):
         self.gradient_method = gradient_method
         self.spsa_epsilon = spsa_epsilon
         self.async_execution = async_execution
-        
+
         # Create quantum feature extractor
         self.quantum_extractor = None  # Created in build()
-        
+
         # Async executor
         self.executor = None
-        
+
     def build(self, input_shape):
         """Build layer (called on first call)."""
         # Create quantum feature extractor
@@ -91,7 +91,7 @@ class QuantumLayer(tf.keras.layers.Layer):
             backend=self.backend_name,
             shots=self.shots,
         )
-        
+
         # Create async executor if needed
         if self.async_execution:
             self.executor = AsyncQuantumExecutor(
@@ -99,7 +99,7 @@ class QuantumLayer(tf.keras.layers.Layer):
                 max_concurrent=10,
             )
             self.quantum_extractor.executor = self.executor
-        
+
         # Create trainable parameters
         n_params = self.quantum_extractor.n_params
         self.quantum_params = self.add_weight(
@@ -109,20 +109,20 @@ class QuantumLayer(tf.keras.layers.Layer):
             trainable=True,
             dtype=tf.float32,
         )
-        
+
         super().build(input_shape)
-    
+
     def call(self, inputs, training=None):
         """
         Forward pass with custom gradient.
-        
+
         Parameters
         ----------
         inputs : tf.Tensor
             Input tensor (batch_size, features)
         training : bool, optional
             Training mode
-        
+
         Returns
         -------
         outputs : tf.Tensor
@@ -133,7 +133,7 @@ class QuantumLayer(tf.keras.layers.Layer):
             """Forward pass with custom gradient."""
             # Forward pass
             output = self._forward_pass(x, params)
-            
+
             def grad_fn(dy):
                 """Custom gradient using SPSA."""
                 if self.gradient_method == 'spsa':
@@ -141,25 +141,25 @@ class QuantumLayer(tf.keras.layers.Layer):
                 else:
                     # Parameter shift (future implementation)
                     grad_params = self._spsa_gradient(x, params, dy)
-                
+
                 # Input gradients (none for quantum)
                 grad_x = None
-                
+
                 return grad_x, grad_params
-            
+
             return output, grad_fn
-        
+
         return quantum_forward(inputs, self.quantum_params)
-    
+
     def _forward_pass(self, inputs, params):
         """Execute forward pass."""
         # Convert to numpy
         x_np = inputs.numpy()
         params_np = params.numpy()
-        
+
         # Update quantum parameters
         self.quantum_extractor.params = params_np
-        
+
         # Execute quantum circuits
         if self.async_execution:
             # Async execution
@@ -174,19 +174,19 @@ class QuantumLayer(tf.keras.layers.Layer):
         else:
             # Sync execution
             output_np = self.quantum_extractor(x_np)
-        
+
         # Convert back to TensorFlow
         return tf.constant(output_np, dtype=tf.float32)
-    
+
     def _spsa_gradient(self, inputs, params, dy):
         """
         Estimate gradient using SPSA.
-        
+
         SPSA (Simultaneous Perturbation Stochastic Approximation):
         - Perturb all parameters simultaneously
         - Only 2 forward passes needed
         - Unbiased gradient estimate
-        
+
         Parameters
         ----------
         inputs : tf.Tensor
@@ -195,14 +195,14 @@ class QuantumLayer(tf.keras.layers.Layer):
             Current parameters
         dy : tf.Tensor
             Upstream gradients
-        
+
         Returns
         -------
         grad_params : tf.Tensor
             Parameter gradients
         """
         epsilon = self.spsa_epsilon
-        
+
         # Random perturbation direction
         delta = tf.random.uniform(
             shape=params.shape,
@@ -211,28 +211,28 @@ class QuantumLayer(tf.keras.layers.Layer):
             dtype=tf.float32
         )
         delta = tf.where(delta < 0.5, -1.0, 1.0)  # Bernoulli {-1, +1}
-        
+
         # Perturbed parameters
         params_plus = params + epsilon * delta
         params_minus = params - epsilon * delta
-        
+
         # Forward passes
         output_plus = self._forward_pass(inputs, params_plus)
         output_minus = self._forward_pass(inputs, params_minus)
-        
+
         # Finite difference
         output_diff = output_plus - output_minus
-        
+
         # Chain rule: dy/dparams = dy/doutput * doutput/dparams
         # SPSA gradient: (f(θ+ε) - f(θ-ε)) / (2ε) * 1/δ
         grad_output = tf.reduce_sum(dy * output_diff, axis=0)  # Sum over batch
         grad_params = grad_output / (2 * epsilon * delta)
-        
+
         # Average over output dimensions
         grad_params = tf.reduce_mean(grad_params)
-        
+
         return grad_params
-    
+
     def get_config(self):
         """Get layer configuration."""
         config = super().get_config()
