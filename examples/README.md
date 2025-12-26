@@ -119,6 +119,8 @@ examples/
 ├── run_all_validation.py             # Run all validation tests
 │
 ├── ml_frameworks/                     # Machine Learning Integration
+│   ├── fashion_mnist_plain.py         # v4.1 plain Python (no Keras/PyTorch)
+│   ├── run_fashion_mnist_plain.sh     # Convenience script for plain version
 │   ├── framework_integration_demo.py  # Compare TF vs PyTorch
 │   ├── tensorflow/
 │   │   ├── fashion_mnist_quantum_layers.py      # Basic quantum layers
@@ -166,6 +168,37 @@ python examples/basic_usage.py
 ```
 
 ### 2. Machine Learning Integration
+
+#### Plain Python (v4.1 Quantum-First Architecture)
+
+**Best for learning the v4.1 architecture without ML framework complexity:**
+
+```bash
+# Run with default settings (100 samples, batch size 8)
+./examples/ml_frameworks/run_fashion_mnist_plain.sh
+
+# Run with custom parameters
+./examples/ml_frameworks/run_fashion_mnist_plain.sh --samples 50 --batch-size 4
+
+# Run with real quantum hardware (auto-confirm with --yes)
+./examples/ml_frameworks/run_fashion_mnist_plain.sh --real --samples 10 --yes
+```
+
+**Key Features:**
+- Pure v4.1 quantum layers (no Keras/PyTorch wrapper)
+- 70% quantum computation architecture
+- Async execution demonstration
+- Inference-only (no training)
+
+**Architecture:**
+```python
+Flatten()                                    # Classical (5%)
+QuantumFeatureExtractor(n_qubits=8, depth=4) # Quantum (40%)
+QuantumPooling(n_qubits=4)                   # Quantum (15%)
+QuantumFeatureExtractor(n_qubits=4, depth=3) # Quantum (30%)
+QuantumReadout(n_qubits=4, n_classes=10)     # Quantum (5%)
+# Classical decoding is implicit (5%)
+```
 
 #### TensorFlow Examples
 
@@ -272,6 +305,27 @@ python examples/validation/simple_classification.py
 ---
 
 ## 🏃 Running Examples
+
+### Convenience Scripts
+
+For easier execution, use the provided shell scripts:
+
+```bash
+# Fashion MNIST Plain Python (v4.1)
+./examples/ml_frameworks/run_fashion_mnist_plain.sh --help
+
+# Quick examples:
+./examples/ml_frameworks/run_fashion_mnist_plain.sh                    # Mock mode, defaults
+./examples/ml_frameworks/run_fashion_mnist_plain.sh --samples 200     # More samples
+./examples/ml_frameworks/run_fashion_mnist_plain.sh --real --yes      # Real hardware, auto-confirm
+```
+
+**Script Options:**
+- `--mock` / `--real` - Backend selection (default: mock)
+- `--samples N` - Number of test samples (default: 100)
+- `--batch-size N` - Batch size for inference (default: 8)
+- `-y, --yes` - Skip confirmation prompt for real hardware
+- `-h, --help` - Show help message
 
 ### Mock Mode (Default - No API Keys Required)
 
@@ -437,7 +491,8 @@ pip install "q-store[v4.1]"
 ### Beginner
 1. `examples/basic_usage.py` - Core concepts
 2. `examples/basic_pinecone_setup.py` - Vector database setup
-3. `examples/async_features/basic_async_usage.py` - Async patterns
+3. `examples/ml_frameworks/fashion_mnist_plain.py` - v4.1 architecture (plain Python)
+4. `examples/async_features/basic_async_usage.py` - Async patterns
 
 ### Intermediate
 4. `examples/ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py` - TensorFlow integration

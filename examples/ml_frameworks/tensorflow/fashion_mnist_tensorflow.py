@@ -1,64 +1,79 @@
 """
 Fashion MNIST Classification with Q-Store v4.1.0 (TensorFlow)
 
-Demonstrates the full quantum-first architecture:
-1. 70% quantum computation using QuantumDense layers
-2. Async execution pipeline for non-blocking training
-3. Advanced optimizations (adaptive batching, caching, native compilation)
-4. Async storage with Zarr checkpoints and Parquet metrics
+This example demonstrates:
+- Using QuantumLayer in a Keras model
+- Training with quantum-enhanced neural networks
+- End-to-end quantum machine learning workflow
+- Mock mode vs real quantum hardware connection
 
-Expected Performance:
-- 8.4x overall speedup vs v4.0
-- ~85% test accuracy on Fashion MNIST
-- <1% storage overhead
+Usage:
+    # Run with mock backend (default, no API keys needed)
+    python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py
+
+    # Run with real IonQ connection (requires IONQ_API_KEY in .env)
+    python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py --no-mock
+
+Configuration:
+    Create examples/.env from examples/.env.example and set:
+    - IONQ_API_KEY: Your IonQ API key
+    - IONQ_TARGET: simulator or qpu.harmony
 """
 
 import os
+import sys
+import argparse
 import time
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from pathlib import Path
 
-# Q-Store v4.1 imports
-from q_store.tensorflow import QuantumDense
-from q_store.core import EncodingLayer, DecodingLayer
-from q_store.monitoring import AsyncMetricsLogger
-from q_store.profiling import CheckpointManager
-from q_store.optimization import (
-    AdaptiveBatchScheduler,
-    MultiLevelCache,
-    IonQNativeCompiler,
-)
+# IMPORTANT: Q-Store quantum layers use tf.py_function which is not compatible with XLA/GPU
+# Force CPU-only execution to avoid "EagerPyFunc not supported on XLA_GPU_JIT" error
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Disable GPU
+tf.config.set_visible_devices([], 'GPU')    # Also disable via TF API
 
+# Try to load dotenv if available
+try:
+    from dotenv import load_dotenv
+    HAS_DOTENV = True
+except ImportError:
+    HAS_DOTENV = False
 
-# ============================================================================
-# Configuration
-# ============================================================================
+# Load environment variables
+if HAS_DOTENV:
+    # Look for .env in examples directory (parent.parent = examples/)
+    examples_dir = Path(__file__).parent.parent
+    env_path = examples_dir / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"✓ Loaded environment from {env_path}")
+    else:
+        print(f"ℹ No .env file found at {env_path}, using defaults")
+else:
+    print(f"ℹ python-dotenv not installed, using environment variables")
 
-class Config:
-    """Training configuration."""
+try:
+    from q_store.tensorflow import QuantumLayer, AmplitudeEncoding
+    from q_store.core import UnifiedCircuit, GateType
+    from q_store.backends import BackendManager
+    HAS_DEPENDENCIES = True
+except ImportError as e:
+    print(f"Missing dependencies: {e}")
+    HAS_DEPENDENCIES = False
 
-    # Data
-    num_classes = 10
-    input_dim = 784  # 28x28 images
+# Fashion MNIST class labels
+CLASS_NAMES = [
+    'T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+    'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot'
+]
 
-    # Architecture (70% quantum)
-    quantum_dim_1 = 128  # First quantum layer
-    quantum_dim_2 = 64   # Second quantum layer
-    classical_dim = 32   # Minimal classical layer
-
-    # Training
-    batch_size = 32
-    epochs = 10
-    learning_rate = 0.001
-    validation_split = 0.1
-
-    # Quantum execution
-    n_qubits = 8
-    n_layers = 3
-    shots = 1000
-    backend = "cirq_simulator"
+# Global configuration
+USE_MOCK = True
+IONQ_API_KEY = None
+IONQ_TARGET = None
+DEFAULT_BACKEND = 'mock_ideal'
 
     # Optimization
     use_adaptive_batching = True
@@ -69,6 +84,69 @@ class Config:
     checkpoint_dir = "experiments/fashion_mnist_tf_v4_1"
     metrics_dir = "experiments/fashion_mnist_tf_v4_1/metrics"
     save_frequency = 2  # Save every N epochs
+
+
+# ============================================================================
+# Backend Configuration
+# ============================================================================
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description='Fashion MNIST Classification with Q-Store v4.1.0 (TensorFlow)'
+    )
+    parser.add_argument(
+        '--no-mock',
+        action='store_true',
+        help='Use real IonQ backend (requires IONQ_API_KEY in .env)'
+    )
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=10,
+        help='Number of training epochs (default: 10)'
+    )
+    parser.add_argument(
+        '--batch-size',
+        type=int,
+        default=32,
+        help='Training batch size (default: 32)'
+    )
+    return parser.parse_args()
+
+
+def setup_backend():
+    """Setup quantum backend based on configuration."""
+    global USE_MOCK, IONQ_API_KEY, IONQ_TARGET
+
+    if not USE_MOCK:
+        IONQ_API_KEY = os.getenv('IONQ_API_KEY')
+        IONQ_TARGET = os.getenv('IONQ_TARGET', 'simulator')
+
+        if not IONQ_API_KEY:
+            print("\n⚠️  ERROR: --no-mock specified but IONQ_API_KEY not found in .env")
+            print("   Please set IONQ_API_KEY in examples/.env or use mock mode")
+            sys.exit(1)
+
+        Config.backend = 'ionq'
+        print(f"\n✓ Using real IonQ connection")
+        print(f"  Backend: {Config.backend}")
+        print(f"  Target: {IONQ_TARGET}")
+
+        # Configure IonQ backend if available
+        try:
+            from q_store.backends.ionq_hardware_backend import IonQHardwareBackend
+            print("✓ IonQ backend module loaded")
+        except ImportError as e:
+            print(f"⚠️  Failed to import IonQ backend: {e}")
+            print("   Falling back to simulator backend")
+            Config.backend = 'simulator'
+    else:
+        Config.backend = 'simulator'
+        print(f"\n✓ Using mock simulator backend (no API keys required)")
+        print(f"  Backend: {Config.backend}")
+
+    return Config.backend
 
 
 # ============================================================================
@@ -123,30 +201,28 @@ def build_quantum_first_model():
         # Classical encoding (minimal)
         keras.layers.Input(shape=(Config.input_dim,)),
         EncodingLayer(
-            output_dim=Config.input_dim,
-            normalize=True,
+            target_dim=Config.input_dim,
+            normalization='l2',
             name='encoding'
         ),
 
         # Quantum layer 1 (main computation)
         QuantumDense(
-            units=Config.quantum_dim_1,
             n_qubits=Config.n_qubits,
             n_layers=Config.n_layers,
             shots=Config.shots,
             backend=Config.backend,
-            activation='quantum_damping',
+            activation=None,
             name='quantum_dense_1'
         ),
 
         # Quantum layer 2
         QuantumDense(
-            units=Config.quantum_dim_2,
             n_qubits=Config.n_qubits,
             n_layers=Config.n_layers,
             shots=Config.shots,
             backend=Config.backend,
-            activation='quantum_damping',
+            activation=None,
             name='quantum_dense_2'
         ),
 
@@ -160,7 +236,7 @@ def build_quantum_first_model():
         # Classical decoding
         DecodingLayer(
             output_dim=Config.classical_dim,
-            scale=1.0,
+            scaling='expectation',
             name='decoding'
         ),
 
@@ -416,6 +492,15 @@ class QuantumFirstTrainer:
 
 def main():
     """Main training pipeline."""
+    global USE_MOCK
+
+    # Parse arguments
+    args = parse_args()
+    USE_MOCK = not args.no_mock
+
+    # Update config from args
+    Config.epochs = args.epochs
+    Config.batch_size = args.batch_size
 
     print("\n")
     print("╔════════════════════════════════════════════════════════════════════╗")
@@ -423,6 +508,13 @@ def main():
     print("║                                                                    ║")
     print("║  Quantum-first ML with 70% quantum computation                    ║")
     print("╚════════════════════════════════════════════════════════════════════╝")
+    print(f"\nConfiguration:")
+    print(f"  Mode: {'REAL QUANTUM (IonQ)' if not USE_MOCK else 'MOCK (Simulator)'}")
+    print(f"  Epochs: {Config.epochs}")
+    print(f"  Batch size: {Config.batch_size}")
+
+    # Setup backend
+    backend_name = setup_backend()
 
     start_time = time.time()
 
