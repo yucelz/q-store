@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "4.0.0"
-description = "Quantum-Native Database Architecture leveraging quantum mechanical properties"
+version = "4.1.0"
+description = "Quantum-First Machine Learning Framework with Async Execution and Production Storage"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENCE"]
@@ -45,6 +45,9 @@ dependencies = [
     "cirq>=1.3.0",
     "cirq-ionq>=1.3.0",
     "requests>=2.31.0",
+    "zarr>=2.16.0",
+    "pyarrow>=14.0.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +58,13 @@ backends = [
 ]
 ml = [
     "torch>=2.0.0",
+    "tensorflow>=2.13.0",
+]
+v4.1 = [
+    "zarr>=2.16.0",
+    "pyarrow>=14.0.0",
+    "aiohttp>=3.9.0",
+    "pandas>=2.0.0",
 ]
 build = [
     "Cython>=0.29.0",

@@ -48,6 +48,12 @@ setup(
         'q_store.backends': ['__init__.py'],
         'q_store.core': ['__init__.py'],
         'q_store.ml': ['__init__.py', 'README.md'],
+        'q_store.layers': ['__init__.py'],
+        'q_store.layers.quantum_core': ['__init__.py'],
+        'q_store.layers.classical_minimal': ['__init__.py'],
+        'q_store.runtime': ['__init__.py'],
+        'q_store.training': ['__init__.py'],
+        'q_store.storage': ['__init__.py'],
     },
 
     # Compile all Python files (except __init__.py) to binary
@@ -77,6 +83,9 @@ setup(
         "cirq>=1.3.0",
         "cirq-ionq>=1.3.0",
         "requests>=2.31.0",
+        "zarr>=2.16.0",
+        "pyarrow>=14.0.0",
+        "aiohttp>=3.9.0",
     ],
 
     python_requires=">=3.11",
