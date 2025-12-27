@@ -38,7 +38,9 @@ class QuantumReadout:
     readout_type : str, default='computational'
         Type of readout: 'computational' or 'expectation'
     backend : str, default='ionq'
-        Quantum backend to use
+        Quantum backend to use (ignored if backend_instance provided)
+    backend_instance : Any, optional
+        Pre-configured backend instance (e.g., IonQHardwareBackend)
 
     Examples
     --------
@@ -53,12 +55,14 @@ class QuantumReadout:
         n_classes: int,
         readout_type: str = 'computational',
         backend: str = 'ionq',
+        backend_instance: Optional[Any] = None,
         **kwargs
     ):
         self.n_qubits = n_qubits
         self.n_classes = n_classes
         self.readout_type = readout_type
         self.backend = backend
+        self.backend_instance = backend_instance
 
         # Check if n_qubits sufficient
         max_classes = 2 ** n_qubits

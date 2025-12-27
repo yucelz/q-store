@@ -128,11 +128,26 @@ if [ "$MODE" = "real" ]; then
         exit 1
     fi
 
+    # Load environment variables from .env file (ignoring comments)
+    set -a  # automatically export all variables
+    while IFS= read -r line || [ -n "$line" ]; do
+        # Skip empty lines and comments
+        [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+        # Remove inline comments and export
+        line="${line%%#*}"
+        line="${line%"${line##*[![:space:]]}"}"  # trim trailing whitespace
+        [[ -n "$line" ]] && export "$line"
+    done < "$ENV_FILE"
+    set +a
+
     # Check if IONQ_API_KEY is set
-    if ! grep -q "IONQ_API_KEY=" "$ENV_FILE" 2>/dev/null; then
-        echo -e "${RED}Error: IONQ_API_KEY not found in $ENV_FILE${NC}"
+    if [ -z "$IONQ_API_KEY" ]; then
+        echo -e "${RED}Error: IONQ_API_KEY not set in $ENV_FILE${NC}"
         exit 1
     fi
+
+    echo -e "${GREEN}✓ Loaded environment variables from .env${NC}"
+    echo -e "${GREEN}  IONQ_API_KEY: ${IONQ_API_KEY:0:10}...${NC}"
 fi
 
 # Print configuration

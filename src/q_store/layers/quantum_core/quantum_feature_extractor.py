@@ -73,7 +73,9 @@ class QuantumFeatureExtractor:
     measurement_bases : List[str], default=['Z', 'X', 'Y']
         Measurement bases for feature extraction
     backend : str, default='ionq'
-        Quantum backend to use
+        Quantum backend to use (ignored if backend_instance provided)
+    backend_instance : Any, optional
+        Pre-configured backend instance (e.g., IonQHardwareBackend)
 
     Examples
     --------
@@ -89,6 +91,7 @@ class QuantumFeatureExtractor:
         entanglement: str = 'full',
         measurement_bases: Optional[List[str]] = None,
         backend: str = 'ionq',
+        backend_instance: Optional[Any] = None,
         **kwargs
     ):
         self.n_qubits = n_qubits
@@ -96,6 +99,7 @@ class QuantumFeatureExtractor:
         self.entanglement = entanglement
         self.measurement_bases = measurement_bases or ['Z', 'X', 'Y']
         self.backend = backend
+        self.backend_instance = backend_instance
 
         # Output dimension: n_qubits * len(measurement_bases)
         self.output_dim = n_qubits * len(self.measurement_bases)
@@ -111,7 +115,11 @@ class QuantumFeatureExtractor:
 
         # Async execution executor (Phase 2 - NOW ACTIVE!)
         from q_store.runtime import AsyncQuantumExecutor
-        self.executor = AsyncQuantumExecutor(backend=backend, **kwargs)
+        self.executor = AsyncQuantumExecutor(
+            backend=backend,
+            backend_instance=backend_instance,
+            **kwargs
+        )
 
     def _count_parameters(self) -> int:
         """Count total number of trainable parameters."""

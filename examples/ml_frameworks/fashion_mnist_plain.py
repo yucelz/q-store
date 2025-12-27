@@ -15,15 +15,27 @@ Architecture:
     # Classical decoding is implicit (5%)
 
 Usage:
-    # Run with mock backend (default, no API keys needed)
-    python examples/ml_frameworks/tensorflow/fashion_mnist_plain.py
+    # Run with local simulator (default, no API keys needed)
+    python examples/ml_frameworks/fashion_mnist_plain.py
 
-    # Run with real IonQ connection (requires IONQ_API_KEY in .env)
-    python examples/ml_frameworks/tensorflow/fashion_mnist_plain.py --no-mock
+    # Run with REAL IonQ hardware (requires API key and credits)
+    python examples/ml_frameworks/fashion_mnist_plain.py --no-mock
+
+IMPORTANT - Real IonQ Hardware:
+    When --no-mock flag is used, this example will use the REAL IonQ hardware backend
+    and make actual API calls to cloud.ionq.com using your API credits.
+
+    Requirements for real hardware:
+    - IONQ_API_KEY in examples/.env
+    - cirq and cirq-ionq packages installed
+    - API credits available
+
+    Without --no-mock flag (default):
+    - Uses local simulator (no API calls, no credits used)
 
 Configuration:
     Create examples/.env from examples/.env.example and set:
-    - IONQ_API_KEY: Your IonQ API key
+    - IONQ_API_KEY: Your IonQ API key (optional for this example)
     - IONQ_TARGET: simulator or qpu.harmony
 """
 
@@ -34,7 +46,7 @@ import asyncio
 import time
 import numpy as np
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 # Try to load dotenv if available
 try:
@@ -277,7 +289,7 @@ def load_fashion_mnist(num_samples: int = 1000) -> Tuple:
     return (x_train, y_train), (x_val, y_val), (x_test, y_test)
 
 
-def setup_backend() -> Tuple[str, dict]:
+def setup_backend() -> Tuple[str, dict, Any]:
     """
     Setup quantum backend based on configuration.
 
@@ -286,34 +298,70 @@ def setup_backend() -> Tuple[str, dict]:
     backend_name : str
         Backend name ('simulator' or 'ionq')
     backend_kwargs : dict
-        Backend configuration
+        Backend configuration kwargs
+    backend_instance : Any
+        Pre-configured backend instance (None if using string backend)
     """
     global USE_MOCK, IONQ_API_KEY, IONQ_TARGET
 
     backend_kwargs = {}
+    backend_instance = None
 
     if not USE_MOCK:
+        # Use REAL IonQ hardware backend
         if not IONQ_API_KEY:
-            print("\n⚠️  ERROR: --no-mock specified but IONQ_API_KEY not found in .env")
-            print("   Please set IONQ_API_KEY in examples/.env or use mock mode")
-            sys.exit(1)
+            print("\n❌ ERROR: IONQ_API_KEY not found in environment")
+            print("   Set it in examples/.env to use real hardware")
+            print("   Falling back to local simulator")
+            backend_name = 'simulator'
+            print(f"\n✓ Using local simulator backend (fallback)")
+            return backend_name, backend_kwargs, backend_instance
 
-        backend_name = 'ionq'
-        backend_kwargs = {
-            'api_key': IONQ_API_KEY,
-            'target': IONQ_TARGET or 'simulator',
-        }
-        print(f"\n✓ Using real IonQ connection")
-        print(f"  Backend: {backend_name}")
-        print(f"  Target: {IONQ_TARGET or 'simulator'}")
+        # Check for cirq-ionq
+        try:
+            from q_store.backends import IonQHardwareBackend
+        except ImportError as e:
+            print(f"\n❌ ERROR: Missing dependency: {e}")
+            print("   Install with: pip install cirq cirq-ionq")
+            print("   Falling back to local simulator")
+            backend_name = 'simulator'
+            print(f"\n✓ Using local simulator backend (fallback)")
+            return backend_name, backend_kwargs, backend_instance
+
+        # Create real IonQ hardware backend
+        try:
+            print(f"\n✓ Creating REAL IonQ hardware backend...")
+            print(f"  API Key: {IONQ_API_KEY[:10]}...{IONQ_API_KEY[-4:]}")
+            print(f"  Target: {IONQ_TARGET}")
+            print(f"\n  ⚠️  WARNING: This will use REAL quantum hardware")
+            print(f"  ⚠️  API calls will consume your IonQ credits!")
+
+            backend_instance = IonQHardwareBackend(
+                api_key=IONQ_API_KEY,
+                target=IONQ_TARGET,
+                use_native_gates=True,
+                timeout=300
+            )
+
+            backend_name = 'ionq'
+            backend_kwargs['backend_instance'] = backend_instance
+
+            print(f"\n✓ Real IonQ backend created successfully")
+            print(f"  Type: {type(backend_instance).__name__}")
+            print(f"  Target: {backend_instance.target}")
+
+        except Exception as e:
+            print(f"\n❌ ERROR: Failed to create IonQ backend: {e}")
+            print("   Falling back to local simulator")
+            backend_name = 'simulator'
+            backend_instance = None
+            backend_kwargs = {}
     else:
         backend_name = 'simulator'
-        print(f"\n✓ Using mock simulator backend (no API keys required)")
+        print(f"\n✓ Using local simulator backend (no API calls, no credits)")
         print(f"  Backend: {backend_name}")
 
-    return backend_name, backend_kwargs
-
-
+    return backend_name, backend_kwargs, backend_instance
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
@@ -322,7 +370,7 @@ def parse_args():
     parser.add_argument(
         '--no-mock',
         action='store_true',
-        help='Use real IonQ backend (requires IONQ_API_KEY in .env)'
+        help='Use REAL IonQ hardware backend (requires IONQ_API_KEY in .env and consumes credits)'
     )
     parser.add_argument(
         '--samples',
@@ -358,13 +406,14 @@ def main():
     print("\n" + "="*70)
     print("Fashion MNIST Classification with Q-Store v4.1 (Plain Python)")
     print("="*70)
+
     print(f"\nConfiguration:")
-    print(f"  Mode: {'REAL QUANTUM' if not USE_MOCK else 'MOCK (Simulator)'}")
+    print(f"  Mode: {'REAL IONQ HARDWARE' if not USE_MOCK else 'LOCAL SIMULATOR'}")
     print(f"  Test samples: {args.samples}")
     print(f"  Batch size: {args.batch_size}")
 
     # Setup backend
-    backend_name, backend_kwargs = setup_backend()
+    backend_name, backend_kwargs, backend_instance = setup_backend()
 
     # Load data
     print("\n" + "="*70)

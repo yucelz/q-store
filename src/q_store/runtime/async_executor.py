@@ -40,7 +40,7 @@ class AsyncQuantumExecutor:
     Parameters
     ----------
     backend : str, default='simulator'
-        Backend to use: 'simulator' or 'ionq'
+        Backend to use: 'simulator' or 'ionq' (ignored if backend_instance provided)
     max_concurrent : int, default=100
         Maximum concurrent circuit submissions
     batch_size : int, default=20
@@ -48,7 +48,10 @@ class AsyncQuantumExecutor:
     cache_size : int, default=1000
         Result cache size
     backend_kwargs : dict, optional
-        Additional backend-specific arguments
+        Additional backend-specific arguments (only used if backend_instance is None)
+    backend_instance : Any, optional
+        Pre-configured backend instance (e.g., IonQHardwareBackend).
+        If provided, this will be used instead of creating a new backend client.
 
     Examples
     --------
@@ -69,14 +72,28 @@ class AsyncQuantumExecutor:
         batch_size: int = 20,
         cache_size: int = 1000,
         backend_kwargs: Optional[Dict] = None,
+        backend_instance: Optional[Any] = None,
     ):
         self.backend_name = backend
         self.max_concurrent = max_concurrent
         self.batch_size = batch_size
 
-        # Create backend client
+        # Use provided backend instance or create one
         backend_kwargs = backend_kwargs or {}
-        self.backend_client = self._create_backend_client(backend, backend_kwargs)
+        if backend_instance is not None:
+            # Check if it's IonQHardwareBackend that needs adaptation
+            if hasattr(backend_instance, '__class__') and backend_instance.__class__.__name__ == 'IonQHardwareBackend':
+                from q_store.runtime.ionq_adapter import IonQBackendClientAdapter
+                logger.info("Automatically wrapping IonQHardwareBackend with async adapter")
+                self.backend_client = IonQBackendClientAdapter(backend_instance)
+                self.backend_name = 'ionq_hardware'
+            else:
+                # Use the provided backend instance directly
+                self.backend_client = backend_instance
+                self.backend_name = getattr(backend_instance, 'name', 'custom')
+        else:
+            # Create backend client from string name
+            self.backend_client = self._create_backend_client(backend, backend_kwargs)
 
         # Result cache
         self.cache = ResultCache(max_size=cache_size)

@@ -38,7 +38,9 @@ class QuantumPooling:
     aggregation : str, default='mean'
         How to aggregate pooled values: 'mean', 'max', or 'sum'
     backend : str, default='ionq'
-        Quantum backend to use
+        Quantum backend to use (ignored if backend_instance provided)
+    backend_instance : Any, optional
+        Pre-configured backend instance (e.g., IonQHardwareBackend)
 
     Examples
     --------
@@ -54,6 +56,7 @@ class QuantumPooling:
         pooling_type: str = 'measurement',
         aggregation: str = 'mean',
         backend: str = 'ionq',
+        backend_instance: Optional[Any] = None,
         **kwargs
     ):
         self.n_qubits = n_qubits
@@ -61,6 +64,7 @@ class QuantumPooling:
         self.pooling_type = pooling_type
         self.aggregation = aggregation
         self.backend = backend
+        self.backend_instance = backend_instance
 
         # Output dimension
         self.output_qubits = n_qubits // pool_size

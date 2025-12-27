@@ -120,7 +120,6 @@ examples/
 │
 ├── ml_frameworks/                     # Machine Learning Integration
 │   ├── fashion_mnist_plain.py         # v4.1 plain Python (no Keras/PyTorch)
-│   ├── run_fashion_mnist_plain.sh     # Convenience script for plain version
 │   ├── framework_integration_demo.py  # Compare TF vs PyTorch
 │   ├── tensorflow/
 │   │   ├── fashion_mnist_quantum_layers.py      # Basic quantum layers
@@ -134,7 +133,11 @@ examples/
 ├── async_features/                    # Async Execution & Storage (v4.1)
 │   ├── basic_async_usage.py          # Introduction to async patterns
 │   ├── async_performance_demo.py     # Async vs sync benchmarks
-│   └── storage_demo.py               # Zarr checkpoints & Parquet metrics
+│   ├── storage_demo.py               # Zarr checkpoints & Parquet metrics
+│   ├── minimal_ionq_test.py          # Minimal IonQ connection test
+│   ├── basic_ionq_connection.py      # Detailed IonQ connection example
+│   ├── real_ionq_hardware.py         # Real IonQ hardware backend example
+│   └── run_ionq_test.sh              # Interactive IonQ test runner
 │
 ├── optimization/                      # Performance Optimization (v4.1)
 │   └── optimization_demo.py          # Adaptive batching, caching, compilation
@@ -174,21 +177,30 @@ python examples/basic_usage.py
 **Best for learning the v4.1 architecture without ML framework complexity:**
 
 ```bash
-# Run with default settings (100 samples, batch size 8)
-./examples/ml_frameworks/run_fashion_mnist_plain.sh
+# Run with local simulator (default, no API keys needed)
+python examples/ml_frameworks/fashion_mnist_plain.py
 
-# Run with custom parameters
-./examples/ml_frameworks/run_fashion_mnist_plain.sh --samples 50 --batch-size 4
+# Run with REAL IonQ hardware (requires API key, consumes credits!)
+python examples/ml_frameworks/fashion_mnist_plain.py --no-mock
 
-# Run with real quantum hardware (auto-confirm with --yes)
-./examples/ml_frameworks/run_fashion_mnist_plain.sh --real --samples 10 --yes
+# Custom parameters
+python examples/ml_frameworks/fashion_mnist_plain.py --samples 50 --batch-size 4
 ```
 
 **Key Features:**
 - Pure v4.1 quantum layers (no Keras/PyTorch wrapper)
 - 70% quantum computation architecture
-- Async execution demonstration
+- Async execution demonstration with AsyncQuantumExecutor
 - Inference-only (no training)
+- **NOW supports REAL IonQ hardware with --no-mock flag**
+
+**⚠️ Important - Real IonQ Hardware:**
+- Use `--no-mock` flag to run on **REAL IonQ quantum hardware**
+- **Makes actual API calls** to cloud.ionq.com
+- **Consumes your IonQ API credits**
+- Requires `IONQ_API_KEY` in `examples/.env`
+- Requires `cirq` and `cirq-ionq` packages installed
+- For production ML training with real quantum hardware, use TensorFlow or PyTorch versions
 
 **Architecture:**
 ```python
@@ -255,6 +267,15 @@ python examples/async_features/async_performance_demo.py
 
 # Production storage (Zarr + Parquet)
 python examples/async_features/storage_demo.py
+
+# Test IonQ connection (minimal)
+python examples/async_features/minimal_ionq_test.py
+
+# Test IonQ connection (detailed)
+python examples/async_features/basic_ionq_connection.py
+
+# Real IonQ hardware backend
+python examples/async_features/real_ionq_hardware.py
 ```
 
 **Key Features:**
@@ -262,6 +283,7 @@ python examples/async_features/storage_demo.py
 - Concurrent batch processing
 - Zarr checkpointing
 - Parquet metrics logging
+- Real IonQ API integration
 
 ### 4. Performance Optimization (v4.1)
 
@@ -306,26 +328,28 @@ python examples/validation/simple_classification.py
 
 ## 🏃 Running Examples
 
-### Convenience Scripts
+### Direct Python Commands
 
-For easier execution, use the provided shell scripts:
+All examples can be run directly with Python:
 
 ```bash
-# Fashion MNIST Plain Python (v4.1)
-./examples/ml_frameworks/run_fashion_mnist_plain.sh --help
+# Fashion MNIST Plain Python (v4.1) - Mock backend
+python examples/ml_frameworks/fashion_mnist_plain.py
 
-# Quick examples:
-./examples/ml_frameworks/run_fashion_mnist_plain.sh                    # Mock mode, defaults
-./examples/ml_frameworks/run_fashion_mnist_plain.sh --samples 200     # More samples
-./examples/ml_frameworks/run_fashion_mnist_plain.sh --real --yes      # Real hardware, auto-confirm
+# Fashion MNIST Plain Python - Custom parameters
+python examples/ml_frameworks/fashion_mnist_plain.py --samples 200 --batch-size 16
+
+# Fashion MNIST Plain Python - Real IonQ hardware (requires API key)
+python examples/ml_frameworks/fashion_mnist_plain.py --no-mock --samples 10
 ```
 
-**Script Options:**
-- `--mock` / `--real` - Backend selection (default: mock)
-- `--samples N` - Number of test samples (default: 100)
-- `--batch-size N` - Batch size for inference (default: 8)
-- `-y, --yes` - Skip confirmation prompt for real hardware
-- `-h, --help` - Show help message
+### Command-Line Options
+
+**Fashion MNIST Plain Python:**
+- `--no-mock` - Use REAL IonQ hardware (requires API key, consumes credits; default: local simulator)
+- `--samples N` - Number of test samples (default: 1000)
+- `--batch-size N` - Batch size for inference (default: 16)
+- `--help` - Show help message
 
 ### Mock Mode (Default - No API Keys Required)
 
@@ -489,21 +513,23 @@ pip install "q-store[v4.1]"
 ## 📚 Learning Path
 
 ### Beginner
-1. `examples/basic_usage.py` - Core concepts
-2. `examples/basic_pinecone_setup.py` - Vector database setup
-3. `examples/ml_frameworks/fashion_mnist_plain.py` - v4.1 architecture (plain Python)
-4. `examples/async_features/basic_async_usage.py` - Async patterns
+1. `python examples/basic_usage.py` - Core concepts
+2. `python examples/basic_pinecone_setup.py` - Vector database setup
+3. `python examples/ml_frameworks/fashion_mnist_plain.py` - v4.1 architecture
+4. `python examples/async_features/basic_async_usage.py` - Async patterns
+5. `python examples/async_features/minimal_ionq_test.py` - IonQ connection test
 
 ### Intermediate
-4. `examples/ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py` - TensorFlow integration
-5. `examples/ml_frameworks/pytorch/fashion_mnist_quantum_layers.py` - PyTorch integration
-6. `examples/quantum_algorithms/qml_examples.py` - QML patterns
+6. `python examples/ml_frameworks/tensorflow/fashion_mnist_quantum_layers.py` - TensorFlow
+7. `python examples/ml_frameworks/pytorch/fashion_mnist_quantum_layers.py` - PyTorch
+8. `python examples/quantum_algorithms/qml_examples.py` - QML patterns
+9. `python examples/async_features/real_ionq_hardware.py` - Real IonQ backend
 
 ### Advanced
-7. `examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py` - v4.1 quantum-first
-8. `examples/optimization/optimization_demo.py` - Performance tuning
-9. `examples/async_features/storage_demo.py` - Production storage
-10. `examples/quantum_algorithms/chemistry_examples.py` - Domain applications
+10. `python examples/ml_frameworks/tensorflow/fashion_mnist_tensorflow.py` - v4.1 quantum-first
+11. `python examples/optimization/optimization_demo.py` - Performance tuning
+12. `python examples/async_features/storage_demo.py` - Production storage
+13. `python examples/quantum_algorithms/chemistry_examples.py` - Domain applications
 
 ---
 
