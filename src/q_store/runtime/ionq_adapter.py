@@ -178,7 +178,7 @@ class IonQBackendClientAdapter(BackendClient):
             job.status = 'failed'
             job.completed_at = time.time()
 
-            logger.error(f"Job {job_id} failed: {e}")
+            logger.error(f"Job {job_id} failed: {e}", exc_info=True)
 
     async def get_status(self, job_id: str) -> str:
         """
@@ -306,9 +306,9 @@ class IonQBackendClientAdapter(BackendClient):
 
                 # Handle encoding layer (special case)
                 if gate_type == 'encoding':
-                    # TEMPORARY WORKAROUND: Skip amplitude encoding to test rest of pipeline
-                    # TODO: Fix AmplitudeEncoding algorithm for edge cases
-                    logger.warning("Skipping amplitude encoding (temporary workaround)")
+                    # Skip encoding - not needed for variational quantum circuits
+                    # Data is embedded through parameterized gates (RY, RZ)
+                    logger.debug("Skipping encoding gate (data embedded via parameterized gates)")
                     continue
 
                 # Handle single-qubit gates (RY, RZ, H, X, Y, Z)

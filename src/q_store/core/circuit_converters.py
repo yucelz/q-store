@@ -78,7 +78,12 @@ class CirqConverter:
         for gate in unified_circuit.gates:
             cirq_gate = CirqConverter._convert_gate(gate, qubits, cirq_params)
             if cirq_gate is not None:
-                circuit.append(cirq_gate)
+                # Handle both single gates and lists of gates (for GPI/GPI2 decomposition)
+                if isinstance(cirq_gate, list):
+                    for g in cirq_gate:
+                        circuit.append(g)
+                else:
+                    circuit.append(cirq_gate)
         
         return circuit
     
@@ -111,14 +116,25 @@ class CirqConverter:
         
         # Handle IonQ native gates
         if gate.gate_type == GateType.GPI:
-            # GPI gate implementation
-            angle = gate.parameters.get('phi', 0) if gate.parameters else 0
-            return cirq.XPowGate(exponent=1, global_shift=angle)(targets[0])
-        
+            # GPI(φ) gate: rotation by π around axis at angle φ in XY plane
+            # Implemented as: Rz(-φ) · X · Rz(φ)
+            phi = gate.parameters.get('phi', 0) if gate.parameters else 0
+            # Return as a sequence: Rz(-phi), X, Rz(phi)
+            return [
+                cirq.rz(-phi)(targets[0]),
+                cirq.X(targets[0]),
+                cirq.rz(phi)(targets[0])
+            ]
+
         elif gate.gate_type == GateType.GPI2:
-            # GPI2 gate implementation
-            angle = gate.parameters.get('phi', 0) if gate.parameters else 0
-            return cirq.XPowGate(exponent=0.5, global_shift=angle)(targets[0])
+            # GPI2(φ) gate: rotation by π/2 around axis at angle φ in XY plane
+            # Implemented as: Rz(-φ) · √X · Rz(φ)
+            phi = gate.parameters.get('phi', 0) if gate.parameters else 0
+            return [
+                cirq.rz(-phi)(targets[0]),
+                cirq.XPowGate(exponent=0.5)(targets[0]),
+                cirq.rz(phi)(targets[0])
+            ]
         
         elif gate.gate_type == GateType.MS:
             # Mølmer-Sørensen gate (XX interaction)

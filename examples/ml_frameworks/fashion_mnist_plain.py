@@ -339,7 +339,7 @@ def setup_backend() -> Tuple[str, dict, Any]:
             backend_instance = IonQHardwareBackend(
                 api_key=IONQ_API_KEY,
                 target=IONQ_TARGET,
-                use_native_gates=True,
+                use_native_gates=False,  # Let IonQ handle native gate compilation
                 timeout=300
             )
 

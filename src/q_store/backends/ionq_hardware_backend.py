@@ -291,6 +291,18 @@ class IonQHardwareBackend(QuantumBackend):
         if parameters:
             circuit = circuit.bind_parameters(parameters)
 
+        # Debug: Check for invalid parameters in gates before compilation
+        if circuit.n_qubits <= 4:
+            invalid_params = []
+            for i, gate in enumerate(circuit.gates):
+                if gate.parameters:
+                    for param_name, param_val in gate.parameters.items():
+                        if isinstance(param_val, (int, float)):
+                            if np.isnan(param_val) or np.isinf(param_val):
+                                invalid_params.append((i, gate.gate_type, param_name, param_val))
+            if invalid_params:
+                logger.error(f"Invalid parameters before compilation: {invalid_params[:5]}")
+
         # Compile to native gates if requested
         if self.use_native_gates:
             circuit = self._compile_to_native_gates(circuit)
@@ -305,12 +317,27 @@ class IonQHardwareBackend(QuantumBackend):
                   for moment in cirq_circuit for op in moment):
             cirq_circuit.append(cirq.measure(*qubits, key='result'))
 
+        # Debug: Log circuit details
+        operations = list(cirq_circuit.all_operations())
+        logger.info(f"Circuit debug: {len(qubits)} qubits, {len(operations)} operations")
+
+        # Check if circuit is valid (has non-measurement operations)
+        non_measurement_ops = [op for op in operations if not isinstance(op.gate, cirq.MeasurementGate)]
+        if len(non_measurement_ops) == 0:
+            logger.error("Circuit has no non-measurement operations!")
+
+        logger.info(f"First 10 operations: {operations[:10]}")
+
         # Estimate cost
         cost = self.estimate_cost(shots)
         logger.info(f"Submitting job to {self.target} (shots={shots}, estimated_cost=${cost:.4f})")
 
         # Submit job
         try:
+            # Debug: Print circuit for inspection
+            if len(qubits) <= 4:
+                logger.info(f"Submitting circuit:\n{cirq_circuit}")
+
             job_result = self.service.run(
                 circuit=cirq_circuit,
                 repetitions=shots,
