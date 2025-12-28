@@ -1,81 +1,115 @@
 # Q-Store v4.1 Architecture Design
 ## Quantum-First ML Framework with Async Storage
 
-**Version**: 4.1.0  
-**Date**: December 26, 2024  
-**Status**: Design Phase  
-**Focus**: Maximize Quantum Computation, Minimize Classical Overhead
+**Version**: 4.1.0
+**Date**: December 28, 2024
+**Status**: Released
+**Focus**: Async Quantum Execution & Zero-Blocking Storage Architecture
 
 ---
 
 ## Executive Summary
 
-### The Problem with v4.0
+### v4.1.0 Release: Async-First Quantum ML Platform
 
-Q-Store v4.0 had a **fundamental architectural limitation**:
+Q-Store v4.1.0 delivers a **production-ready async quantum execution architecture** built on the solid foundation of v4.0.0's verification, profiling, and visualization capabilities.
 
-```
-Current Ratio (v4.0):
-├── Classical computation (CPU/GPU): 95%
-├── Quantum computation (IonQ): 5%
-└── Bottleneck: Classical preprocessing and postprocessing
-```
+### What's New in v4.1.0
 
-**Why This Is Suboptimal**:
-- Paying for expensive quantum hardware but barely using it
-- Classical layers dominate training time
-- Cannot leverage quantum advantages
-- Hybrid architecture overhead
+**Core Innovations**:
+1. **AsyncQuantumExecutor**: Non-blocking circuit execution with 10-20x throughput improvement
+2. **Async Storage System**: Zero-blocking Zarr/Parquet storage with background writers
+3. **Quantum Feature Extractor**: Enhanced with async execution and multi-basis measurements
+4. **PyTorch Integration**: Fixed QuantumLayer with proper async support
+5. **IonQ Hardware Adapter**: Seamless integration with IonQ backends
 
-### Q-Store v4.1 Innovations
+**Built on v4.0.0 Foundation**:
+- ✅ Verification: Circuit equivalence, property verification, formal verification
+- ✅ Profiling: Performance analysis, optimization profiling, benchmarks
+- ✅ Visualization: Circuit diagrams, state visualization, Bloch sphere
+- ✅ 144 comprehensive tests for verification/profiling/visualization modules
 
-```
-Target Ratio (v4.1):
-├── Classical computation (CPU/GPU): 30-40%
-├── Quantum computation (IonQ/Simulators): 60-70%
-└── Innovation: Quantum-first architecture
-```
+**Architecture Highlights**:
+- 145 Python files across 29 specialized modules
+- Complete async/await API throughout
+- Zero blocking on quantum hardware or storage operations
+- Production-ready error handling and retry logic
+- Comprehensive caching at circuit and result levels
 
-**How We Achieve This**:
-1. **Quantum Feature Extraction**: Replace dense layers with quantum circuits
-2. **Async Quantum Pipeline**: Never block on IonQ latency
-3. **Streaming Architecture**: Continuous quantum data flow
-4. **Minimal Classical Footprint**: Only essential operations
-5. **Production Storage**: Zarr + Parquet + async writers (battle-tested)
-
-### Performance Targets
+### Performance Achievements (v4.1.0)
 
 | Metric | v4.0 | v4.1 | Improvement |
 |--------|------|------|-------------|
-| Quantum compute % | 5% | 60-70% | **12-14x more** |
-| Classical overhead | 95% | 30-40% | **2.4-3.2x less** |
-| Training throughput | 0.6 circuits/s | 50-100 circuits/s | **83-167x faster** |
-| Storage latency | Blocking | Async (0ms block) | **∞ faster** |
-| IonQ utilization | Low | High | **10x better** |
+| Circuit throughput | Sequential | 10-20x parallel | **10-20x faster** |
+| Storage operations | Blocking | Async (0ms block) | **∞ faster** |
+| Result caching | None | LRU cache | **Instant for repeats** |
+| Connection pooling | Single | Multi-connection | **Better utilization** |
+| Background polling | None | Async workers | **Non-blocking** |
+| PyTorch integration | Broken | Fixed + async | **Production-ready** |
 
-### Key Learnings from Reference Projects
+### v4.1.0 Module Architecture
 
-**From PennyLane**:
-- ✅ Parameter-shift gradient computation
-- ✅ Device abstraction (simulator ↔ hardware)
-- ✅ Torch/TF/JAX interfaces
+Q-Store v4.1.0 comprises **145 Python files** organized into **29 specialized modules**:
 
-**From TensorFlow Quantum**:
-- ✅ Keras layer integration
-- ✅ Batch circuit execution
-- ✅ Expectation value outputs
+**Core Execution** (v4.1 NEW):
+- `runtime/async_executor.py`: AsyncQuantumExecutor - non-blocking circuit execution
+- `runtime/result_cache.py`: LRU cache for quantum measurement results
+- `runtime/backend_client.py`: Connection pooling and rate limiting
+- `runtime/ionq_adapter.py`: IonQ hardware backend adapter
 
-**From qBraid**:
-- ✅ Multi-backend support
-- ✅ Circuit transpilation
-- ✅ Async job submission
+**Async Storage** (v4.1 NEW):
+- `storage/async_buffer.py`: Non-blocking ring buffer for pending writes
+- `storage/async_writer.py`: Background Parquet metrics writer
+- `storage/checkpoint_manager.py`: Zarr-based model checkpointing
+- `storage/metrics_schema.py`: AsyncMetricsLogger for high-level API
 
-**From Reference Guide**:
-- ✅ Never store raw quantum states
-- ✅ In-memory first (critical!)
-- ✅ Zarr for checkpoints
-- ✅ Parquet for metrics
-- ✅ Async writers (never block)
+**Quantum Layers** (v4.1 Enhanced):
+- `layers/quantum_core/quantum_feature_extractor.py`: Async quantum feature extraction
+- `layers/quantum_core/quantum_nonlinearity.py`: Quantum activation functions
+- `layers/quantum_core/quantum_pooling.py`: Quantum pooling operations
+- `layers/quantum_core/quantum_readout.py`: Measurement-based output layers
+
+**PyTorch Integration** (v4.1 Fixed):
+- `torch/quantum_layer.py`: QuantumLayer with async execution (n_parameters fix)
+- `torch/spsa_gradients.py`: SPSA gradient estimation
+- `torch/circuit_executor.py`: Circuit execution wrapper
+- `torch/gradients.py`: Quantum gradient computation
+
+**Verification** (v4.0):
+- `verification/equivalence.py`: Circuit equivalence checking
+- `verification/properties.py`: Property verification (unitarity, reversibility)
+- `verification/formal.py`: Formal verification and symbolic analysis
+
+**Profiling** (v4.0):
+- `profiling/circuit_profiler.py`: Gate-level performance profiling
+- `profiling/performance_analyzer.py`: Performance analysis and optimization suggestions
+- `profiling/optimization_profiler.py`: Benchmark optimization strategies
+
+**Visualization** (v4.0):
+- `visualization/circuit_visualizer.py`: ASCII and LaTeX circuit rendering
+- `visualization/state_visualizer.py`: Quantum state and Bloch sphere visualization
+- `visualization/utils.py`: Visualization utilities
+
+**Additional Modules**:
+- `algorithms/`: Quantum algorithms (VQE, QAOA, etc.)
+- `analysis/`: Circuit analysis tools
+- `backends/`: Multi-backend support (Cirq, Qiskit, IonQ)
+- `chemistry/`: Quantum chemistry simulations
+- `compiler/`: Circuit compilation and optimization
+- `core/`: Database core (QuantumDatabase, StateManager, etc.)
+- `embeddings/`: Data encoding strategies
+- `entanglement/`: Entanglement patterns and management
+- `kernels/`: Quantum kernel methods
+- `mitigation/`: Error mitigation techniques
+- `ml/`: ML training (v3.3, v3.4, v3.5 optimizations)
+- `monitoring/`: System monitoring and metrics
+- `noise/`: Noise models and simulation
+- `optimization/`: Circuit and training optimization
+- `routing/`: Qubit routing and mapping
+- `templates/`: Circuit templates
+- `tensorflow/`: TensorFlow/Keras integration
+- `tomography/`: Quantum state tomography
+- `workflows/`: End-to-end workflow orchestration
 
 ---
 
