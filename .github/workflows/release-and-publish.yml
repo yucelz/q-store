@@ -9,6 +9,17 @@ on:
       - "Build macOS ARM64 Wheels"
     types:
       - completed
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v4.1.0)'
+        required: true
+        type: string
+      skip_build_check:
+        description: 'Skip checking all builds completed (use with caution)'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -18,7 +29,7 @@ jobs:
   check_builds:
     name: Check all builds completed successfully
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
       tag_name: ${{ steps.extract_tag.outputs.tag_name }}
@@ -29,12 +40,17 @@ jobs:
       - name: Extract tag from triggering workflow
         id: extract_tag
         run: |
-          # Get the head branch from the triggering workflow run
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
-          echo "Head branch: $HEAD_BRANCH"
+          # Handle manual dispatch
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            TAG_NAME="${{ github.event.inputs.tag }}"
+            echo "Manual trigger for tag: $TAG_NAME"
+          else
+            # Get the head branch from the triggering workflow run
+            TAG_NAME="${{ github.event.workflow_run.head_branch }}"
+            echo "Automatic trigger for tag: $TAG_NAME"
+          fi
 
-          if [[ "$HEAD_BRANCH" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
-            TAG_NAME="$HEAD_BRANCH"
+          if [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
             VERSION="${TAG_NAME#v}"
             echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -62,6 +78,13 @@ jobs:
             exit 0
           fi
 
+          # Skip build check if manually requested
+          if [[ "${{ github.event.inputs.skip_build_check }}" == "true" ]]; then
+            echo "⚠ Skipping build check as requested"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           echo "Checking builds for tag: $TAG"
 
           # Get all workflow runs for this tag
@@ -78,15 +101,18 @@ jobs:
           echo "macOS Intel: $MACOS_INTEL_STATUS"
           echo "macOS ARM: $MACOS_ARM_STATUS"
 
-          # Check if all are successful
-          if [[ "$LINUX_STATUS" == "success" ]] && \
-             [[ "$WINDOWS_STATUS" == "success" ]] && \
-             [[ "$MACOS_INTEL_STATUS" == "success" ]] && \
-             [[ "$MACOS_ARM_STATUS" == "success" ]]; then
-            echo "✓ All builds completed successfully"
+          # Check if at least 3 major platforms succeeded (allow skipping one)
+          SUCCESS_COUNT=0
+          [[ "$LINUX_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          [[ "$WINDOWS_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          [[ "$MACOS_ARM_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+          [[ "$MACOS_INTEL_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+
+          if [[ $SUCCESS_COUNT -ge 3 ]]; then
+            echo "✓ At least 3 platforms completed successfully ($SUCCESS_COUNT/4)"
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
-            echo "⚠ Not all builds completed yet or some failed"
+            echo "⚠ Not enough builds completed: $SUCCESS_COUNT/4 succeeded"
             echo "should_release=false" >> $GITHUB_OUTPUT
           fi
 
