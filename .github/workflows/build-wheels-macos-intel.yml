@@ -79,7 +79,7 @@ jobs:
 
       - name: Check for required files
         run: |
-          FILES_TO_CHECK="README.md LICENSE __init__.py"
+          FILES_TO_CHECK="README.md LICENCE __init__.py"
           for file in $FILES_TO_CHECK; do
             if [[ -f "$file" ]] || find . -name "$file" -type f | grep -q .; then
               echo "✓ Found: $file"
