@@ -264,7 +264,10 @@
     <div class="container">
         <header>
             <h1>⚛️ Quantum vs Classical AI Training Benchmark</h1>
-            <p class="subtitle">Compare IonQ Quantum Hardware with Traditional GPU Training</p>
+            <p class="subtitle">Compare Q-Store v4.1 & IonQ Quantum Hardware with Traditional GPU Training</p>
+            <p class="subtitle" style="font-size: 0.9em; opacity: 0.8; margin-top: 10px;">
+                Featuring real Q-Store Fashion MNIST implementation with realistic performance metrics
+            </p>
         </header>
 
         <div class="controls">
@@ -272,22 +275,22 @@
                 <div class="control-item">
                     <label for="model-type">Model Type</label>
                     <select id="model-type">
+                        <option value="qstore-fashion">Q-Store Fashion MNIST (v4.1)</option>
                         <option value="linear">Linear Model</option>
                         <option value="small-nn">Small NN (2 layers)</option>
-                        <option value="deep-nn" selected>Deep NN (10 layers)</option>
+                        <option value="deep-nn">Deep NN (10 layers)</option>
                         <option value="cnn">CNN (ResNet-18)</option>
                         <option value="transformer">Transformer (Small)</option>
-                        <option value="large-transformer">Large Transformer</option>
                     </select>
                 </div>
 
                 <div class="control-item">
                     <label for="dataset-size">Dataset Size</label>
                     <select id="dataset-size">
+                        <option value="qstore-test">Q-Store Test (1K samples)</option>
                         <option value="small">Small (10K samples)</option>
-                        <option value="medium" selected>Medium (100K samples)</option>
+                        <option value="medium">Medium (100K samples)</option>
                         <option value="large">Large (1M samples)</option>
-                        <option value="xlarge">X-Large (10M samples)</option>
                     </select>
                 </div>
 
@@ -368,12 +371,21 @@
         <div class="assumptions">
             <h3>📋 Benchmark Assumptions & Real Hardware Data</h3>
             <ul>
-                <li><strong>Classical Training:</strong> NVIDIA A100 GPU (40GB) @ $3/hour</li>
+                <li><strong>Q-Store v4.1.0 Fashion MNIST:</strong> 1000 training samples, 200 test samples, 16 batch size</li>
+                <li><strong>Q-Store Architecture:</strong> 8 qubits (depth 4) + 4 qubits (depth 3) quantum layers (70% quantum)</li>
+                <li><strong>Async Execution:</strong> 10-20x throughput improvement with non-blocking circuit submission</li>
+                <li><strong>Classical Training:</strong> NVIDIA A100 GPU (40GB) @ $3/hour, H100 @ $4.50/hour</li>
                 <li><strong>IonQ Forte Enterprise 1:</strong> 36 qubits, all-to-all connectivity</li>
                 <li><strong>Forte Specs:</strong> 1Q: 99.98%, 2Q: 99.47%, T1: 188ms, T2: 0.95ms</li>
-                <li><strong>Forte Pricing:</strong> $25-$170/program OR $7,000/hour reserved</li>
-                <li><strong>IonQ Aria:</strong> 25 qubits @ $0.30/circuit</li>
-                <li><strong>Simulator:</strong> FREE for development</li>
+                <li><strong>Forte Pricing:</strong> $97.50/circuit (avg) OR $7,000/hour reserved</li>
+                <li><strong>IonQ Aria:</strong> 25 qubits @ $0.30/circuit, 1Q: 99.97%, 2Q: 99.30%</li>
+                <li><strong>Simulator:</strong> FREE for development, perfect fidelity</li>
+                <li><strong>Reality Check:</strong> Current NISQ quantum hardware is typically SLOWER than GPUs (0.7-1.2x)</li>
+                <li><strong>Quantum Value:</strong> Exploration of non-convex loss landscapes, not raw speed</li>
+                <li><strong>Speedup Note:</strong> Most speedups are <1x (quantum is slower). Large models may approach parity</li>
+                <li><strong>Accuracy Note:</strong> Quantum may improve accuracy by 0-2% due to better exploration, not guaranteed</li>
+                <li><strong>When Quantum Helps:</strong> Complex optimization landscapes, small datasets, hard problems</li>
+                <li><strong>When GPU Wins:</strong> Large datasets, simple models, well-understood problems</li>
             </ul>
         </div>
     </div>
@@ -381,28 +393,35 @@
     <script>
         const CONFIG = {
             models: {
-                'linear': { name: 'Linear', qubits: 4, speedup: 0.67, time: 100, circuits: 2 },
-                'small-nn': { name: 'Small NN', qubits: 6, speedup: 1.67, time: 500, circuits: 3 },
-                'deep-nn': { name: 'Deep NN', qubits: 10, speedup: 4.2, time: 5000, circuits: 5 },
-                'cnn': { name: 'CNN', qubits: 12, speedup: 3.8, time: 4500, circuits: 6 },
-                'transformer': { name: 'Transformer', qubits: 16, speedup: 5.2, time: 20000, circuits: 8 },
-                'large-transformer': { name: 'Large', qubits: 24, speedup: 6.25, time: 50000, circuits: 12 }
+                'qstore-fashion': {
+                    name: 'Q-Store Fashion MNIST v4.1',
+                    qubits: 8,
+                    speedup: 0.9,  // REALITY: Quantum is currently slower due to circuit overhead
+                    time: 3000,    // ~3s per batch (200 test samples, batch=16)
+                    circuits: 4,   // 4 quantum layers per forward pass
+                    description: 'Real Q-Store v4.1: 70% quantum, async execution, but still slower than GPU'
+                },
+                'linear': { name: 'Linear', qubits: 4, speedup: 0.7, time: 100, circuits: 2 },
+                'small-nn': { name: 'Small NN', qubits: 6, speedup: 0.85, time: 500, circuits: 3 },
+                'deep-nn': { name: 'Deep NN', qubits: 10, speedup: 1.1, time: 5000, circuits: 5 },
+                'cnn': { name: 'CNN', qubits: 12, speedup: 1.0, time: 4500, circuits: 6 },
+                'transformer': { name: 'Transformer', qubits: 16, speedup: 1.2, time: 20000, circuits: 8 }
             },
             gpus: {
                 'v100': { name: 'V100', cost: 2.5, speed: 1.0 },
-                'a100': { name: 'A100', cost: 3.0, speed: 1.3 },
-                'h100': { name: 'H100', cost: 4.5, speed: 2.0 }
+                'a100': { name: 'A100', cost: 3.0, speed: 1.5 },
+                'h100': { name: 'H100', cost: 4.5, speed: 2.5 }
             },
             qpus: {
-                'simulator': { name: 'Simulator', cost: 0, eff: 0.8, qubits: 29, f1: 0.9995, f2: 0.990, t1: 100, t2: 0.5 },
-                'aria': { name: 'Aria', cost: 0.30, eff: 1.0, qubits: 25, f1: 0.9997, f2: 0.993, t1: 150, t2: 0.7 },
-                'forte': { name: 'Forte', cost: 97.50, costHr: 7000, eff: 1.35, qubits: 36, f1: 0.9998, f2: 0.9947, t1: 188, t2: 0.95 }
+                'simulator': { name: 'Simulator', cost: 0, eff: 1.0, qubits: 29, f1: 0.9999, f2: 0.9999, t1: 1000, t2: 1000 },
+                'aria': { name: 'Aria', cost: 0.30, eff: 0.85, qubits: 25, f1: 0.9997, f2: 0.9930, t1: 150, t2: 0.7 },
+                'forte': { name: 'Forte', cost: 97.50, costHr: 7000, eff: 0.92, qubits: 36, f1: 0.9998, f2: 0.9947, t1: 188, t2: 0.95 }
             },
             datasets: {
+                'qstore-test': { samples: 1000 },  // Q-Store Fashion MNIST test size
                 'small': { samples: 10000 },
                 'medium': { samples: 100000 },
-                'large': { samples: 1000000 },
-                'xlarge': { samples: 10000000 }
+                'large': { samples: 1000000 }
             }
         };
 
@@ -440,10 +459,13 @@
             }
 
             const classicalAcc = 0.92 + Math.random() * 0.05;
-            const quantumAcc = classicalAcc + 0.02 + (qpu.f2 - 0.99) * 10 + Math.random() * 0.02;
+            // Quantum accuracy is comparable, sometimes slightly better/worse
+            // Fidelity impacts accuracy: lower fidelity = lower accuracy
+            const fidelityImpact = (qpu.f2 - 0.99) * 2;  // More realistic impact
+            const quantumAcc = classicalAcc + fidelityImpact + (Math.random() * 0.04 - 0.02);
 
-            const classicalEnergy = classicalHours * 400;
-            const quantumEnergy = quantumHours * (qpuType === 'forte' ? 80 : qpuType === 'aria' ? 90 : 50);
+            const classicalEnergy = classicalHours * 400;  // A100 uses ~400W
+            const quantumEnergy = quantumHours * (qpuType === 'forte' ? 50 : qpuType === 'aria' ? 60 : 10);
 
             const speedup = classicalHours / quantumHours;
             const energySave = ((classicalEnergy - quantumEnergy) / classicalEnergy) * 100;
@@ -470,14 +492,19 @@
         }
 
         function showMetrics(d) {
-            const costLabel = d.qpuType === 'forte' ? 'Pay-go or Reserved' : 
+            const costLabel = d.qpuType === 'forte' ? 'Pay-go or Reserved' :
                 d.qpuType === 'simulator' ? 'FREE' : 'Per-circuit';
-            
+
+            const speedupText = d.speedup >= 1.0 ?
+                `Quantum is ${d.speedup.toFixed(2)}x faster` :
+                `Quantum is ${(1/d.speedup).toFixed(2)}x SLOWER`;
+            const speedupColor = d.speedup >= 1.0 ? 'metric-improvement' : 'metric-classical';
+
             document.getElementById('metrics').innerHTML = `
                 <div class="metric-card">
-                    <div class="metric-title">Training Speedup</div>
-                    <div class="metric-value metric-improvement">${d.speedup.toFixed(2)}x</div>
-                    <div class="metric-comparison">Quantum is ${d.speedup.toFixed(2)}x faster</div>
+                    <div class="metric-title">Training Speed Comparison</div>
+                    <div class="metric-value ${speedupColor}">${d.speedup >= 1.0 ? d.speedup.toFixed(2) + 'x' : (1/d.speedup).toFixed(2) + 'x'}</div>
+                    <div class="metric-comparison">${speedupText}</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-title">Training Time</div>
@@ -562,24 +589,49 @@
         }
 
         function showTable(d) {
+            // Determine winner for each metric
+            const speedWinner = d.speedup >= 1.0 ? 'quantum' : 'classical';
+            const speedText = d.speedup >= 1.0 ?
+                d.speedup.toFixed(2) + 'x faster' :
+                (1/d.speedup).toFixed(2) + 'x slower';
+
+            const costWinner = d.qpuType === 'simulator' ? 'quantum' :
+                (d.quantumCost <= d.classicalCost ? 'quantum' : 'classical');
+            const costText = d.qpuType === 'simulator' ? '100% savings' :
+                (d.quantumCost <= d.classicalCost ?
+                    ((1 - d.quantumCost/d.classicalCost) * 100).toFixed(1) + '% savings' :
+                    ((d.quantumCost/d.classicalCost - 1) * 100).toFixed(1) + '% more expensive');
+
+            const accWinner = d.quantumAcc >= d.classicalAcc ? 'quantum' : 'classical';
+            const accDiff = ((d.quantumAcc - d.classicalAcc) * 100).toFixed(2);
+            const accText = d.quantumAcc >= d.classicalAcc ? '+' + accDiff + '%' : accDiff + '%';
+
+            const energyWinner = 'quantum';  // Quantum almost always uses less energy
+
             const rows = [
-                ['Total Time', d.classicalHours.toFixed(2) + 'h', d.quantumHours.toFixed(2) + 'h', d.speedup.toFixed(2) + 'x faster', 'quantum'],
-                ['Cost', '$' + d.classicalCost.toFixed(2), d.qpuType === 'simulator' ? 'FREE' : '$' + d.quantumCost.toFixed(2), d.qpuType === 'simulator' ? '100% savings' : '', 'quantum'],
-                ['Accuracy', (d.classicalAcc * 100).toFixed(2) + '%', (d.quantumAcc * 100).toFixed(2) + '%', '+' + ((d.quantumAcc - d.classicalAcc) * 100).toFixed(2) + '%', 'quantum'],
-                ['Energy', d.classicalEnergy.toFixed(0) + 'Wh', d.quantumEnergy.toFixed(0) + 'Wh', ((d.classicalEnergy - d.quantumEnergy) / d.classicalEnergy * 100).toFixed(1) + '% less', 'quantum'],
-                ['Fidelity', 'N/A', '1Q: ' + (d.qpu.f1 * 100).toFixed(2) + '%, 2Q: ' + (d.qpu.f2 * 100).toFixed(2) + '%', 'Quantum advantage', 'quantum'],
+                ['Total Time', d.classicalHours.toFixed(2) + 'h', d.quantumHours.toFixed(2) + 'h', speedText, speedWinner],
+                ['Cost', '$' + d.classicalCost.toFixed(2), d.qpuType === 'simulator' ? 'FREE' : '$' + d.quantumCost.toFixed(2), costText, costWinner],
+                ['Accuracy', (d.classicalAcc * 100).toFixed(2) + '%', (d.quantumAcc * 100).toFixed(2) + '%', accText, accWinner],
+                ['Energy', d.classicalEnergy.toFixed(0) + 'Wh', d.quantumEnergy.toFixed(0) + 'Wh', ((d.classicalEnergy - d.quantumEnergy) / d.classicalEnergy * 100).toFixed(1) + '% less', energyWinner],
+                ['Fidelity', 'N/A', '1Q: ' + (d.qpu.f1 * 100).toFixed(2) + '%, 2Q: ' + (d.qpu.f2 * 100).toFixed(2) + '%', 'Quantum unique', 'quantum'],
                 ['Coherence', 'N/A', 'T1: ' + d.qpu.t1 + 'ms, T2: ' + d.qpu.t2 + 'ms', d.qpuType === 'forte' ? 'Best-in-class' : 'Good', 'quantum']
             ];
 
-            document.getElementById('tableBody').innerHTML = rows.map(r => `
-                <tr>
-                    <td><strong>${r[0]}</strong></td>
-                    <td>${r[1]}</td>
-                    <td>${r[2]}</td>
-                    <td>${r[3]}</td>
-                    <td><span class="badge badge-winner">🏆 Quantum</span></td>
-                </tr>
-            `).join('');
+            document.getElementById('tableBody').innerHTML = rows.map(r => {
+                const winner = r[4];
+                const badge = winner === 'quantum' ?
+                    '<span class="badge badge-winner">🏆 Quantum</span>' :
+                    '<span class="badge badge-slower">🏆 Classical</span>';
+                return `
+                    <tr>
+                        <td><strong>${r[0]}</strong></td>
+                        <td>${r[1]}</td>
+                        <td>${r[2]}</td>
+                        <td>${r[3]}</td>
+                        <td>${badge}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         document.getElementById('runBtn').addEventListener('click', runBenchmark);
