@@ -12,6 +12,7 @@ Requirements:
 
 import os
 import sys
+import argparse
 from pathlib import Path
 
 # Add project root to path
@@ -45,6 +46,12 @@ def create_bell_state_circuit():
 
 def main():
     """Test real IonQ hardware connection."""
+
+    # Parse arguments
+    parser = argparse.ArgumentParser(description='Test real IonQ hardware connection')
+    parser.add_argument('--skip-confirm', action='store_true',
+                       help='Skip interactive confirmation (for testing)')
+    args = parser.parse_args()
 
     print("\n" + "="*70)
     print("Real IonQ Hardware Backend Test")
@@ -115,10 +122,13 @@ def main():
     print("   This WILL consume API credits!")
     print()
 
-    response = input("Continue? (yes/no): ")
-    if response.lower() != 'yes':
-        print("Aborted.")
-        return
+    if not args.skip_confirm:
+        response = input("Continue? (yes/no): ")
+        if response.lower() != 'yes':
+            print("Aborted.")
+            return
+    else:
+        print("Skipping confirmation (--skip-confirm flag set)")
 
     print("\nSubmitting circuit to IonQ...")
     try:

@@ -46,9 +46,9 @@ def validate_tensorflow_gradients():
 
         # Create a simple quantum layer
         n_qubits = 2
-        depth = 1
+        n_layers = 1
 
-        layer = QuantumLayer(n_qubits=n_qubits, depth=depth)        # Test input
+        layer = QuantumLayer(n_qubits=n_qubits, n_layers=n_layers)        # Test input
         x = tf.constant([[0.5, 0.3]], dtype=tf.float32)
 
         # Compute gradient using TensorFlow
@@ -124,9 +124,9 @@ def validate_pytorch_gradients():
 
         # Create a simple quantum layer
         n_qubits = 2
-        depth = 1
+        n_layers = 1
 
-        layer = QuantumLayer(n_qubits=n_qubits, depth=depth)        # Test input
+        layer = QuantumLayer(n_qubits=n_qubits, n_layers=n_layers)        # Test input
         x = torch.tensor([[0.5, 0.3]], dtype=torch.float32, requires_grad=False)
 
         # Forward pass with gradient tracking

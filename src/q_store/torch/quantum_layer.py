@@ -153,11 +153,10 @@ class QuantumLayer(nn.Module):
         # Create quantum feature extractor
         self.quantum_extractor = QuantumFeatureExtractor(
             n_qubits=n_qubits,
-            n_layers=n_layers,
+            depth=n_layers,
             entanglement='full',
             measurement_bases=['X', 'Y', 'Z'],
             backend=backend,
-            shots=shots,
         )
 
         # Create async executor if needed
@@ -169,7 +168,7 @@ class QuantumLayer(nn.Module):
             self.quantum_extractor.executor = self.executor
 
         # Create trainable parameters
-        n_params = self.quantum_extractor.n_params
+        n_params = self.quantum_extractor.n_parameters
         self.quantum_params = nn.Parameter(
             torch.rand(n_params) * 2 * np.pi,
             requires_grad=True

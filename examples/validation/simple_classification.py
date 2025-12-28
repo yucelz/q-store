@@ -61,7 +61,7 @@ def tensorflow_classification():
         n_qubits = 4
         model = keras.Sequential([
             keras.layers.Dense(n_qubits, activation='relu', input_shape=(4,)),
-            QuantumLayer(n_qubits=n_qubits, depth=2),
+            QuantumLayer(n_qubits=n_qubits, n_layers=2),
             keras.layers.Dense(2, activation='softmax')
         ])
 
@@ -148,7 +148,7 @@ def pytorch_classification():
                     nn.Linear(4, n_qubits),
                     nn.ReLU()
                 )
-                self.quantum = QuantumLayer(n_qubits=n_qubits, depth=2)
+                self.quantum = QuantumLayer(n_qubits=n_qubits, n_layers=2)
                 self.post = nn.Linear(n_qubits, 2)
 
             def forward(self, x):
