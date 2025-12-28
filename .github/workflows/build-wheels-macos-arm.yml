@@ -114,7 +114,7 @@ jobs:
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: cp311-* cp312-* cp313-*
-          CIBW_BEFORE_BUILD: pip install Cython>=0.29.0
+          CIBW_BEFORE_BUILD: "pip install Cython>=0.29.0 && pip install --only-binary=:all: pyarrow>=14.0.0"
           CIBW_TEST_REQUIRES: pytest numpy scipy
           CIBW_TEST_COMMAND: python -c "from q_store import QuantumDatabase; print('Import successful!')"
           CIBW_ARCHS_MACOS: "arm64"
