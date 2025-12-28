@@ -7,8 +7,6 @@ name = "q-store"
 version = "4.1.0"
 description = "Quantum-First Machine Learning Framework with Async Execution and Production Storage"
 readme = "README.md"
-license = "AGPL-3.0-or-later"
-license-files = ["LICENCE"]
 authors = [
     {name = "Yucel Zengin", email = "yucelz@gmail.com"}
 ]
@@ -24,7 +22,9 @@ keywords = [
     "superposition",
     "entanglement"
 ]
+license = {text = "AGPL-3.0-or-later"}
 classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
