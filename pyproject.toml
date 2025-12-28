@@ -22,9 +22,8 @@ keywords = [
     "superposition",
     "entanglement"
 ]
-license = {text = "AGPL-3.0-or-later"}
+license = "AGPL-3.0-or-later"
 classifiers = [
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
@@ -60,7 +59,7 @@ ml = [
     "torch>=2.0.0",
     "tensorflow>=2.13.0",
 ]
-"v4.1" = [
+storage = [
     "zarr>=2.16.0",
     "pyarrow>=14.0.0",
     "aiohttp>=3.9.0",
@@ -87,7 +86,7 @@ docs = [
     "sphinx-autodoc-typehints>=1.23.0",
 ]
 all = [
-    "q-store[backends,ml,dev,docs]"
+    "q-store[backends,ml,storage,dev,docs]"
 ]
 
 [project.urls]
