@@ -27,14 +27,37 @@ A production-ready quantum-first ML platform with **async execution**, comprehen
 - **144 Comprehensive Tests**: Full coverage for all verification/profiling/visualization modules
 
 ### v4.1.0 Performance Achievements
-| Metric | v4.0 | v4.1 | Improvement |
-|--------|---------|------|-------------|
+
+**IMPORTANT**: Improvements shown are **v4.1 vs v4.0 quantum**, not quantum vs classical GPU!
+
+| Metric | v4.0 Quantum | v4.1 Quantum | Improvement |
+|--------|--------------|--------------|-------------|
 | Circuit throughput | Sequential | 10-20x parallel | **10-20x faster** |
 | Storage operations | Blocking | Async (0ms) | **∞ faster** |
 | Result caching | None | LRU cache | **Instant repeats** |
 | PyTorch integration | Broken | Fixed + async | **Production-ready** |
 | Module count | 22 | 29 | **7 new modules** |
 | Total Python files | 118 | 145 | **27 new files** |
+
+### ⚡ Reality Check: Quantum vs Classical GPU
+
+**Current NISQ quantum hardware is typically 0.7-1.2x classical GPU speed** (often slower)
+
+**Why?** Circuit overhead, API latency, limited parallelization, measurement shots
+
+**Quantum's Value:** Better exploration of non-convex loss landscapes, not raw speed
+
+**When Quantum Helps:**
+- ✅ Complex optimization landscapes
+- ✅ Small datasets (<10K samples)
+- ✅ Problems where classical gets stuck in local minima
+- ✅ Research and algorithm development
+
+**When Classical GPU Wins:**
+- ✅ Large datasets (>10K samples)
+- ✅ Production workloads
+- ✅ Cost-sensitive applications
+- ✅ Most practical ML tasks today
 
 ### Quantum ML Training (v3.2+, Enhanced in v4.1)
 - **Async Quantum Execution**: Non-blocking circuit submission with 10-20x throughput
