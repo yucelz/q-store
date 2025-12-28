@@ -1,0 +1,159 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v4.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  wait_for_builds:
+    name: Wait for all builds to complete
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for build workflows
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          check-regexp: 'Build .* wheels'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          allowed-conclusions: success
+
+  release_and_publish:
+    name: Create Release and Publish to PyPI
+    needs: wait_for_builds
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Extract version info
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+          else
+            TAG_NAME="${{ github.event.inputs.tag }}"
+          fi
+          VERSION=${TAG_NAME#v}
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+          # Check if prerelease
+          if [[ $VERSION =~ (alpha|beta|rc|dev) ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: List downloaded wheels
+        run: |
+          echo "=== Downloaded Wheels ==="
+          ls -lh dist/
+          echo ""
+          echo "Total wheels: $(ls -1 dist/*.whl | wc -l)"
+          echo ""
+          echo "By platform:"
+          ls -1 dist/*.whl | sed 's/.*-\(.*\)\.whl/\1/' | sort | uniq -c
+
+      - name: Verify wheels exist
+        run: |
+          ACTUAL_COUNT=$(ls -1 dist/*.whl | wc -l)
+          if [ $ACTUAL_COUNT -eq 0 ]; then
+            echo "::error::No wheels found!"
+            exit 1
+          else
+            echo "✓ Found $ACTUAL_COUNT wheels"
+          fi
+
+      - name: Install twine
+        run: python -m pip install --upgrade twine
+
+      - name: Check package distributions
+        run: |
+          python -m twine check dist/*.whl
+          echo "✓ All wheels passed twine check"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          files: dist/*.whl
+          draft: false
+          prerelease: ${{ steps.version.outputs.is_prerelease }}
+          generate_release_notes: true
+          name: Release ${{ steps.version.outputs.tag_name }}
+          body: |
+            ## Wheels for version ${{ steps.version.outputs.version }}
+
+            This release includes pre-built wheels for:
+            - **Linux**: manylinux x86_64 (Python 3.11, 3.12, 3.13)
+            - **Windows**: AMD64 (Python 3.11, 3.12, 3.13)
+            - **macOS**: Intel x86_64 (Python 3.11, 3.12, 3.13)
+            - **macOS**: ARM64 (Python 3.11, 3.12, 3.13)
+
+            ### Installation
+            ```bash
+            pip install q-store==${{ steps.version.outputs.version }}
+            ```
+
+            See the full changelog below.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          # Use --skip-existing to handle race conditions gracefully
+          python -m twine upload dist/*.whl --skip-existing --verbose
+
+      - name: Verify PyPI upload
+        run: |
+          echo "Package should be available at:"
+          echo "https://pypi.org/project/q-store/${{ steps.version.outputs.version }}/"
+
+          # Wait a bit for PyPI to process
+          sleep 10
+
+          # Try to fetch package info
+          pip index versions q-store | head -n 5 || true
+
+      - name: Generate summary
+        run: |
+          echo "## 🎉 Release Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** ${{ steps.version.outputs.tag_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Prerelease:** ${{ steps.version.outputs.is_prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published" >> $GITHUB_STEP_SUMMARY
+          echo "- GitHub Release: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- PyPI: ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [PyPI Package](https://pypi.org/project/q-store/${{ steps.version.outputs.version }}/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [GitHub Release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag_name }})" >> $GITHUB_STEP_SUMMARY
