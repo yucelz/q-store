@@ -131,14 +131,27 @@ echo ""
 echo -e "${BLUE}[4/7]${NC} Building wheel..."
 echo ""
 
-python setup.py bdist_wheel
+# Ensure dist directory exists
+mkdir -p dist/
 
-if [[ ! -f dist/*.whl ]]; then
+# Build the wheel
+if ! python setup.py bdist_wheel; then
+    echo ""
     echo -e "${RED}✗ Wheel build failed${NC}"
+    echo "Check the output above for errors"
     exit 1
 fi
 
-BUILT_WHEEL=$(ls -1 dist/*.whl | head -n 1)
+# Check if wheel was created
+if [ -z "$(ls -A dist/*.whl 2>/dev/null)" ]; then
+    echo ""
+    echo -e "${RED}✗ Wheel build failed - no wheel file created${NC}"
+    echo "Expected wheel file in dist/ directory"
+    ls -la dist/
+    exit 1
+fi
+
+BUILT_WHEEL=$(ls -1 dist/*.whl 2>/dev/null | head -n 1)
 echo ""
 echo -e "${GREEN}✓ Wheel built: $(basename $BUILT_WHEEL)${NC}"
 echo ""
@@ -147,15 +160,27 @@ echo ""
 echo -e "${BLUE}[5/7]${NC} Repairing wheel with auditwheel..."
 echo ""
 
+# Ensure wheelhouse directory exists
 mkdir -p wheelhouse/
-auditwheel repair "$BUILT_WHEEL" -w wheelhouse/
 
-REPAIRED_WHEEL=$(ls -1 wheelhouse/*.whl | head -n 1)
-
-if [[ ! -f "$REPAIRED_WHEEL" ]]; then
+# Repair the wheel
+if ! auditwheel repair "$BUILT_WHEEL" -w wheelhouse/; then
+    echo ""
     echo -e "${RED}✗ Wheel repair failed${NC}"
+    echo "Check the output above for errors"
     exit 1
 fi
+
+# Check if repaired wheel was created
+if [ -z "$(ls -A wheelhouse/*.whl 2>/dev/null)" ]; then
+    echo ""
+    echo -e "${RED}✗ Wheel repair failed - no repaired wheel created${NC}"
+    echo "Expected repaired wheel file in wheelhouse/ directory"
+    ls -la wheelhouse/
+    exit 1
+fi
+
+REPAIRED_WHEEL=$(ls -1 wheelhouse/*.whl 2>/dev/null | head -n 1)
 
 echo ""
 echo -e "${GREEN}✓ Wheel repaired: $(basename $REPAIRED_WHEEL)${NC}"
@@ -165,10 +190,10 @@ echo ""
 echo -e "${BLUE}[6/7]${NC} Validating wheel with twine..."
 echo ""
 
-python -m twine check "$REPAIRED_WHEEL"
-
-if [[ $? -ne 0 ]]; then
+if ! python -m twine check "$REPAIRED_WHEEL"; then
+    echo ""
     echo -e "${RED}✗ Wheel validation failed${NC}"
+    echo "The wheel file has issues that prevent PyPI upload"
     exit 1
 fi
 
@@ -195,9 +220,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-python -m twine upload "$REPAIRED_WHEEL"
-
-if [[ $? -eq 0 ]]; then
+if python -m twine upload "$REPAIRED_WHEEL"; then
     echo ""
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}✓ Successfully published to PyPI!${NC}"
@@ -205,7 +228,19 @@ if [[ $? -eq 0 ]]; then
     echo ""
     echo "Wheel published: $(basename $REPAIRED_WHEEL)"
     echo ""
+    echo "View your package at: https://pypi.org/project/q-store/"
+    echo ""
 else
+    echo ""
     echo -e "${RED}✗ Upload failed${NC}"
+    echo ""
+    echo "Common issues:"
+    echo "  - Invalid PyPI credentials"
+    echo "  - Package version already exists on PyPI"
+    echo "  - Network connectivity issues"
+    echo ""
+    echo "To retry manually:"
+    echo "  python -m twine upload $REPAIRED_WHEEL"
+    echo ""
     exit 1
 fi
