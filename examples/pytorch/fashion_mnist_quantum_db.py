@@ -571,7 +571,7 @@ async def main_async():
     print("\n" + "=" * 80)
     print("CREATING QUANTUM-CLASSICAL HYBRID MODEL")
     print("=" * 80)
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')  # Force CPU for quantum layer compatibility
     n_qubits = 4
     depth = 2
     embedding_dim = 64
