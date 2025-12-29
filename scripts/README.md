@@ -191,7 +191,9 @@ google-chrome htmlcov/index.html
 
 2. **Credential Verification:**
    - Checks for PyPI credentials (TWINE_USERNAME, TWINE_PASSWORD)
-   - Warns if credentials are missing but allows proceeding
+   - Checks for ~/.pypirc configuration file
+   - **Interactively prompts for PyPI API token** if not found
+   - Securely stores credentials for the session
 
 3. **Build Cleanup:**
    - Removes old `dist/`, `build/`, `wheelhouse/` directories
@@ -215,6 +217,17 @@ google-chrome htmlcov/index.html
 
 **Usage:**
 
+**Option 1: Interactive Mode (Recommended)**
+
+```bash
+# Run from project root - script will prompt for credentials
+./scripts/manual_publish.sh
+```
+
+The script will interactively ask for your PyPI API token if not found.
+
+**Option 2: Environment Variables**
+
 ```bash
 # Set PyPI credentials first
 export TWINE_USERNAME=__token__
@@ -224,7 +237,7 @@ export TWINE_PASSWORD=your_pypi_api_token_here
 ./scripts/manual_publish.sh
 ```
 
-**Alternative: Using .pypirc**
+**Option 3: Using .pypirc**
 
 Create `~/.pypirc`:
 ```ini
@@ -257,7 +270,18 @@ Q-Store Manual PyPI Publishing Script
 ✓ All dependencies available
 
 [2/7] Checking PyPI credentials...
-✓ PyPI credentials found
+⚠ PyPI credentials not found in environment
+
+Would you like to enter your PyPI API token now?
+
+Enter credentials interactively? (y/N): y
+
+Please enter your PyPI API token:
+(Get your token from: https://pypi.org/manage/account/token/)
+
+PyPI API Token: ****************************************
+
+✓ PyPI credentials set for this session
 
 [3/7] Cleaning old build artifacts...
   Removing dist/
@@ -294,20 +318,27 @@ Uploading q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.w
 Wheel published: q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
 ```
 
-**Handling Errors:**
+**Interactive Prompts:**
 
-If PyPI credentials are not set:
+The script provides several interactive prompts for a user-friendly experience:
+
+**1. PyPI Credentials Prompt:**
 ```bash
 ⚠ PyPI credentials not found in environment
 
-Please set your PyPI API token:
-  export TWINE_USERNAME=__token__
-  export TWINE_PASSWORD=your_pypi_api_token_here
+Would you like to enter your PyPI API token now?
 
-Or create ~/.pypirc with your credentials
-
-Do you want to continue anyway? (y/N)
+Enter credentials interactively? (y/N):
 ```
+
+Choose `y` to enter credentials securely, or `N` to continue (upload will fail without credentials).
+
+**2. Upload Confirmation:**
+```bash
+Ready to upload to PyPI. Continue? (y/N):
+```
+
+Final confirmation before uploading to PyPI.
 
 **When to use:**
 - GitHub Actions build-wheels workflow is failing
@@ -317,10 +348,13 @@ Do you want to continue anyway? (y/N)
 - Debugging PyPI upload issues
 
 **Security Notes:**
-- Never commit `.pypirc` to git
+- **Interactive mode uses `read -s`** for secure password input (not echoed to terminal)
+- Credentials are only stored in environment variables for the current session
+- Never commit `.pypirc` to git (add to `.gitignore`)
 - Use PyPI API tokens, not passwords
-- Scope tokens to specific projects
+- Scope tokens to specific projects when creating them
 - Rotate tokens regularly
+- Tokens are transmitted securely over HTTPS to PyPI
 
 ---
 
@@ -683,14 +717,10 @@ git push
 # 2. Run comprehensive tests
 ./scripts/test_before_build.sh
 
-# 3. Set PyPI credentials
-export TWINE_USERNAME=__token__
-export TWINE_PASSWORD=your_pypi_api_token_here
-
-# 4. Build, repair, and publish
+# 3. Build, repair, and publish (script will prompt for credentials)
 ./scripts/manual_publish.sh
 
-# 5. Verify on PyPI
+# 4. Verify on PyPI
 # Visit https://pypi.org/project/q-store/
 ```
 

@@ -51,20 +51,55 @@ echo -e "${BLUE}[2/7]${NC} Checking PyPI credentials..."
 if [[ -z "${TWINE_USERNAME}" ]] || [[ -z "${TWINE_PASSWORD}" ]]; then
     echo -e "${YELLOW}⚠ PyPI credentials not found in environment${NC}"
     echo ""
-    echo "Please set your PyPI API token:"
-    echo "  export TWINE_USERNAME=__token__"
-    echo "  export TWINE_PASSWORD=your_pypi_api_token_here"
-    echo ""
-    echo "Or create ~/.pypirc with your credentials"
-    echo ""
-    read -p "Do you want to continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo -e "${RED}✗ Aborted${NC}"
-        exit 1
+
+    # Check if .pypirc exists
+    if [[ -f ~/.pypirc ]]; then
+        echo -e "${GREEN}✓ Found ~/.pypirc configuration file${NC}"
+        echo "  Credentials will be read from ~/.pypirc during upload"
+        echo ""
+    else
+        echo "Would you like to enter your PyPI API token now?"
+        echo ""
+        read -p "Enter credentials interactively? (y/N) " -n 1 -r
+        echo
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo "Please enter your PyPI API token:"
+            echo "(Get your token from: https://pypi.org/manage/account/token/)"
+            echo ""
+
+            # Set username to __token__ (PyPI API token standard)
+            export TWINE_USERNAME="__token__"
+
+            # Prompt for password securely
+            read -s -p "PyPI API Token: " TWINE_PASSWORD
+            export TWINE_PASSWORD
+            echo ""
+            echo ""
+
+            if [[ -z "${TWINE_PASSWORD}" ]]; then
+                echo -e "${RED}✗ No token provided${NC}"
+                exit 1
+            fi
+
+            echo -e "${GREEN}✓ PyPI credentials set for this session${NC}"
+        else
+            echo ""
+            echo -e "${YELLOW}Continuing without credentials...${NC}"
+            echo "You can set them before upload using:"
+            echo "  export TWINE_USERNAME=__token__"
+            echo "  export TWINE_PASSWORD=your_pypi_api_token_here"
+            echo ""
+            echo "Or create ~/.pypirc with:"
+            echo "  [pypi]"
+            echo "  username = __token__"
+            echo "  password = your_pypi_api_token_here"
+            echo ""
+        fi
     fi
 else
-    echo -e "${GREEN}✓ PyPI credentials found${NC}"
+    echo -e "${GREEN}✓ PyPI credentials found in environment${NC}"
 fi
 echo ""
 
