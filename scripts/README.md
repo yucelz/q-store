@@ -11,6 +11,7 @@ This document describes all the bash scripts available in the `scripts/` directo
   - [test_before_build.sh](#test_before_buildsh)
   - [run_coverage.sh](#run_coveragesh)
 - [Release Scripts](#release-scripts)
+  - [manual_publish.sh](#manual_publishsh)
   - [release.sh](#releasesh)
 - [Workflow Scripts](#workflow-scripts)
   - [test_workflow_locally.sh](#test_workflow_locallysh)
@@ -178,6 +179,150 @@ google-chrome htmlcov/index.html
 ---
 
 ## Release Scripts
+
+### manual_publish.sh
+
+**Purpose:** Manually build, repair, and publish wheels to PyPI (workaround for GitHub Actions issues).
+
+**What it does:**
+1. **Dependency Check:**
+   - Verifies Python, twine, and auditwheel are installed
+   - Automatically installs missing dependencies
+
+2. **Credential Verification:**
+   - Checks for PyPI credentials (TWINE_USERNAME, TWINE_PASSWORD)
+   - Warns if credentials are missing but allows proceeding
+
+3. **Build Cleanup:**
+   - Removes old `dist/`, `build/`, `wheelhouse/` directories
+   - Cleans `.egg-info` artifacts
+
+4. **Wheel Building:**
+   - Builds wheel using `python setup.py bdist_wheel`
+   - Validates successful build
+
+5. **Wheel Repair:**
+   - Uses `auditwheel` to add proper manylinux platform tags
+   - Converts `linux_x86_64` to `manylinux2014_x86_64`
+
+6. **Validation:**
+   - Runs `twine check` on repaired wheel
+   - Ensures PyPI compatibility
+
+7. **Upload:**
+   - Prompts for confirmation before upload
+   - Uploads to PyPI using `twine upload`
+
+**Usage:**
+
+```bash
+# Set PyPI credentials first
+export TWINE_USERNAME=__token__
+export TWINE_PASSWORD=your_pypi_api_token_here
+
+# Run from project root
+./scripts/manual_publish.sh
+```
+
+**Alternative: Using .pypirc**
+
+Create `~/.pypirc`:
+```ini
+[pypi]
+username = __token__
+password = your_pypi_api_token_here
+```
+
+Then run:
+```bash
+./scripts/manual_publish.sh
+```
+
+**Prerequisites:**
+- Python environment activated
+- PyPI API token (from https://pypi.org/manage/account/token/)
+- Project root directory
+- Clean working directory (recommended)
+
+**Example Output:**
+
+```bash
+$ ./scripts/manual_publish.sh
+
+========================================
+Q-Store Manual PyPI Publishing Script
+========================================
+
+[1/7] Checking dependencies...
+✓ All dependencies available
+
+[2/7] Checking PyPI credentials...
+✓ PyPI credentials found
+
+[3/7] Cleaning old build artifacts...
+  Removing dist/
+  Removing build/
+  Removing wheelhouse/
+✓ Build artifacts cleaned
+
+[4/7] Building wheel...
+[... build output ...]
+✓ Wheel built: q_store-4.0.0-cp311-cp311-linux_x86_64.whl
+
+[5/7] Repairing wheel with auditwheel...
+INFO:auditwheel.main_repair:Repairing q_store-4.0.0-cp311-cp311-linux_x86_64.whl
+INFO:auditwheel.wheeltools:New filename tags: manylinux_2_17_x86_64, manylinux2014_x86_64
+✓ Wheel repaired: q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+
+[6/7] Validating wheel with twine...
+Checking wheelhouse/q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl: PASSED
+✓ Wheel validation passed
+
+[7/7] Uploading to PyPI...
+-rw-rw-r-- 1 user user 44M Dec 29 22:23 wheelhouse/q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+
+Ready to upload to PyPI. Continue? (y/N): y
+
+Uploading distributions to https://upload.pypi.org/legacy/
+Uploading q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 44.0/44.0 MB • 00:05 • 8.5 MB/s
+
+========================================
+✓ Successfully published to PyPI!
+========================================
+
+Wheel published: q_store-4.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl
+```
+
+**Handling Errors:**
+
+If PyPI credentials are not set:
+```bash
+⚠ PyPI credentials not found in environment
+
+Please set your PyPI API token:
+  export TWINE_USERNAME=__token__
+  export TWINE_PASSWORD=your_pypi_api_token_here
+
+Or create ~/.pypirc with your credentials
+
+Do you want to continue anyway? (y/N)
+```
+
+**When to use:**
+- GitHub Actions build-wheels workflow is failing
+- Need to quickly publish a hotfix
+- Testing PyPI upload before automating
+- Publishing from local development environment
+- Debugging PyPI upload issues
+
+**Security Notes:**
+- Never commit `.pypirc` to git
+- Use PyPI API tokens, not passwords
+- Scope tokens to specific projects
+- Rotate tokens regularly
+
+---
 
 ### release.sh
 
@@ -512,7 +657,7 @@ git commit -m "Your changes"
 git push
 ```
 
-### Release Cycle
+### Release Cycle (Automated)
 
 ```bash
 # 1. Update version numbers (pyproject.toml, __init__.py, setup.py)
@@ -528,6 +673,25 @@ git push
 
 # 5. Monitor GitHub Actions for wheel builds
 # 6. Publish to PyPI (automated via GitHub Actions)
+```
+
+### Manual PyPI Publishing (Workaround)
+
+```bash
+# 1. Update version numbers (pyproject.toml, __init__.py, setup.py)
+
+# 2. Run comprehensive tests
+./scripts/test_before_build.sh
+
+# 3. Set PyPI credentials
+export TWINE_USERNAME=__token__
+export TWINE_PASSWORD=your_pypi_api_token_here
+
+# 4. Build, repair, and publish
+./scripts/manual_publish.sh
+
+# 5. Verify on PyPI
+# Visit https://pypi.org/project/q-store/
 ```
 
 ### Testing Workflow Changes
@@ -612,5 +776,5 @@ When adding new scripts:
 
 ---
 
-**Last Updated:** December 26, 2025  
+**Last Updated:** December 29, 2025
 **Q-Store Version:** 4.0.0
