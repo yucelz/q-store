@@ -150,4 +150,4 @@ jobs:
           name: wheels-macos-arm64
           path: ./wheelhouse/*.whl
           retention-days: 30
-          if-no-files-found: errors
+          if-no-files-found: error
