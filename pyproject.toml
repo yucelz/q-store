@@ -89,7 +89,7 @@ Issues = "https://github.com/yucelz/q-store/issues"
 [tool.setuptools]
 package-dir = {"" = "src"}
 zip-safe = false
-license-files = ["LICENCE"]
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

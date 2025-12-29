@@ -97,9 +97,9 @@ def setup_backend():
         print(f"  Target: {IONQ_TARGET or 'simulator'}")
 
         # Configure backend manager with IonQ credentials
-        from q_store.torch.layers import get_backend_manager
+        from q_store.backends import BackendManager
         from q_store.backends.ionq_hardware_backend import IonQHardwareBackend
-        backend_manager = get_backend_manager()
+        backend_manager = BackendManager()
 
         # Register IonQ backend
         try:
@@ -131,13 +131,14 @@ def setup_backend():
 class HybridQuantumNet(nn.Module):
     """Hybrid classical-quantum neural network for Fashion MNIST."""
 
-    def __init__(self, n_qubits=4, depth=2, backend='mock_ideal'):
+    def __init__(self, n_qubits=4, depth=2, backend='mock_ideal', backend_manager=None):
         """Initialize the hybrid model.
 
         Args:
             n_qubits: Number of qubits in quantum circuit
             depth: Circuit depth (number of repeated layers)
             backend: Backend to use for quantum layers
+            backend_manager: Optional BackendManager instance
         """
         super().__init__()
 
@@ -154,7 +155,8 @@ class HybridQuantumNet(nn.Module):
         self.quantum_layer = QuantumLayer(
             n_qubits=n_qubits,
             depth=depth,
-            backend=backend
+            backend=backend,
+            backend_manager=backend_manager
         )
 
         # Classical postprocessing layers
@@ -167,9 +169,11 @@ class HybridQuantumNet(nn.Module):
 
     def forward(self, x):
         """Forward pass through the hybrid network."""
+        device = x.device
         x = self.classical_pre(x)
         x = self.quantum_encoding(x)
         x = self.quantum_layer(x)
+        x = x.to(device)  # Ensure quantum output is on the same device
         x = self.classical_post(x)
         return x
 
@@ -329,6 +333,42 @@ def main():
     # Load configuration from environment
     IONQ_API_KEY = os.getenv('IONQ_API_KEY')
     IONQ_TARGET = os.getenv('IONQ_TARGET', 'simulator')
+
+    # Setup backend
+    backend_name, backend_manager = setup_backend()
+
+    # Setup device (force CPU for quantum layer compatibility)
+    device = torch.device('cpu')
+    print(f"\nUsing device: {device}")
+
+    # Prepare data
+    print("\nPreparing data...")
+    train_loader, val_loader, test_loader = load_fashion_mnist(
+        num_samples=args.samples,
+        batch_size=args.batch_size
+    )
+
+    # Create model
+    print("\nCreating model...")
+    n_qubits = 4
+    depth = 2
+    model = HybridQuantumNet(
+        n_qubits=n_qubits,
+        depth=depth,
+        backend=backend_name,
+        backend_manager=backend_manager
+    ).to(device)
+
+    # Print model summary
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Total parameters: {total_params}")
+    print(f"Trainable parameters: {trainable_params}")
+
+    # Training setup
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
     # Training loop
     print("\n" + "=" * 80)
     print("TRAINING")
@@ -382,56 +422,6 @@ def main():
     print("✓ Model saved successfully!")
 
     print("\n" + "=" * 80)
-
-    return model
-    depth = 2
-    model = HybridQuantumNet(n_qubits=n_qubits, depth=depth, backend=backend_name).to(device)
-    depth = 2
-    model = HybridQuantumNet(n_qubits=n_qubits, depth=depth).to(device)
-
-    # Print model summary
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total parameters: {total_params}")
-    print(f"Trainable parameters: {trainable_params}")
-
-    # Training setup
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    # Training loop
-    print("\nTraining model...")
-    start_time = time.time()
-    epochs = 5
-
-    for epoch in range(epochs):
-        train_loss, train_acc = train_epoch(
-            model, train_loader, criterion, optimizer, device
-        )
-        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
-
-        print(f"Epoch [{epoch+1}/{epochs}] "
-              f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% | "
-              f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%")
-
-    training_time = time.time() - start_time
-    print(f"\nTraining completed in {training_time:.2f} seconds")
-
-    # Evaluation
-    print("\nEvaluating on test set...")
-    test_loss, test_acc = evaluate(model, test_loader, criterion, device)
-    print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_acc:.2f}%")
-
-    # Save model
-    model_path = '/tmp/fashion_mnist_quantum_pytorch.pt'
-    print(f"\nSaving model to {model_path}...")
-    torch.save({
-        'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
-        'n_qubits': n_qubits,
-        'depth': depth
-    }, model_path)
-    print("Model saved successfully!")
 
     return model
 

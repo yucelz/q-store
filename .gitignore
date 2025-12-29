@@ -119,3 +119,9 @@ bin/
 #test ENVs
 test_env/
 
+# demo_output
+demo_output/
+
+# temp files
+temp/
+wheelhouse/
