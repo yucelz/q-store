@@ -20,6 +20,12 @@ from q_store.runtime.async_executor import AsyncQuantumExecutor
 from q_store.runtime.result_cache import ResultCache
 from q_store.runtime.backend_client import BackendClient, SimulatorClient, IonQClient
 from q_store.runtime.ionq_adapter import IonQBackendClientAdapter
+from q_store.runtime.gradient_strategies import (
+    GradientStrategy,
+    SPSAGradientEstimator,
+    AdaptiveGradientEstimator,
+    GradientEstimate,
+)
 
 __all__ = [
     'AsyncQuantumExecutor',
@@ -28,4 +34,9 @@ __all__ = [
     'SimulatorClient',
     'IonQClient',
     'IonQBackendClientAdapter',
+    # v4.1 Enhanced
+    'GradientStrategy',
+    'SPSAGradientEstimator',
+    'AdaptiveGradientEstimator',
+    'GradientEstimate',
 ]

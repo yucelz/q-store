@@ -86,6 +86,9 @@ except ImportError:
     AdaptiveShotAllocator = None
     NaturalGradientEstimator = None
 
+# v4.1 Enhanced: Gradient noise tracking for training stability
+from .gradient_noise_tracker import GradientNoiseTracker, GradientStatistics
+
 __all__ = [
     # Quantum Layers
     "QuantumLayer",
@@ -146,4 +149,7 @@ __all__ = [
     "NaturalGradientEstimator",
     "QFIMResult",
     "V3_5_AVAILABLE",
+    # v4.1 Enhanced
+    "GradientNoiseTracker",
+    "GradientStatistics",
 ]

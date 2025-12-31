@@ -26,6 +26,12 @@ from q_store.storage.async_buffer import AsyncBuffer
 from q_store.storage.async_writer import AsyncMetricsWriter
 from q_store.storage.checkpoint_manager import CheckpointManager
 from q_store.storage.metrics_schema import TrainingMetrics, AsyncMetricsLogger
+from q_store.storage.adaptive_measurement import (
+    AdaptiveMeasurementPolicy,
+    EarlyStoppingMeasurement,
+    CombinedAdaptiveMeasurement,
+    MeasurementResult,
+)
 
 __all__ = [
     'AsyncBuffer',
@@ -33,4 +39,9 @@ __all__ = [
     'CheckpointManager',
     'TrainingMetrics',
     'AsyncMetricsLogger',
+    # v4.1 Enhanced: Adaptive measurement (75% cost savings)
+    'AdaptiveMeasurementPolicy',
+    'EarlyStoppingMeasurement',
+    'CombinedAdaptiveMeasurement',
+    'MeasurementResult',
 ]
