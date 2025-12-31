@@ -89,6 +89,14 @@ except ImportError:
 # v4.1 Enhanced: Gradient noise tracking for training stability
 from .gradient_noise_tracker import GradientNoiseTracker, GradientStatistics
 
+# v4.1 Enhanced: Adaptive training controller
+from .adaptive_training_controller import (
+    AdaptiveTrainingController,
+    TrainingOrchestrator,
+    TrainingPhase,
+    AdaptationEvent
+)
+
 __all__ = [
     # Quantum Layers
     "QuantumLayer",
@@ -152,4 +160,8 @@ __all__ = [
     # v4.1 Enhanced
     "GradientNoiseTracker",
     "GradientStatistics",
+    "AdaptiveTrainingController",
+    "TrainingOrchestrator",
+    "TrainingPhase",
+    "AdaptationEvent",
 ]

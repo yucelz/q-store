@@ -33,6 +33,11 @@ from .circuit_metrics import (
     analyze_circuit_structure
 )
 
+from .quantum_metrics_computer import (
+    QuantumMetricsComputer,
+    compute_all_quantum_metrics
+)
+
 __all__ = [
     # Complexity analysis
     'CircuitComplexity',
@@ -54,5 +59,9 @@ __all__ = [
     'compute_entanglement_measure',
     'compute_parallelism_score',
     'compute_critical_path_length',
-    'analyze_circuit_structure'
+    'analyze_circuit_structure',
+
+    # v4.1 Enhanced: Quantum-specific metrics
+    'QuantumMetricsComputer',
+    'compute_all_quantum_metrics'
 ]
