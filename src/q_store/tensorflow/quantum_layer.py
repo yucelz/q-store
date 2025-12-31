@@ -85,11 +85,10 @@ class QuantumLayer(tf.keras.layers.Layer):
         # Create quantum feature extractor
         self.quantum_extractor = QuantumFeatureExtractor(
             n_qubits=self.n_qubits,
-            n_layers=self.n_layers,
+            depth=self.n_layers,
             entanglement='full',
             measurement_bases=['X', 'Y', 'Z'],
             backend=self.backend_name,
-            shots=self.shots,
         )
 
         # Create async executor if needed
@@ -101,7 +100,7 @@ class QuantumLayer(tf.keras.layers.Layer):
             self.quantum_extractor.executor = self.executor
 
         # Create trainable parameters
-        n_params = self.quantum_extractor.n_params
+        n_params = self.quantum_extractor.n_parameters
         self.quantum_params = self.add_weight(
             name='quantum_params',
             shape=(n_params,),

@@ -258,11 +258,15 @@ class QuantumLayer(nn.Module):
         # Finite difference
         output_diff = output_plus - output_minus
 
-        # Chain rule
-        grad_output_flat = grad_output.sum(dim=0)  # Sum over batch
-        grad_params = (grad_output_flat * output_diff.sum(dim=0)) / (2 * epsilon * delta)
+        # Chain rule: compute gradient of loss w.r.t. parameters
+        # grad_output: (batch_size, output_dim)
+        # output_diff: (batch_size, output_dim)
+        # We need to compute gradient w.r.t. params: (n_params,)
 
-        # Average
-        grad_params = grad_params.mean()
+        # Sum gradients over batch and output dimensions
+        loss_diff = (grad_output * output_diff).sum()
+
+        # SPSA gradient estimate
+        grad_params = (loss_diff / (2 * epsilon)) * delta
 
         return grad_params

@@ -140,6 +140,8 @@ def pytorch_classification():
 
         # Create model
         n_qubits = 4
+        n_measurement_bases = 3  # X, Y, Z
+        quantum_output_dim = n_qubits * n_measurement_bases  # 4 * 3 = 12
 
         class QuantumClassifier(nn.Module):
             def __init__(self):
@@ -149,7 +151,7 @@ def pytorch_classification():
                     nn.ReLU()
                 )
                 self.quantum = QuantumLayer(n_qubits=n_qubits, n_layers=2)
-                self.post = nn.Linear(n_qubits, 2)
+                self.post = nn.Linear(quantum_output_dim, 2)
 
             def forward(self, x):
                 x = self.pre(x)
