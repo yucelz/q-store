@@ -1,16 +1,59 @@
-# Q-Store v4.1 Examples
+# Q-Store v4.1.1 Examples
 
-Complete examples demonstrating Q-Store's quantum-first architecture with async execution, production-ready storage, and ML framework integration.
+Complete examples demonstrating Q-Store's quantum-first architecture with async execution, production-ready storage, ML framework integration, and advanced data management.
 
 ## 📋 Table of Contents
 
 - [Quick Start](#-quick-start)
+- [New Features (v4.1.1)](#-new-features-v411)
 - [Installation](#-installation)
 - [Directory Structure](#-directory-structure)
 - [Example Categories](#-example-categories)
 - [Running Examples](#-running-examples)
 - [Configuration](#-configuration)
 - [Troubleshooting](#-troubleshooting)
+
+---
+
+## 🆕 New Features (v4.1.1)
+
+Q-Store v4.1.1 introduces comprehensive data management and ML training features. See the complete guide:
+
+**[📖 New Features Examples Guide](NEW_FEATURES_README.md)**
+
+### New Example Categories
+
+#### Data Management (`data_management/`)
+- **Data Loaders**: Unified loading from Keras, HuggingFace, Backend API, local files
+- **Data Adapters**: Quantum data preparation and dimension reduction
+- **Preprocessing**: Normalization, splitting, feature scaling
+- **Backend Client**: REST API integration for dataset management
+- **Generators & Validation**: Efficient batching, validation, augmentation
+
+#### ML Training (`ml_training/`)
+- **Schedulers**: Advanced learning rate scheduling (step, cosine, cyclic, one-cycle)
+- **Early Stopping & Callbacks**: Training control, checkpointing, logging
+- **MLflow Tracking**: Experiment tracking and model versioning
+- **Hyperparameter Tuning**: Grid search, random search, Bayesian optimization, Optuna
+
+#### Complete Workflow
+- **End-to-End Example**: Complete pipeline demonstration using all new features
+
+### Quick Start with New Features
+
+```bash
+# Complete end-to-end workflow
+python examples/complete_workflow_example.py
+
+# Data management
+python examples/data_management/data_loaders_example.py
+python examples/data_management/data_preprocessing_example.py
+
+# ML training
+python examples/ml_training/schedulers_example.py
+python examples/ml_training/mlflow_tracking_example.py
+python examples/ml_training/hyperparameter_tuning_example.py
+```
 
 ---
 

@@ -48,11 +48,11 @@ class TestGridSearch:
 
         # Test that grid_search calculates correct number of combinations
         assert grid_search.n_combinations == 4
-        
+
         # Test search works
         def objective(params):
             return params['a'] + params['b']
-        
+
         best_params, best_score = grid_search.search(objective)
         assert best_params == {'a': 1, 'b': 3}
         assert best_score == 4
@@ -127,7 +127,7 @@ class TestRandomSearch:
         # Test that search works
         def objective(params):
             return params['learning_rate']
-        
+
         best_params, best_score = random_search.search(objective, n_trials=10)
         assert 'learning_rate' in best_params
         assert 'batch_size' in best_params
@@ -227,7 +227,7 @@ class TestBayesianOptimizer:
     def test_bayesian_optimizer_basic(self):
         """Test basic Bayesian optimization."""
         pytest.importorskip("bayes_opt", reason="bayesian-optimization not installed")
-        
+
         param_bounds = {
             'x': (0.0, 1.0),
             'y': (0.0, 1.0)
@@ -253,7 +253,7 @@ class TestBayesianOptimizer:
     def test_bayesian_optimizer_with_init_points(self):
         """Test Bayesian optimization with initial random points."""
         pytest.importorskip("bayes_opt", reason="bayesian-optimization not installed")
-        
+
         param_bounds = {'x': (-5.0, 5.0)}
 
         optimizer = BayesianOptimizer(
@@ -302,7 +302,7 @@ class TestOptunaTuner:
     def test_optuna_tuner_basic(self):
         """Test basic Optuna tuner."""
         pytest.importorskip("optuna", reason="optuna not installed")
-        
+
         config = OptunaConfig(
             study_name='test_study',
             direction='minimize',
@@ -324,7 +324,7 @@ class TestOptunaTuner:
     def test_optuna_tuner_with_pruning(self):
         """Test Optuna with pruning."""
         optuna = pytest.importorskip("optuna", reason="optuna not installed")
-        
+
         config = OptunaConfig(
             study_name='test_study',
             direction='minimize',
@@ -354,7 +354,7 @@ class TestOptunaTuner:
     def test_optuna_tuner_param_types(self):
         """Test different parameter types in Optuna."""
         pytest.importorskip("optuna", reason="optuna not installed")
-        
+
         config = OptunaConfig(study_name='test', n_trials=10)
         tuner = OptunaTuner(config)
 
@@ -373,13 +373,13 @@ class TestOptunaTuner:
     def test_optuna_tuner_with_storage(self):
         """Test Optuna with storage backend."""
         pytest.importorskip("optuna", reason="optuna not installed")
-        
+
         import tempfile
         import os
-        
+
         with tempfile.TemporaryDirectory() as tmpdir:
             storage_path = os.path.join(tmpdir, 'optuna.db')
-            
+
             config = OptunaConfig(
                 study_name='test_study',
                 storage=f'sqlite:///{storage_path}',
@@ -476,7 +476,7 @@ class TestEdgeCases:
             return params['x']
 
         random_search = RandomSearch(param_distributions)
-        
+
         # Calling search with 0 trials should handle gracefully or raise
         try:
             best_params, best_score = random_search.search(objective, n_trials=0)
@@ -489,17 +489,17 @@ class TestEdgeCases:
     def test_bayesian_optimizer_invalid_bounds(self):
         """Test Bayesian optimizer with invalid bounds."""
         pytest.importorskip("bayes_opt", reason="bayesian-optimization not installed")
-        
+
         param_bounds = {
             'x': (10.0, 0.0)  # Invalid: min > max
         }
 
         # BayesianOptimizer may not validate in init, but bayes_opt will fail during optimization
         optimizer = BayesianOptimizer(param_bounds)
-        
+
         def objective(params):
             return params['x']
-        
+
         # Should fail when trying to optimize with invalid bounds
         try:
             optimizer.optimize(objective, n_trials=5)
