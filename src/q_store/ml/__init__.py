@@ -97,6 +97,40 @@ from .adaptive_training_controller import (
     AdaptationEvent
 )
 
+# v4.1.1 NEW: Learning rate schedulers
+from .schedulers import (
+    LRScheduler,
+    StepLR,
+    ExponentialLR,
+    CosineAnnealingLR,
+    CyclicLR,
+    OneCycleLR,
+    ReduceLROnPlateau,
+    WarmupScheduler,
+    create_scheduler,
+)
+
+# v4.1.1 NEW: Early stopping and convergence detection
+from .early_stopping import (
+    EarlyStopping,
+    ConvergenceDetector,
+    create_early_stopping,
+)
+
+# v4.1.1 NEW: Training callbacks
+from .callbacks import (
+    Callback,
+    CallbackList,
+    ModelCheckpoint,
+    CSVLogger,
+    ProgressCallback,
+    LearningRateLogger,
+    TensorBoardCallback,
+    MLflowCallback,
+    WandBCallback,
+    create_callback,
+)
+
 __all__ = [
     # Quantum Layers
     "QuantumLayer",
@@ -164,4 +198,29 @@ __all__ = [
     "TrainingOrchestrator",
     "TrainingPhase",
     "AdaptationEvent",
+    # v4.1.1 NEW: Learning rate schedulers
+    "LRScheduler",
+    "StepLR",
+    "ExponentialLR",
+    "CosineAnnealingLR",
+    "CyclicLR",
+    "OneCycleLR",
+    "ReduceLROnPlateau",
+    "WarmupScheduler",
+    "create_scheduler",
+    # v4.1.1 NEW: Early stopping
+    "EarlyStopping",
+    "ConvergenceDetector",
+    "create_early_stopping",
+    # v4.1.1 NEW: Training callbacks
+    "Callback",
+    "CallbackList",
+    "ModelCheckpoint",
+    "CSVLogger",
+    "ProgressCallback",
+    "LearningRateLogger",
+    "TensorBoardCallback",
+    "MLflowCallback",
+    "WandBCallback",
+    "create_callback",
 ]

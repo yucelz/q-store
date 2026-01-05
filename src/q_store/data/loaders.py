@@ -1276,12 +1276,689 @@ class BackendAPISourceAdapter(SourceAdapter):
 
 
 class LocalFilesSourceAdapter(SourceAdapter):
-    """Adapter for local file datasets (placeholder - will be fully implemented)."""
+    """
+    Adapter for loading datasets from local files.
+
+    Supports multiple file formats:
+    - NumPy: .npy, .npz files
+    - CSV: .csv files
+    - Images: Directory of images
+    - HDF5: .h5, .hdf5 files
+    - Parquet: .parquet files
+
+    Required source_params:
+        - format (str): File format ('numpy', 'csv', 'images', 'hdf5', 'parquet')
+        - Additional params depend on format (see format-specific methods)
+
+    Example - NumPy:
+        >>> config = DatasetConfig(
+        ...     name='my_dataset',
+        ...     source=DatasetSource.LOCAL_FILES,
+        ...     source_params={
+        ...         'format': 'numpy',
+        ...         'train_data': 'path/to/x_train.npy',
+        ...         'train_labels': 'path/to/y_train.npy',
+        ...         'test_data': 'path/to/x_test.npy',
+        ...         'test_labels': 'path/to/y_test.npy'
+        ...     }
+        ... )
+
+    Example - Images:
+        >>> config = DatasetConfig(
+        ...     name='my_images',
+        ...     source=DatasetSource.LOCAL_FILES,
+        ...     source_params={
+        ...         'format': 'images',
+        ...         'image_dir': 'path/to/images',
+        ...         'labels_file': 'path/to/labels.csv'
+        ...     }
+        ... )
+    """
+
+    SUPPORTED_FORMATS = ['numpy', 'csv', 'images', 'hdf5', 'parquet']
 
     def load(self, config: DatasetConfig, cache_dir: Optional[str] = None) -> Dataset:
-        raise NotImplementedError("LocalFilesSourceAdapter not yet implemented")
+        """
+        Load dataset from local files.
+
+        Args:
+            config: Dataset configuration with format and file paths
+            cache_dir: Not used for local files
+
+        Returns:
+            Dataset object with loaded data
+
+        Raises:
+            ValueError: If format is invalid or required params missing
+            FileNotFoundError: If specified files don't exist
+            RuntimeError: If loading fails
+        """
+        file_format = config.source_params.get('format')
+        if not file_format:
+            raise ValueError(
+                "LocalFilesSourceAdapter requires 'format' in source_params. "
+                f"Supported formats: {self.SUPPORTED_FORMATS}"
+            )
+
+        if file_format not in self.SUPPORTED_FORMATS:
+            raise ValueError(
+                f"Unsupported format: {file_format}. "
+                f"Supported formats: {self.SUPPORTED_FORMATS}"
+            )
+
+        logger.info(f"Loading dataset from local files (format: {file_format})")
+
+        # Dispatch to format-specific loader
+        if file_format == 'numpy':
+            return self._load_numpy(config)
+        elif file_format == 'csv':
+            return self._load_csv(config)
+        elif file_format == 'images':
+            return self._load_images(config)
+        elif file_format == 'hdf5':
+            return self._load_hdf5(config)
+        elif file_format == 'parquet':
+            return self._load_parquet(config)
+        else:
+            raise ValueError(f"Format handler not implemented: {file_format}")
+
+    def _load_numpy(self, config: DatasetConfig) -> Dataset:
+        """
+        Load dataset from NumPy files (.npy or .npz).
+
+        Required source_params:
+            - train_data: Path to training data file
+            - train_labels: Path to training labels file
+
+        Optional source_params:
+            - val_data, val_labels: Validation split files
+            - test_data, test_labels: Test split files
+            - data_file: Single .npz file with all splits
+
+        Args:
+            config: Dataset configuration
+
+        Returns:
+            Dataset object
+
+        Raises:
+            FileNotFoundError: If required files don't exist
+            ValueError: If file format is invalid
+        """
+        params = config.source_params
+
+        # Check if single .npz file provided
+        data_file = params.get('data_file')
+        if data_file:
+            return self._load_numpy_archive(config, data_file)
+
+        # Load from separate files
+        train_data_path = params.get('train_data')
+        train_labels_path = params.get('train_labels')
+
+        if not train_data_path or not train_labels_path:
+            raise ValueError(
+                "NumPy format requires 'train_data' and 'train_labels' paths, "
+                "or a single 'data_file' (.npz archive)"
+            )
+
+        # Load training data
+        x_train = self._load_npy_file(train_data_path)
+        y_train = self._load_npy_file(train_labels_path)
+
+        # Load validation data (optional)
+        val_data_path = params.get('val_data')
+        val_labels_path = params.get('val_labels')
+        if val_data_path and val_labels_path:
+            x_val = self._load_npy_file(val_data_path)
+            y_val = self._load_npy_file(val_labels_path)
+        else:
+            x_val, y_val = None, None
+
+        # Load test data (optional)
+        test_data_path = params.get('test_data')
+        test_labels_path = params.get('test_labels')
+        if test_data_path and test_labels_path:
+            x_test = self._load_npy_file(test_data_path)
+            y_test = self._load_npy_file(test_labels_path)
+        else:
+            x_test, y_test = None, None
+
+        # Apply split config if no val/test and split_config provided
+        if config.split_config and (x_val is None or x_test is None):
+            x_train, y_train, x_val, y_val, x_test, y_test = \
+                self._apply_split_config(x_train, y_train, config.split_config)
+
+        return Dataset(
+            name=config.name,
+            x_train=x_train,
+            y_train=y_train,
+            x_val=x_val,
+            y_val=y_val,
+            x_test=x_test,
+            y_test=y_test,
+            metadata={
+                'source': 'local_files',
+                'format': 'numpy',
+                'train_data': train_data_path,
+                'train_labels': train_labels_path
+            }
+        )
+
+    def _load_numpy_archive(self, config: DatasetConfig, archive_path: str) -> Dataset:
+        """
+        Load dataset from a single .npz archive.
+
+        Expected keys in archive:
+            - x_train, y_train (required)
+            - x_val, y_val (optional)
+            - x_test, y_test (optional)
+
+        Args:
+            config: Dataset configuration
+            archive_path: Path to .npz file
+
+        Returns:
+            Dataset object
+        """
+        if not os.path.exists(archive_path):
+            raise FileNotFoundError(f"Archive file not found: {archive_path}")
+
+        logger.info(f"Loading NumPy archive: {archive_path}")
+        data = np.load(archive_path)
+
+        # Check required keys
+        if 'x_train' not in data or 'y_train' not in data:
+            raise ValueError(
+                f"Archive must contain 'x_train' and 'y_train'. "
+                f"Found keys: {list(data.keys())}"
+            )
+
+        return Dataset(
+            name=config.name,
+            x_train=data['x_train'],
+            y_train=data['y_train'],
+            x_val=data.get('x_val'),
+            y_val=data.get('y_val'),
+            x_test=data.get('x_test'),
+            y_test=data.get('y_test'),
+            metadata={
+                'source': 'local_files',
+                'format': 'numpy_archive',
+                'archive_path': archive_path
+            }
+        )
+
+    def _load_npy_file(self, file_path: str) -> np.ndarray:
+        """Load a single .npy file."""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+
+        logger.debug(f"Loading: {file_path}")
+        return np.load(file_path)
+
+    def _load_csv(self, config: DatasetConfig) -> Dataset:
+        """
+        Load dataset from CSV files.
+
+        Required source_params:
+            - train_file: Path to training CSV file
+            - label_column: Name of label column
+
+        Optional source_params:
+            - val_file: Validation CSV file
+            - test_file: Test CSV file
+            - feature_columns: List of feature column names (if None, uses all except label)
+            - sep: CSV separator (default: ',')
+            - header: Row number for header (default: 0)
+
+        Args:
+            config: Dataset configuration
+
+        Returns:
+            Dataset object
+        """
+        if not PANDAS_AVAILABLE:
+            raise ImportError(
+                "pandas is required for CSV loading. "
+                "Install with: pip install pandas"
+            )
+
+        params = config.source_params
+        train_file = params.get('train_file')
+        label_column = params.get('label_column')
+
+        if not train_file or not label_column:
+            raise ValueError(
+                "CSV format requires 'train_file' and 'label_column' in source_params"
+            )
+
+        sep = params.get('sep', ',')
+        header = params.get('header', 0)
+        feature_columns = params.get('feature_columns')
+
+        # Load training data
+        x_train, y_train = self._load_csv_file(
+            train_file, label_column, feature_columns, sep, header
+        )
+
+        # Load validation data (optional)
+        val_file = params.get('val_file')
+        if val_file:
+            x_val, y_val = self._load_csv_file(
+                val_file, label_column, feature_columns, sep, header
+            )
+        else:
+            x_val, y_val = None, None
+
+        # Load test data (optional)
+        test_file = params.get('test_file')
+        if test_file:
+            x_test, y_test = self._load_csv_file(
+                test_file, label_column, feature_columns, sep, header
+            )
+        else:
+            x_test, y_test = None, None
+
+        # Apply split config if needed
+        if config.split_config and (x_val is None or x_test is None):
+            x_train, y_train, x_val, y_val, x_test, y_test = \
+                self._apply_split_config(x_train, y_train, config.split_config)
+
+        return Dataset(
+            name=config.name,
+            x_train=x_train,
+            y_train=y_train,
+            x_val=x_val,
+            y_val=y_val,
+            x_test=x_test,
+            y_test=y_test,
+            metadata={
+                'source': 'local_files',
+                'format': 'csv',
+                'train_file': train_file,
+                'label_column': label_column
+            }
+        )
+
+    def _load_csv_file(
+        self,
+        file_path: str,
+        label_column: str,
+        feature_columns: Optional[List[str]] = None,
+        sep: str = ',',
+        header: int = 0
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Load data from a single CSV file."""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"CSV file not found: {file_path}")
+
+        logger.info(f"Loading CSV: {file_path}")
+        df = pd.read_csv(file_path, sep=sep, header=header)
+
+        # Extract labels
+        if label_column not in df.columns:
+            raise ValueError(
+                f"Label column '{label_column}' not found in CSV. "
+                f"Available columns: {list(df.columns)}"
+            )
+        y_data = df[label_column].values
+
+        # Extract features
+        if feature_columns:
+            # Use specified feature columns
+            missing_cols = set(feature_columns) - set(df.columns)
+            if missing_cols:
+                raise ValueError(f"Feature columns not found: {missing_cols}")
+            x_data = df[feature_columns].values
+        else:
+            # Use all columns except label
+            feature_cols = [col for col in df.columns if col != label_column]
+            x_data = df[feature_cols].values
+
+        return x_data, y_data
+
+    def _load_images(self, config: DatasetConfig) -> Dataset:
+        """
+        Load dataset from image directory.
+
+        Required source_params:
+            - image_dir: Root directory containing images
+            - labels_file: CSV file with image names and labels
+                          (columns: 'filename', 'label')
+
+        Optional source_params:
+            - image_size: Tuple of (height, width) to resize images
+            - color_mode: 'rgb' or 'grayscale' (default: 'rgb')
+            - file_extension: Image extension (default: '.jpg')
+
+        Args:
+            config: Dataset configuration
+
+        Returns:
+            Dataset object
+        """
+        if not PIL_AVAILABLE:
+            raise ImportError(
+                "PIL/Pillow is required for image loading. "
+                "Install with: pip install pillow"
+            )
+
+        if not PANDAS_AVAILABLE:
+            raise ImportError(
+                "pandas is required for reading labels file. "
+                "Install with: pip install pandas"
+            )
+
+        params = config.source_params
+        image_dir = params.get('image_dir')
+        labels_file = params.get('labels_file')
+
+        if not image_dir or not labels_file:
+            raise ValueError(
+                "Images format requires 'image_dir' and 'labels_file' in source_params"
+            )
+
+        if not os.path.exists(image_dir):
+            raise FileNotFoundError(f"Image directory not found: {image_dir}")
+        if not os.path.exists(labels_file):
+            raise FileNotFoundError(f"Labels file not found: {labels_file}")
+
+        # Load labels
+        logger.info(f"Loading labels from: {labels_file}")
+        labels_df = pd.read_csv(labels_file)
+
+        if 'filename' not in labels_df.columns or 'label' not in labels_df.columns:
+            raise ValueError(
+                "Labels CSV must contain 'filename' and 'label' columns"
+            )
+
+        # Load images
+        image_size = params.get('image_size')
+        color_mode = params.get('color_mode', 'rgb')
+
+        images = []
+        labels = []
+
+        logger.info(f"Loading images from: {image_dir}")
+        for idx, row in labels_df.iterrows():
+            filename = row['filename']
+            label = row['label']
+
+            image_path = os.path.join(image_dir, filename)
+            if not os.path.exists(image_path):
+                logger.warning(f"Image not found: {image_path}, skipping")
+                continue
+
+            # Load and preprocess image
+            img = Image.open(image_path)
+
+            # Convert color mode
+            if color_mode == 'grayscale':
+                img = img.convert('L')
+            elif color_mode == 'rgb':
+                img = img.convert('RGB')
+
+            # Resize if specified
+            if image_size:
+                img = img.resize(image_size)
+
+            # Convert to numpy array
+            img_array = np.array(img)
+            images.append(img_array)
+            labels.append(label)
+
+        x_data = np.array(images)
+        y_data = np.array(labels)
+
+        logger.info(f"Loaded {len(x_data)} images")
+
+        # Apply split configuration
+        if config.split_config:
+            x_train, y_train, x_val, y_val, x_test, y_test = \
+                self._apply_split_config(x_data, y_data, config.split_config)
+        else:
+            # Default: all data as training
+            x_train, y_train = x_data, y_data
+            x_val, y_val = None, None
+            x_test, y_test = None, None
+
+        return Dataset(
+            name=config.name,
+            x_train=x_train,
+            y_train=y_train,
+            x_val=x_val,
+            y_val=y_val,
+            x_test=x_test,
+            y_test=y_test,
+            metadata={
+                'source': 'local_files',
+                'format': 'images',
+                'image_dir': image_dir,
+                'labels_file': labels_file,
+                'image_size': image_size,
+                'color_mode': color_mode
+            }
+        )
+
+    def _load_hdf5(self, config: DatasetConfig) -> Dataset:
+        """
+        Load dataset from HDF5 file.
+
+        Required source_params:
+            - hdf5_file: Path to HDF5 file
+
+        Optional source_params:
+            - train_data_key, train_labels_key: Keys for training data (default: 'x_train', 'y_train')
+            - val_data_key, val_labels_key: Keys for validation data
+            - test_data_key, test_labels_key: Keys for test data
+
+        Args:
+            config: Dataset configuration
+
+        Returns:
+            Dataset object
+        """
+        if not H5PY_AVAILABLE:
+            raise ImportError(
+                "h5py is required for HDF5 loading. "
+                "Install with: pip install h5py"
+            )
+
+        params = config.source_params
+        hdf5_file = params.get('hdf5_file')
+
+        if not hdf5_file:
+            raise ValueError("HDF5 format requires 'hdf5_file' in source_params")
+
+        if not os.path.exists(hdf5_file):
+            raise FileNotFoundError(f"HDF5 file not found: {hdf5_file}")
+
+        logger.info(f"Loading HDF5 file: {hdf5_file}")
+
+        with h5py.File(hdf5_file, 'r') as f:
+            # Get dataset keys
+            train_data_key = params.get('train_data_key', 'x_train')
+            train_labels_key = params.get('train_labels_key', 'y_train')
+
+            if train_data_key not in f or train_labels_key not in f:
+                raise ValueError(
+                    f"Training data keys not found in HDF5 file. "
+                    f"Expected: '{train_data_key}', '{train_labels_key}'. "
+                    f"Available keys: {list(f.keys())}"
+                )
+
+            # Load training data
+            x_train = f[train_data_key][()]
+            y_train = f[train_labels_key][()]
+
+            # Load validation data (optional)
+            val_data_key = params.get('val_data_key', 'x_val')
+            val_labels_key = params.get('val_labels_key', 'y_val')
+            if val_data_key in f and val_labels_key in f:
+                x_val = f[val_data_key][()]
+                y_val = f[val_labels_key][()]
+            else:
+                x_val, y_val = None, None
+
+            # Load test data (optional)
+            test_data_key = params.get('test_data_key', 'x_test')
+            test_labels_key = params.get('test_labels_key', 'y_test')
+            if test_data_key in f and test_labels_key in f:
+                x_test = f[test_data_key][()]
+                y_test = f[test_labels_key][()]
+            else:
+                x_test, y_test = None, None
+
+            # Load metadata if available
+            metadata = dict(f.attrs) if f.attrs else {}
+
+        # Apply split config if needed
+        if config.split_config and (x_val is None or x_test is None):
+            x_train, y_train, x_val, y_val, x_test, y_test = \
+                self._apply_split_config(x_train, y_train, config.split_config)
+
+        metadata.update({
+            'source': 'local_files',
+            'format': 'hdf5',
+            'hdf5_file': hdf5_file
+        })
+
+        return Dataset(
+            name=config.name,
+            x_train=x_train,
+            y_train=y_train,
+            x_val=x_val,
+            y_val=y_val,
+            x_test=x_test,
+            y_test=y_test,
+            metadata=metadata
+        )
+
+    def _load_parquet(self, config: DatasetConfig) -> Dataset:
+        """
+        Load dataset from Parquet files.
+
+        Required source_params:
+            - train_file: Path to training Parquet file
+            - label_column: Name of label column
+
+        Optional source_params:
+            - val_file: Validation Parquet file
+            - test_file: Test Parquet file
+            - feature_columns: List of feature column names
+
+        Args:
+            config: Dataset configuration
+
+        Returns:
+            Dataset object
+        """
+        if not PARQUET_AVAILABLE:
+            raise ImportError(
+                "pyarrow is required for Parquet loading. "
+                "Install with: pip install pyarrow"
+            )
+
+        params = config.source_params
+        train_file = params.get('train_file')
+        label_column = params.get('label_column')
+
+        if not train_file or not label_column:
+            raise ValueError(
+                "Parquet format requires 'train_file' and 'label_column' in source_params"
+            )
+
+        feature_columns = params.get('feature_columns')
+
+        # Load training data
+        x_train, y_train = self._load_parquet_file(
+            train_file, label_column, feature_columns
+        )
+
+        # Load validation data (optional)
+        val_file = params.get('val_file')
+        if val_file:
+            x_val, y_val = self._load_parquet_file(
+                val_file, label_column, feature_columns
+            )
+        else:
+            x_val, y_val = None, None
+
+        # Load test data (optional)
+        test_file = params.get('test_file')
+        if test_file:
+            x_test, y_test = self._load_parquet_file(
+                test_file, label_column, feature_columns
+            )
+        else:
+            x_test, y_test = None, None
+
+        # Apply split config if needed
+        if config.split_config and (x_val is None or x_test is None):
+            x_train, y_train, x_val, y_val, x_test, y_test = \
+                self._apply_split_config(x_train, y_train, config.split_config)
+
+        return Dataset(
+            name=config.name,
+            x_train=x_train,
+            y_train=y_train,
+            x_val=x_val,
+            y_val=y_val,
+            x_test=x_test,
+            y_test=y_test,
+            metadata={
+                'source': 'local_files',
+                'format': 'parquet',
+                'train_file': train_file,
+                'label_column': label_column
+            }
+        )
+
+    def _load_parquet_file(
+        self,
+        file_path: str,
+        label_column: str,
+        feature_columns: Optional[List[str]] = None
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Load data from a single Parquet file."""
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Parquet file not found: {file_path}")
+
+        logger.info(f"Loading Parquet: {file_path}")
+        table = pq.read_table(file_path)
+        df = table.to_pandas()
+
+        # Extract labels
+        if label_column not in df.columns:
+            raise ValueError(
+                f"Label column '{label_column}' not found in Parquet file. "
+                f"Available columns: {list(df.columns)}"
+            )
+        y_data = df[label_column].values
+
+        # Extract features
+        if feature_columns:
+            missing_cols = set(feature_columns) - set(df.columns)
+            if missing_cols:
+                raise ValueError(f"Feature columns not found: {missing_cols}")
+            x_data = df[feature_columns].values
+        else:
+            feature_cols = [col for col in df.columns if col != label_column]
+            x_data = df[feature_cols].values
+
+        return x_data, y_data
 
     def list_datasets(self) -> List[Dict[str, Any]]:
+        """
+        List available datasets from local files.
+
+        Note: Since local files can be anywhere, this returns an empty list.
+        Users should provide explicit file paths in source_params.
+
+        Returns:
+            Empty list
+        """
         return []
 
 

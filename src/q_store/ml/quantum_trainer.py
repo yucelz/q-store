@@ -161,6 +161,24 @@ class TrainingConfig:
     # v3.5 NEW: Enable all features
     enable_all_v35_features: bool = False  # Enable all v3.5 features at once
 
+    # v4.1.1 NEW: Learning rate scheduling
+    lr_scheduler: Optional[str] = None  # 'step', 'cosine', 'cyclic', 'onecycle', 'plateau', etc.
+    lr_scheduler_params: Optional[Dict[str, Any]] = None  # Scheduler-specific parameters
+
+    # v4.1.1 NEW: Early stopping
+    enable_early_stopping: bool = False
+    early_stopping_patience: int = 10
+    early_stopping_min_delta: float = 0.0
+    early_stopping_monitor: str = 'val_loss'  # Metric to monitor
+
+    # v4.1.1 NEW: Callbacks
+    callbacks: Optional[List[Any]] = None  # List of callback instances
+
+    # v4.1.1 NEW: Direct dataset loading support
+    dataset_source: Optional[str] = None  # 'keras', 'huggingface', 'backend_api', 'local'
+    dataset_name: Optional[str] = None  # Dataset name/path
+    dataset_params: Optional[Dict[str, Any]] = None  # Dataset-specific parameters
+
     def __post_init__(self):
         """Post-initialization configuration processing"""
         # Handle deprecated use_batch_api
@@ -415,6 +433,18 @@ class QuantumTrainer:
         self._training_vectors_stored = 0
         self._enable_vector_storage = False
 
+        # v4.1.1 NEW: Learning rate scheduler
+        self.lr_scheduler = self._initialize_scheduler()
+
+        # v4.1.1 NEW: Early stopping
+        self.early_stopping = self._initialize_early_stopping()
+
+        # v4.1.1 NEW: Callbacks
+        self.callbacks = self._initialize_callbacks()
+
+        # v4.1.1 NEW: Dataset loader (optional)
+        self.dataset_loader = None
+
     async def _init_pinecone(self):
         """Initialize Pinecone connection for model checkpointing"""
         if self._pinecone_initialized:
@@ -475,6 +505,68 @@ class QuantumTrainer:
         else:
             return {}
 
+    def _initialize_scheduler(self):
+        """Initialize learning rate scheduler (v4.1.1)"""
+        if self.config.lr_scheduler is None:
+            return None
+
+        try:
+            from .schedulers import create_scheduler
+
+            params = self.config.lr_scheduler_params or {}
+            scheduler = create_scheduler(
+                scheduler_type=self.config.lr_scheduler,
+                initial_lr=self.config.learning_rate,
+                **params
+            )
+            logger.info(f"Initialized LR scheduler: {self.config.lr_scheduler}")
+            return scheduler
+        except Exception as e:
+            logger.warning(f"Failed to initialize LR scheduler: {e}")
+            return None
+
+    def _initialize_early_stopping(self):
+        """Initialize early stopping (v4.1.1)"""
+        if not self.config.enable_early_stopping:
+            return None
+
+        try:
+            from .early_stopping import EarlyStopping
+
+            # Determine mode based on monitored metric
+            mode = 'min' if 'loss' in self.config.early_stopping_monitor else 'max'
+
+            early_stopping = EarlyStopping(
+                patience=self.config.early_stopping_patience,
+                min_delta=self.config.early_stopping_min_delta,
+                mode=mode,
+                restore_best_weights=True,
+                verbose=True
+            )
+            logger.info(
+                f"Initialized early stopping: patience={self.config.early_stopping_patience}, "
+                f"monitor={self.config.early_stopping_monitor}"
+            )
+            return early_stopping
+        except Exception as e:
+            logger.warning(f"Failed to initialize early stopping: {e}")
+            return None
+
+    def _initialize_callbacks(self):
+        """Initialize callback list (v4.1.1)"""
+        try:
+            from .callbacks import CallbackList
+
+            callbacks = self.config.callbacks or []
+            callback_list = CallbackList(callbacks)
+            if callbacks:
+                logger.info(f"Initialized {len(callbacks)} callbacks")
+            return callback_list
+        except Exception as e:
+            logger.warning(f"Failed to initialize callbacks: {e}")
+            from .callbacks import CallbackList
+            return CallbackList([])
+
     def _default_loss_function(self, predictions: np.ndarray, targets: np.ndarray) -> float:
         """Default MSE loss function"""
         return np.mean((predictions - targets) ** 2)
@@ -482,6 +574,72 @@ class QuantumTrainer:
     def set_loss_function(self, loss_fn: Callable[[np.ndarray, np.ndarray], float]):
         """Set custom loss function"""
         self.loss_function = loss_fn
+
+    def load_dataset(self, dataset_config=None):
+        """
+        Load dataset using Q-Store data management layer (v4.1.1)
+
+        Args:
+            dataset_config: DatasetConfig instance or None to use config settings
+
+        Returns:
+            Loaded Dataset instance
+
+        Example:
+            >>> from q_store.data import DatasetConfig, DatasetSource
+            >>> config = DatasetConfig(
+            ...     name='fashion_mnist',
+            ...     source=DatasetSource.KERAS
+            ... )
+            >>> dataset = trainer.load_dataset(config)
+            >>> # Use dataset.x_train, dataset.y_train, etc.
+        """
+        try:
+            from ..data import DatasetLoader, DatasetConfig, DatasetSource
+
+            # Use provided config or create from trainer config
+            if dataset_config is None:
+                if self.config.dataset_source is None:
+                    raise ValueError("No dataset_source specified in training config")
+
+                # Map source string to DatasetSource enum
+                source_map = {
+                    'keras': DatasetSource.KERAS,
+                    'huggingface': DatasetSource.HUGGINGFACE,
+                    'backend_api': DatasetSource.BACKEND_API,
+                    'local': DatasetSource.LOCAL_FILES,
+                }
+
+                source = source_map.get(self.config.dataset_source.lower())
+                if source is None:
+                    raise ValueError(
+                        f"Invalid dataset_source: {self.config.dataset_source}. "
+                        f"Must be one of: {list(source_map.keys())}"
+                    )
+
+                dataset_config = DatasetConfig(
+                    name=self.config.dataset_name,
+                    source=source,
+                    source_params=self.config.dataset_params or {}
+                )
+
+            # Load dataset
+            dataset = DatasetLoader.load(dataset_config)
+            logger.info(
+                f"Loaded dataset '{dataset_config.name}' from {dataset_config.source.value}: "
+                f"x_train shape={dataset.x_train.shape}, "
+                f"y_train shape={dataset.y_train.shape}"
+            )
+
+            self.dataset_loader = dataset
+            return dataset
+
+        except ImportError:
+            logger.error("Data management layer not available. Cannot load dataset.")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to load dataset: {e}")
+            raise
 
     async def train_epoch(self, model: QuantumModel, data_loader, epoch: int) -> TrainingMetrics:
         """
@@ -728,7 +886,7 @@ class QuantumTrainer:
         self, model: QuantumModel, train_loader, val_loader=None, epochs: Optional[int] = None
     ):
         """
-        Train the model
+        Train the model (v4.1.1: Enhanced with schedulers, early stopping, callbacks)
 
         Args:
             model: Model to train
@@ -745,27 +903,107 @@ class QuantumTrainer:
         logger.info(f"Model: {model.n_qubits} qubits, depth {model.depth}")
         logger.info(f"Backend: {self.backend.get_backend_info()}")
 
+        # v4.1.1: Trigger callbacks - on_train_begin
+        if self.callbacks:
+            train_logs = {
+                'model': model,
+                'params': {
+                    'epochs': epochs,
+                    'batch_size': self.config.batch_size,
+                    'learning_rate': self.config.learning_rate,
+                    'n_qubits': model.n_qubits,
+                }
+            }
+            self.callbacks.on_train_begin(train_logs)
+
         for epoch in range(epochs):
+            # v4.1.1: Trigger callbacks - on_epoch_begin
+            if self.callbacks:
+                self.callbacks.on_epoch_begin(epoch)
+
             # Train epoch
             metrics = await self.train_epoch(model, train_loader, epoch)
+
+            # v4.1.1: Update learning rate with scheduler
+            current_lr = self.config.learning_rate
+            if self.lr_scheduler is not None:
+                current_lr = self.lr_scheduler.step(epoch)
+                self.config.learning_rate = current_lr
+                metrics.learning_rate = current_lr
 
             logger.info(
                 f"Epoch {epoch}/{epochs}: "
                 f"Loss={metrics.loss:.4f}, "
                 f"Grad Norm={metrics.gradient_norm:.4f}, "
+                f"LR={current_lr:.6f}, "
                 f"Time={metrics.epoch_time_ms/1000:.2f}s"
             )
 
             # Validation
+            val_loss = None
             if val_loader is not None:
                 val_metrics = await self.validate(model, val_loader)
-                logger.info(f"Validation Loss: {val_metrics['loss']:.4f}")
+                val_loss = val_metrics['loss']
+                logger.info(f"Validation Loss: {val_loss:.4f}")
+
+            # v4.1.1: Prepare logs for callbacks and early stopping
+            epoch_logs = {
+                'epoch': epoch,
+                'loss': metrics.loss,
+                'gradient_norm': metrics.gradient_norm,
+                'lr': current_lr,
+                'learning_rate': current_lr,
+                'model': model,
+            }
+            if val_loss is not None:
+                epoch_logs['val_loss'] = val_loss
+
+            # v4.1.1: Trigger callbacks - on_epoch_end
+            if self.callbacks:
+                self.callbacks.on_epoch_end(epoch, epoch_logs)
+
+            # v4.1.1: Check early stopping
+            if self.early_stopping is not None:
+                # Get the metric to monitor
+                monitor_value = epoch_logs.get(self.config.early_stopping_monitor)
+
+                if monitor_value is not None:
+                    # Check if we should stop
+                    should_stop = self.early_stopping.should_stop(
+                        epoch=epoch,
+                        current_value=monitor_value,
+                        weights=model.save_state() if hasattr(model, 'save_state') else None
+                    )
+
+                    if should_stop:
+                        logger.info(
+                            f"Early stopping triggered at epoch {epoch}. "
+                            f"Best epoch was {self.early_stopping.best_epoch}"
+                        )
+
+                        # Restore best weights if available
+                        if self.early_stopping.restore_best_weights:
+                            best_weights = self.early_stopping.get_best_weights()
+                            if best_weights and hasattr(model, 'load_state'):
+                                model.load_state(best_weights)
+                                logger.info("Restored best model weights")
+
+                        break
 
             # Checkpointing
             if (epoch + 1) % self.config.checkpoint_interval == 0:
                 await self.save_checkpoint(model, epoch, metrics)
 
             self.current_epoch = epoch
+
+        # v4.1.1: Trigger callbacks - on_train_end
+        if self.callbacks:
+            final_logs = {
+                'model': model,
+                'final_epoch': self.current_epoch,
+                'training_history': self.training_history,
+            }
+            self.callbacks.on_train_end(final_logs)
 
         logger.info("Training complete!")
 

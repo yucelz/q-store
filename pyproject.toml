@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "q-store"
-version = "4.1.0"
+version = "4.1.1"
 description = "Quantum-First Machine Learning Framework with Async Execution and Production Storage"
 readme = "README.md"
 authors = [
@@ -47,6 +47,11 @@ dependencies = [
     "zarr>=2.16.0",
     "pyarrow>=14.0.0",
     "aiohttp>=3.9.0",
+    # v4.1.1: Data management dependencies
+    "pandas>=2.0.0",
+    "scikit-learn>=1.3.0",
+    "pillow>=10.0.0",
+    "h5py>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -64,6 +69,27 @@ storage = [
     "pyarrow>=14.0.0",
     "aiohttp>=3.9.0",
     "pandas>=2.0.0",
+]
+# v4.1.1: Dataset loading
+datasets = [
+    "datasets>=2.14.0",
+    "huggingface-hub>=0.17.0",
+]
+# v4.1.1: Data augmentation
+augmentation = [
+    "albumentations>=1.3.0",
+    "opencv-python>=4.8.0",
+]
+# v4.1.1: Experiment tracking
+tracking = [
+    "mlflow>=2.7.0",
+    "tensorboard>=2.14.0",
+    "wandb>=0.15.0",
+]
+# v4.1.1: Hyperparameter tuning
+tuning = [
+    "optuna>=3.3.0",
+    "bayesian-optimization>=1.4.0",
 ]
 build = [
     "Cython>=0.29.0",
@@ -86,7 +112,7 @@ docs = [
     "sphinx-autodoc-typehints>=1.23.0",
 ]
 all = [
-    "q-store[backends,ml,storage,dev,docs]"
+    "q-store[backends,ml,storage,datasets,augmentation,tracking,tuning,dev,docs]"
 ]
 
 [project.urls]
