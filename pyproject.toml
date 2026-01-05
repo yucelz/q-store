@@ -205,6 +205,7 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "benchmark: marks tests as performance benchmarks",
+    "stress: marks tests as stress tests (high resource usage)",
 ]
 
 [tool.coverage.run]
