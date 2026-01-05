@@ -139,7 +139,6 @@ def example_one_cycle_lr():
         max_lr=0.1,
         total_steps=100,
         pct_start=0.3,
-        anneal_strategy='cos',
         verbose=False
     )
 
@@ -186,7 +185,7 @@ def example_reduce_on_plateau():
             loss = 0.4 - (epoch - 60) * 0.005
 
         losses.append(loss)
-        lr = scheduler.step(epoch, loss)
+        lr = scheduler.step(loss)
         lrs.append(lr)
 
     print(f"  Initial LR: {lrs[0]:.6f}")
@@ -204,21 +203,19 @@ def example_warmup_scheduler():
     print("Example 7: Warmup Scheduler")
     print("="*70)
 
-    scheduler = WarmupScheduler(
-        initial_lr=1e-6,
+    warmup = WarmupScheduler(
         target_lr=0.1,
         warmup_steps=20,
         verbose=False
     )
-
     lrs = []
     for step in range(50):
-        lr = scheduler.step(step)
+        lr = warmup.step(step)
         lrs.append(lr)
 
     print(f"  Initial LR: {lrs[0]:.6f}")
-    print(f"  Target LR: {scheduler.target_lr:.6f}")
-    print(f"  Warmup steps: {scheduler.warmup_steps}")
+    print(f"  Target LR: {warmup.target_lr:.6f}")
+    print(f"  Warmup steps: {warmup.warmup_steps}")
     print(f"  LR at warmup end: {lrs[20]:.6f}")
     print(f"  Final LR: {lrs[-1]:.6f}")
     print("✓ Warmup scheduler successful")
@@ -233,7 +230,6 @@ def example_combined_warmup_cosine():
     print("="*70)
 
     warmup = WarmupScheduler(
-        initial_lr=1e-6,
         target_lr=0.1,
         warmup_steps=20
     )
@@ -306,7 +302,7 @@ def visualize_schedulers():
         axes[1, 0].grid(True, alpha=0.3)
 
         # One-Cycle LR
-        scheduler = OneCycleLR(0.1, total_steps=100, pct_start=0.3)
+        scheduler = OneCycleLR(max_lr=0.1, total_steps=100, pct_start=0.3)
         lrs = [scheduler.step(i) for i in range(100)]
         axes[1, 1].plot(lrs)
         axes[1, 1].set_title('One-Cycle LR')
@@ -315,7 +311,7 @@ def visualize_schedulers():
         axes[1, 1].grid(True, alpha=0.3)
 
         # Warmup
-        scheduler = WarmupScheduler(1e-6, 0.1, warmup_steps=20)
+        scheduler = WarmupScheduler(target_lr=0.1, warmup_steps=20)
         lrs = [scheduler.step(i) for i in range(50)]
         axes[1, 2].plot(lrs)
         axes[1, 2].set_title('Warmup')
@@ -324,8 +320,8 @@ def visualize_schedulers():
         axes[1, 2].grid(True, alpha=0.3)
 
         # Combined Warmup + Cosine
-        warmup = WarmupScheduler(1e-6, 0.1, warmup_steps=20)
-        cosine = CosineAnnealingLR(0.1, T_max=80, eta_min=1e-6)
+        warmup = WarmupScheduler(target_lr=0.1, warmup_steps=20)
+        cosine = CosineAnnealingLR(initial_lr=0.1, T_max=80, eta_min=1e-6)
         lrs = []
         for i in range(100):
             if i < 20:
@@ -348,7 +344,7 @@ def visualize_schedulers():
         axes[2, 1].grid(True, alpha=0.3)
 
         # ReduceLROnPlateau (simulated)
-        scheduler = ReduceLROnPlateau(0.1, factor=0.5, patience=10)
+        scheduler = ReduceLROnPlateau(initial_lr=0.1, factor=0.5, patience=10)
         lrs = []
         for epoch in range(100):
             if epoch < 30:
@@ -357,7 +353,7 @@ def visualize_schedulers():
                 loss = 0.4
             else:
                 loss = 0.4 - (epoch - 60) * 0.005
-            lrs.append(scheduler.step(epoch, loss))
+            lrs.append(scheduler.step(loss))
         axes[2, 2].plot(lrs)
         axes[2, 2].set_title('ReduceLROnPlateau')
         axes[2, 2].set_xlabel('Epoch')

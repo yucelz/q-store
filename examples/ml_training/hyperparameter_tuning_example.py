@@ -47,7 +47,7 @@ def example_grid_search():
 
     # Run grid search
     print("\nRunning grid search:")
-    print(f"  Parameter combinations: {3 * 3 * 3 = 27}")
+    print(f"  Parameter combinations: {3 * 3 * 3} (27)")
 
     grid_search = GridSearch(
         param_grid=param_grid,
@@ -96,13 +96,12 @@ def example_random_search():
     print("\nRunning random search:")
     random_search = RandomSearch(
         param_distributions=param_distributions,
-        n_trials=50,
         scoring='min',
         random_seed=42,
         verbose=True
     )
 
-    best_params, best_score = random_search.search(objective)
+    best_params, best_score = random_search.search(objective, n_trials=50)
 
     print(f"\n✓ Random search completed")
     print(f"  Best parameters: {best_params}")
@@ -126,8 +125,19 @@ def example_bayesian_optimization():
     }
 
     # Define objective
-    def objective(learning_rate, n_qubits, circuit_depth):
-        # Note: Bayesian optimization passes params as separate arguments
+    def objective(params_or_lr=None, n_qubits=None, circuit_depth=None):
+        # Handle both dict (fallback) and separate args (bayesian-optimization)
+        if isinstance(params_or_lr, dict):
+            # Fallback mode passes params as dict
+            params = params_or_lr
+            learning_rate = params['learning_rate']
+            n_qubits = params['n_qubits']
+            circuit_depth = params['circuit_depth']
+        else:
+            # Bayesian-optimization mode passes as separate args
+            learning_rate = params_or_lr
+        
+        # Simulate training
         loss = 1.0 / (learning_rate * 10) + 0.1 / n_qubits + 0.05 * circuit_depth
         loss += np.random.randn() * 0.01
 
@@ -207,9 +217,13 @@ def example_optuna_basic():
 
         print(f"\n✓ Optuna optimization completed")
         print(f"  Best parameters: {best_params}")
-        print(f"  Best value: {tuner.study.best_value:.6f}")
-        print(f"  Trials: {len(tuner.study.trials)}")
-        print(f"  Pruned trials: {len([t for t in tuner.study.trials if t.state.name == 'PRUNED'])}")
+        if hasattr(tuner, 'study') and tuner.study:
+            print(f"  Best value: {tuner.study.best_value:.6f}")
+            print(f"  Trials: {len(tuner.study.trials)}")
+            pruned = [t for t in tuner.study.trials if t.state.name == 'PRUNED']
+            print(f"  Pruned trials: {len(pruned)}")
+        else:
+            print(f"  (Optuna not available - no study created)")
 
         return tuner
 
@@ -257,15 +271,18 @@ def example_optuna_advanced():
         print("\nRunning advanced Optuna optimization:")
         best_params = tuner.optimize(objective)
 
-        print(f"\n✓ Advanced optimization completed")
+        print(f"\n✓ Advanced Optuna optimization completed")
         print(f"  Best parameters: {best_params}")
-        print(f"  Best value: {tuner.study.best_value:.6f}")
-
-        # Get best trials
-        best_trials = tuner.get_best_trials(n_trials=3)
-        print(f"\nTop 3 trials:")
-        for i, trial in enumerate(best_trials, 1):
-            print(f"  {i}. Value: {trial.value:.6f}, Params: {trial.params}")
+        if hasattr(tuner, 'study') and tuner.study:
+            print(f"  Best value: {tuner.study.best_value:.6f}")
+            
+            # Get best trials
+            best_trials = tuner.get_best_trials(n_trials=3)
+            print(f"\nTop 3 trials:")
+            for i, trial in enumerate(best_trials, 1):
+                print(f"  {i}. Value: {trial.value:.6f}, Params: {trial.params}")
+        else:
+            print(f"  (Optuna not available - no study created)")
 
         # Generate visualizations
         print("\nGenerating visualizations...")
@@ -325,11 +342,10 @@ def example_complete_tuning_workflow():
 
     random_search = RandomSearch(
         refined_distributions,
-        n_trials=20,
         scoring='min',
         verbose=False
     )
-    best_refined, _ = random_search.search(objective)
+    best_refined, _ = random_search.search(objective, n_trials=20)
     print(f"  Best from refined search: {best_refined}")
 
     # Step 3: Final Bayesian optimization
@@ -360,7 +376,7 @@ def example_complete_tuning_workflow():
     print(f"  1. Coarse grid search: {len(coarse_grid['learning_rate']) * len(coarse_grid['n_qubits'])} trials")
     print(f"  2. Refined random search: 20 trials")
     print(f"  3. Bayesian optimization: 15 trials")
-    print(f"  Total: ~47 trials (vs {3**3 * 2 = 54} for exhaustive grid)")
+    print(f"  Total: ~47 trials (vs {3**3 * 2} (54) for exhaustive grid)")
 
     return best_final
 
@@ -397,8 +413,8 @@ def example_comparison():
         'learning_rate': ('log_uniform', 1e-4, 1e-1),
         'n_qubits': ('int_uniform', 4, 12)
     }
-    random = RandomSearch(param_dist, n_trials=27, scoring='min', verbose=False)
-    best_params, best_score = random.search(objective_dict)
+    random = RandomSearch(param_dist, scoring='min', verbose=False)
+    best_params, best_score = random.search(objective_dict, n_trials=27)
     results['random'] = {'params': best_params, 'score': best_score, 'trials': 27}
     print(f"   Best score: {best_score:.6f}")
 
