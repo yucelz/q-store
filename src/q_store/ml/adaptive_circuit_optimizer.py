@@ -1,4 +1,4 @@
-""" 
+"""
 Adaptive Circuit Optimizer - v4.0
 Dynamically simplifies circuits during training
 

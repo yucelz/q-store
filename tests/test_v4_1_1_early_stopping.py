@@ -28,12 +28,12 @@ class TestEarlyStopping:
             min_delta=0.01,
             mode='min'
         )
-        
+
         # Improving metrics (decreasing loss)
         assert not early_stop.should_stop(0, 1.0)
         assert not early_stop.should_stop(1, 0.9)
         assert not early_stop.should_stop(2, 0.8)
-        
+
         # Plateau (no improvement)
         assert not early_stop.should_stop(3, 0.8)  # patience 1
         assert not early_stop.should_stop(4, 0.81)  # patience 2
@@ -47,12 +47,12 @@ class TestEarlyStopping:
             min_delta=0.01,
             mode='max'
         )
-        
+
         # Improving metrics (increasing accuracy)
         assert not early_stop.should_stop(0, 0.7)
         assert not early_stop.should_stop(1, 0.8)
         assert not early_stop.should_stop(2, 0.85)
-        
+
         # Plateau
         assert not early_stop.should_stop(3, 0.85)  # patience 1
         assert not early_stop.should_stop(4, 0.84)  # patience 2
@@ -65,11 +65,11 @@ class TestEarlyStopping:
             mode='min',
             baseline=0.5
         )
-        
+
         # Above baseline - should accumulate patience
         assert not early_stop.should_stop(0, 0.8)
         assert not early_stop.should_stop(1, 0.7)
-        
+
         # Below baseline - resets patience
         assert not early_stop.should_stop(2, 0.4)
         assert not early_stop.should_stop(3, 0.45)
@@ -81,7 +81,7 @@ class TestEarlyStopping:
             min_delta=0.1,
             mode='min'
         )
-        
+
         # Small improvement (less than min_delta)
         assert not early_stop.should_stop(0, 1.0)
         assert not early_stop.should_stop(1, 0.95)  # Not enough improvement
@@ -91,22 +91,22 @@ class TestEarlyStopping:
     def test_get_best_value(self):
         """Test getting best value."""
         early_stop = EarlyStopping(patience=3, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, 0.8)
         early_stop.should_stop(2, 0.9)
-        
+
         assert early_stop.get_best_value() == 0.8
 
     def test_get_best_epoch(self):
         """Test getting best epoch."""
         early_stop = EarlyStopping(patience=3, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, 0.8)
         early_stop.should_stop(2, 0.9)
         early_stop.should_stop(3, 1.0)
-        
+
         assert early_stop.get_best_epoch() == 1
 
     def test_restore_best_weights(self):
@@ -116,28 +116,28 @@ class TestEarlyStopping:
             mode='min',
             restore_best_weights=True
         )
-        
+
         # Simulate storing weights
         weights_epoch_1 = {'w1': 1.0, 'w2': 2.0}
-        
+
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, 0.8)
         early_stop.best_weights = weights_epoch_1
         early_stop.should_stop(2, 0.9)
-        
+
         assert early_stop.restore_best_weights
         assert early_stop.best_weights == weights_epoch_1
 
     def test_wait_counter(self):
         """Test patience wait counter."""
         early_stop = EarlyStopping(patience=3, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         assert early_stop.wait == 0
-        
+
         early_stop.should_stop(1, 1.0)  # No improvement
         assert early_stop.wait == 1
-        
+
         early_stop.should_stop(2, 0.9)  # Improvement
         assert early_stop.wait == 0  # Reset
 
@@ -152,11 +152,11 @@ class TestConvergenceDetector:
             threshold=0.01,
             patience=3
         )
-        
+
         # Large changes
         assert not detector.has_converged(1.0)
         assert not detector.has_converged(0.5)
-        
+
         # Small changes (converged)
         assert not detector.has_converged(0.505)
         assert not detector.has_converged(0.506)
@@ -170,13 +170,13 @@ class TestConvergenceDetector:
             threshold=0.05,  # 5% change
             patience=2
         )
-        
+
         # Start with value
         assert not detector.has_converged(100.0)
-        
+
         # Large relative change (10%)
         assert not detector.has_converged(90.0)
-        
+
         # Small relative changes
         assert not detector.has_converged(89.0)  # ~1%
         assert not detector.has_converged(88.5)  # ~0.6%
@@ -189,28 +189,28 @@ class TestConvergenceDetector:
             threshold=0.001,
             window_size=5
         )
-        
+
         # Add values with high variance
         for val in [1.0, 2.0, 3.0, 2.0, 1.0]:
             assert not detector.has_converged(val)
-        
+
         # Add values with low variance
         for val in [2.0, 2.01, 2.02, 2.01, 2.0]:
             result = detector.has_converged(val)
-        
+
         # Should converge when variance is low
         assert result
 
     def test_get_convergence_info(self):
         """Test getting convergence information."""
         detector = ConvergenceDetector(method='threshold', threshold=0.01)
-        
+
         detector.has_converged(1.0)
         detector.has_converged(0.9)
         detector.has_converged(0.85)
-        
+
         info = detector.get_convergence_info()
-        
+
         assert 'converged' in info
         assert 'iterations' in info
         assert info['iterations'] == 3
@@ -218,12 +218,12 @@ class TestConvergenceDetector:
     def test_reset_detector(self):
         """Test resetting detector."""
         detector = ConvergenceDetector(method='threshold', threshold=0.01, patience=2)
-        
+
         detector.has_converged(1.0)
         detector.has_converged(1.0)
-        
+
         detector.reset()
-        
+
         assert len(detector.history) == 0
         assert detector.patience_counter == 0
 
@@ -238,7 +238,7 @@ class TestEarlyStoppingFactory:
             patience=5,
             mode='min'
         )
-        
+
         assert isinstance(early_stop, EarlyStopping)
         assert early_stop.patience == 5
         assert early_stop.mode == 'min'
@@ -252,7 +252,7 @@ class TestEarlyStoppingFactory:
             convergence_method='threshold',
             convergence_threshold=0.001
         )
-        
+
         assert isinstance(early_stop, EarlyStopping)
 
 
@@ -267,16 +267,16 @@ class TestEarlyStoppingIntegration:
             mode='min',
             verbose=False
         )
-        
+
         # Simulate training with early stopping
         losses = [1.0, 0.8, 0.6, 0.5, 0.45, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44]
-        
+
         stopped_at = None
         for epoch, loss in enumerate(losses):
             if early_stop.should_stop(epoch, loss):
                 stopped_at = epoch
                 break
-        
+
         # Should stop before reaching all epochs
         assert stopped_at is not None
         assert stopped_at < len(losses)
@@ -284,7 +284,7 @@ class TestEarlyStoppingIntegration:
     def test_never_stops_with_improvement(self):
         """Test that early stopping doesn't trigger with continuous improvement."""
         early_stop = EarlyStopping(patience=3, mode='min')
-        
+
         # Continuously improving
         for epoch in range(20):
             loss = 1.0 - epoch * 0.04
@@ -295,11 +295,11 @@ class TestEarlyStoppingIntegration:
         """Test stopping at exactly patience epochs."""
         patience = 5
         early_stop = EarlyStopping(patience=patience, mode='min')
-        
+
         # Good performance then plateau
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, 0.5)
-        
+
         # Plateau for patience epochs
         for i in range(patience):
             should_stop = early_stop.should_stop(2 + i, 0.5)
@@ -315,34 +315,34 @@ class TestEdgeCases:
     def test_single_value(self):
         """Test with single value."""
         early_stop = EarlyStopping(patience=3, mode='min')
-        
+
         result = early_stop.should_stop(0, 1.0)
         assert not result
 
     def test_nan_values(self):
         """Test handling of NaN values."""
         early_stop = EarlyStopping(patience=2, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, np.nan)
-        
+
         # Should handle NaN gracefully (treat as no improvement)
         assert early_stop.wait > 0
 
     def test_inf_values(self):
         """Test handling of infinite values."""
         early_stop = EarlyStopping(patience=2, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         early_stop.should_stop(1, np.inf)
-        
+
         # Should handle inf gracefully
         assert early_stop.wait > 0
 
     def test_zero_patience(self):
         """Test with zero patience."""
         early_stop = EarlyStopping(patience=0, mode='min')
-        
+
         early_stop.should_stop(0, 1.0)
         # With patience=0, should stop on first non-improvement
         result = early_stop.should_stop(1, 1.0)
