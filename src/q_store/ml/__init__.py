@@ -131,6 +131,35 @@ from .callbacks import (
     create_callback,
 )
 
+# v4.1.1 NEW: Experiment tracking and logging
+from .tracking import (
+    MLflowTracker,
+    MLflowConfig,
+)
+
+from .logger import (
+    QuantumMLLogger,
+    LogLevel,
+    create_logger,
+)
+
+from .metrics_tracker import (
+    MetricsTracker,
+    MetricHistory,
+    MetricsAnalyzer,
+    MetricEntry,
+    create_metrics_tracker,
+)
+
+# v4.1.1 NEW: Hyperparameter tuning
+from .tuning import (
+    GridSearch,
+    RandomSearch,
+    BayesianOptimizer,
+    OptunaTuner,
+    OptunaConfig,
+)
+
 __all__ = [
     # Quantum Layers
     "QuantumLayer",
@@ -223,4 +252,23 @@ __all__ = [
     "MLflowCallback",
     "WandBCallback",
     "create_callback",
+    # v4.1.1 NEW: Experiment tracking
+    "MLflowTracker",
+    "MLflowConfig",
+    # v4.1.1 NEW: Logging
+    "QuantumMLLogger",
+    "LogLevel",
+    "create_logger",
+    # v4.1.1 NEW: Metrics tracking
+    "MetricsTracker",
+    "MetricHistory",
+    "MetricsAnalyzer",
+    "MetricEntry",
+    "create_metrics_tracker",
+    # v4.1.1 NEW: Hyperparameter tuning
+    "GridSearch",
+    "RandomSearch",
+    "BayesianOptimizer",
+    "OptunaTuner",
+    "OptunaConfig",
 ]
