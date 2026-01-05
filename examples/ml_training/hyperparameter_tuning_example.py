@@ -136,7 +136,7 @@ def example_bayesian_optimization():
         else:
             # Bayesian-optimization mode passes as separate args
             learning_rate = params_or_lr
-        
+
         # Simulate training
         loss = 1.0 / (learning_rate * 10) + 0.1 / n_qubits + 0.05 * circuit_depth
         loss += np.random.randn() * 0.01
@@ -275,7 +275,7 @@ def example_optuna_advanced():
         print(f"  Best parameters: {best_params}")
         if hasattr(tuner, 'study') and tuner.study:
             print(f"  Best value: {tuner.study.best_value:.6f}")
-            
+
             # Get best trials
             best_trials = tuner.get_best_trials(n_trials=3)
             print(f"\nTop 3 trials:")
