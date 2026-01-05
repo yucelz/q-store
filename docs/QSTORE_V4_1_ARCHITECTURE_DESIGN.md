@@ -175,7 +175,7 @@ Q-Store v4.1.0 comprises **145 Python files** organized into **29 specialized mo
 - `entanglement/`: Entanglement patterns and management
 - `kernels/`: Quantum kernel methods
 - `mitigation/`: Error mitigation techniques
-- `ml/`: ML training (v3.3, v3.4, v3.5 optimizations)
+- `ml/`: ML training (v3.3, v3.4, v4.0 optimizations, v4.1.1 enhancements)
 - `monitoring/`: System monitoring and metrics
 - `noise/`: Noise models and simulation
 - `optimization/`: Circuit and training optimization
