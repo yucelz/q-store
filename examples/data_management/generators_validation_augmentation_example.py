@@ -200,21 +200,21 @@ def example_data_profiling():
     print(f"  Std: {stats['std']:.3f}")
     print(f"  Min: {stats['min']:.3f}")
     print(f"  Max: {stats['max']:.3f}")
-    
+
     if 'class_distribution' in profile:
         print(f"\nClass Distribution:")
         for cls, count in profile['class_distribution'].items():
             print(f"  Class {cls}: {count} ({count/stats['n_samples']:.1%})")
-    
+
     print(f"\nData Quality:")
     quality = profile['data_quality']
     print(f"  Has NaN: {quality['has_nan']}")
     print(f"  Has Inf: {quality['has_inf']}")
-    
+
     if 'outliers' in profile:
         print(f"\nOutliers:")
         print(f"  IQR method: {profile['outliers']['iqr_method']} ({profile['outliers']['iqr_percentage']:.1f}%)")
-    
+
     print("\n✓ Data profiling successful")
 
 
