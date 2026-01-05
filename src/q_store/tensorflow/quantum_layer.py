@@ -91,6 +91,9 @@ class QuantumLayer(tf.keras.layers.Layer):
             backend=self.backend_name,
         )
 
+        # Calculate output dimension (n_qubits * n_bases)
+        self.output_dim = self.n_qubits * len(['X', 'Y', 'Z'])
+
         # Create async executor if needed
         if self.async_execution:
             self.executor = AsyncQuantumExecutor(
@@ -133,7 +136,7 @@ class QuantumLayer(tf.keras.layers.Layer):
             # Forward pass
             output = self._forward_pass(x, params)
 
-            def grad_fn(dy):
+            def grad_fn(dy, variables=None):
                 """Custom gradient using SPSA."""
                 if self.gradient_method == 'spsa':
                     grad_params = self._spsa_gradient(x, params, dy)
@@ -152,30 +155,39 @@ class QuantumLayer(tf.keras.layers.Layer):
 
     def _forward_pass(self, inputs, params):
         """Execute forward pass."""
-        # Convert to numpy
-        x_np = inputs.numpy()
-        params_np = params.numpy()
+        def _numpy_forward(x_np, params_np):
+            """Numpy implementation of forward pass."""
+            # Update quantum parameters
+            self.quantum_extractor.params = params_np
 
-        # Update quantum parameters
-        self.quantum_extractor.params = params_np
+            # Execute quantum circuits
+            if self.async_execution:
+                # Async execution
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    output_np = loop.run_until_complete(
+                        self.quantum_extractor.call_async(x_np)
+                    )
+                finally:
+                    loop.close()
+            else:
+                # Sync execution
+                output_np = self.quantum_extractor(x_np)
 
-        # Execute quantum circuits
-        if self.async_execution:
-            # Async execution
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                output_np = loop.run_until_complete(
-                    self.quantum_extractor.call_async(x_np)
-                )
-            finally:
-                loop.close()
-        else:
-            # Sync execution
-            output_np = self.quantum_extractor(x_np)
+            return output_np.astype(np.float32)
 
-        # Convert back to TensorFlow
-        return tf.constant(output_np, dtype=tf.float32)
+        # Use tf.numpy_function to wrap numpy operations
+        output = tf.numpy_function(
+            _numpy_forward,
+            [inputs, params],
+            tf.float32
+        )
+
+        # Set the shape explicitly
+        output.set_shape([inputs.shape[0], self.output_dim])
+
+        return output
 
     def _spsa_gradient(self, inputs, params, dy):
         """
@@ -224,11 +236,11 @@ class QuantumLayer(tf.keras.layers.Layer):
 
         # Chain rule: dy/dparams = dy/doutput * doutput/dparams
         # SPSA gradient: (f(θ+ε) - f(θ-ε)) / (2ε) * 1/δ
-        grad_output = tf.reduce_sum(dy * output_diff, axis=0)  # Sum over batch
-        grad_params = grad_output / (2 * epsilon * delta)
+        # First reduce to scalar by multiplying with upstream gradient and summing
+        loss_diff = tf.reduce_sum(dy * output_diff)  # Sum over all dimensions -> scalar
 
-        # Average over output dimensions
-        grad_params = tf.reduce_mean(grad_params)
+        # Now compute parameter gradients
+        grad_params = loss_diff / (2 * epsilon * delta)  # Broadcasting: scalar / [n_params] -> [n_params]
 
         return grad_params
 

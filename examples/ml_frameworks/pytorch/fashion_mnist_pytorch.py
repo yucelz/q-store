@@ -25,9 +25,8 @@ from pathlib import Path
 
 # Q-Store v4.1 imports
 from q_store.torch import QuantumLinear
-from q_store.core import EncodingLayer, DecodingLayer
-from q_store.monitoring import AsyncMetricsLogger
-from q_store.profiling import CheckpointManager
+from q_store.layers import EncodingLayer, DecodingLayer
+from q_store.storage import AsyncMetricsLogger, CheckpointManager
 from q_store.optimization import (
     AdaptiveBatchScheduler,
     MultiLevelCache,
@@ -171,8 +170,8 @@ class QuantumFirstModel(nn.Module):
 
         # Classical encoding (minimal)
         self.encoding = EncodingLayer(
-            output_dim=Config.input_dim,
-            normalize=True,
+            target_dim=Config.input_dim,
+            normalization='l2',
         )
 
         # Quantum layer 1 (main computation)

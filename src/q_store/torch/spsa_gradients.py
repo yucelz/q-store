@@ -81,12 +81,13 @@ def spsa_gradient(
     # Finite difference
     output_diff = output_plus - output_minus
 
+    # If output is not scalar, reduce to scalar first
+    if output_diff.numel() > 1:
+        output_diff = output_diff.mean()
+
     # SPSA gradient estimate
     # g = [f(θ+εδ) - f(θ-εδ)] / (2ε) * 1/δ
     grad = output_diff / (2 * epsilon * delta)
-
-    # Average over batch and output dimensions
-    grad = grad.mean(dim=0)
 
     return grad
 
