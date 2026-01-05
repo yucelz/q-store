@@ -24,7 +24,7 @@ v3.4 Enhancements:
 - Smart template-based caching (3-4x faster prep)
 - Connection pooling and parallel execution
 
-v3.5 Advanced Optimizations (2-3x additional speedup):
+v4.0 Advanced Optimizations (2-3x additional speedup):
 - Multi-backend orchestration (distribute across backends)
 - Adaptive circuit optimization (dynamic simplification)
 - Adaptive shot allocation (smart resource management)

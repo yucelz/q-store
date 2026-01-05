@@ -42,17 +42,17 @@ except ImportError:
     V3_4_AVAILABLE = False
     logger.warning("v3.4 components not available, using v3.3.1 fallback")
 
-# v3.5 NEW imports
+# v4.0 NEW imports
 try:
     from .multi_backend_orchestrator import MultiBackendOrchestrator, BackendConfig
     from .adaptive_circuit_optimizer import AdaptiveCircuitOptimizer
     from .adaptive_shot_allocator import AdaptiveShotAllocator
     from .natural_gradient_estimator import NaturalGradientEstimator
 
-    V3_5_AVAILABLE = True
+    V4_0_AVAILABLE = True
 except ImportError:
-    V3_5_AVAILABLE = False
-    logger.warning("v3.5 components not available, using v3.4 fallback")
+    V4_0_AVAILABLE = False
+    logger.warning("v4.0 components not available, using v3.4 fallback")
 
 
 
@@ -123,7 +123,7 @@ class TrainingConfig:
     enable_performance_tracking: bool = True
     performance_log_dir: Optional[str] = None
 
-    # v3.4 NEW: Advanced performance optimizations (renamed in v3.5)
+    # v3.4 NEW: Advanced performance optimizations (renamed in v4.0)
     use_concurrent_submission: bool = True  # Concurrent circuit submission (~1.6x faster)
     use_batch_api: bool = True  # DEPRECATED: Use use_concurrent_submission instead
     use_native_gates: bool = True  # Compile to IonQ native gates (30% faster)
@@ -133,7 +133,7 @@ class TrainingConfig:
     max_queue_wait_time: float = 120.0  # Maximum queue wait time
     enable_all_v34_features: bool = False  # Enable all v3.4 features at once
 
-    # v3.5 NEW: Multi-backend and adaptive optimizations (2-3x speedup)
+    # v4.0 NEW: Multi-backend and adaptive optimizations (2-3x speedup)
     enable_multi_backend: bool = False  # Distribute across multiple backends
     backend_configs: Optional[List[Dict]] = None  # Additional backend configurations
 
@@ -147,19 +147,19 @@ class TrainingConfig:
     max_shots: int = 2000  # Maximum shots
     base_shots: Optional[int] = None  # Base shots (defaults to shots_per_circuit)
 
-    # v3.5 NEW: Natural gradient
+    # v4.0 NEW: Natural gradient
     use_natural_gradient: bool = False  # Use natural gradient instead of SPSA
     natural_gradient_regularization: float = 0.01  # QFIM regularization
     qfim_cache_size: int = 100  # QFIM cache size
 
-    # v3.5 NEW: Circuit optimization
+    # v4.0 NEW: Circuit optimization
     enable_circuit_optimization: bool = False  # Apply circuit optimizations
     gate_merging: bool = True  # Merge consecutive rotations
     identity_removal: bool = True  # Remove near-zero gates
     entanglement_pruning: bool = True  # Prune entanglement layers
 
-    # v3.5 NEW: Enable all features
-    enable_all_v35_features: bool = False  # Enable all v3.5 features at once
+    # v4.0 NEW: Enable all features
+    enable_all_v40_features: bool = False  # Enable all v4.0 features at once
 
     # v4.1.1 NEW: Learning rate scheduling
     lr_scheduler: Optional[str] = None  # 'step', 'cosine', 'cyclic', 'onecycle', 'plateau', etc.
@@ -189,8 +189,8 @@ class TrainingConfig:
             )
             self.use_concurrent_submission = True
 
-        # Enable all v3.5 features if requested
-        if self.enable_all_v35_features:
+        # Enable all v4.0 features if requested
+        if self.enable_all_v40_features:
             # v3.4 features
             self.use_concurrent_submission = True
             self.use_native_gates = True
@@ -200,14 +200,14 @@ class TrainingConfig:
             self.enable_batch_execution = True
             self.hardware_efficient_ansatz = True
 
-            # v3.5 features
+            # v4.0 features
             self.enable_multi_backend = True
             self.adaptive_circuit_depth = True
             self.adaptive_shot_allocation = True
             self.use_natural_gradient = True
             self.enable_circuit_optimization = True
 
-            logger.info("All v3.5 features enabled for maximum performance")
+            logger.info("All v4.0 features enabled for maximum performance")
 
         # Enable all v3.4 features if requested
         elif self.enable_all_v34_features:

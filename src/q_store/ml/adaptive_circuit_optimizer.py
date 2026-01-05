@@ -1,5 +1,5 @@
-"""
-Adaptive Circuit Optimizer - v3.5
+""" 
+Adaptive Circuit Optimizer - v4.0
 Dynamically simplifies circuits during training
 
 KEY INNOVATION: Reduce circuit complexity based on training phase

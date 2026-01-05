@@ -2,7 +2,7 @@
   <img src="https://www.q-store.tech/_astro/logo.CnqA1_E2.svg" alt="Q-Store Logo" width="200"/>
 </div>
 
-# Q-Store: Quantum-Native Database v4.1.0
+# Q-Store: Quantum-Native Database v4.1.1
 
 A production-ready quantum-first ML platform with **async execution**, comprehensive verification/profiling/visualization tools, and hardware-agnostic support for quantum computing. Leverages quantum mechanical properties—superposition, entanglement, and tunneling—for quantum-accelerated ML training with 10-20x throughput improvements.
 
@@ -81,7 +81,7 @@ A production-ready quantum-first ML platform with **async execution**, comprehen
 - **Background Workers**: Async polling without blocking training loop
 - **Result Caching**: LRU cache for repeated circuit measurements
 - **Connection Pooling**: Multi-connection quantum backend clients
-- **Distributed Quantum Training**: Multi-backend orchestration (v3.5)
+- **Distributed Quantum Training**: Multi-backend orchestration (v4.0)
 - **Training Data Management**: Store datasets with async writers
 - **Model Checkpointing**: Zarr-based async checkpoint saves
 - **Metrics Tracking**: Parquet-based async metrics logging
@@ -1113,7 +1113,7 @@ If you use Q-Store in your research, please cite:
 - **IMPROVED**: Complete examples directory with basic/advanced/QML/chemistry/error-correction
 - **PERFORMANCE**: Benchmark baselines established for regression testing
 
-### v3.5.0 (2024-12-XX)
+### v4.0.0 (2024-12-XX)
 - **NEW**: Multi-backend orchestration for distributed quantum computing
 - **NEW**: Adaptive circuit optimization with dynamic simplification
 - **NEW**: Adaptive shot allocation for smart resource management

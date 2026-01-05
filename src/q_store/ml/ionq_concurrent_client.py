@@ -1,8 +1,8 @@
 """
-IonQ Concurrent Client - v3.5
+IonQ Concurrent Client - v4.0
 Concurrent circuit submission with connection pooling and parallel execution
 
-REALITY CHECK (v3.5): IonQ does NOT have a true batch API endpoint
+REALITY CHECK: IonQ does NOT have a true batch API endpoint
 This client achieves ~60% overhead reduction via concurrent submission
 Performance Impact: ~1.6x faster submission (concurrent, not true batch)
 """
@@ -46,7 +46,7 @@ class IonQConcurrentClient:
     """
     IonQ API client with concurrent submission support
 
-    HONEST DESCRIPTION (v3.5):
+    HONEST DESCRIPTION (v4.0):
     - Concurrent submission (NOT single batch API call)
     - Connection pooling for reduced overhead
     - Parallel result retrieval
@@ -55,7 +55,7 @@ class IonQConcurrentClient:
 
     Performance:
     - v3.4: 20 circuits sequential = 36s
-    - v3.5: 20 circuits concurrent = ~23s (connection reuse)
+    - v4.0: 20 circuits concurrent = ~23s (connection reuse)
     - ~1.6x faster submission (60% overhead reduction)
     """
 

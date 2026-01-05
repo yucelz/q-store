@@ -1,5 +1,5 @@
 """
-Natural Gradient Estimator - v3.5
+Natural Gradient Estimator - v4.0
 More efficient gradient estimation using quantum Fisher information
 
 KEY INNOVATION: Use quantum Fisher information matrix (QFIM)

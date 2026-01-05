@@ -289,7 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Benchmarks: Performance tracking
   - Regression tests: Baseline metrics
 
-## [3.5.0] - 2024-XX-XX
+## [4.0.0] - 2024-XX-XX
 
 ### Added
 - Multi-backend orchestration for distributed quantum computing
@@ -402,7 +402,7 @@ Q-Store v4.0 represents a major milestone with the addition of comprehensive ver
 
 ### Migration Guide
 
-No breaking changes from v3.5 to v4.0. All existing code continues to work. New modules are additive and optional.
+No breaking changes from v4.0 to v4.1. All existing code continues to work. New modules are additive and optional.
 
 To use new v4.0 features:
 
@@ -421,9 +421,9 @@ See `examples/` directory for complete usage examples.
 
 ---
 
+[4.1.1]: https://github.com/yucelz/q-store/compare/v4.1.0...v4.1.1
 [4.1.0]: https://github.com/yucelz/q-store/compare/v4.0.0...v4.1.0
-[4.0.0]: https://github.com/yucelz/q-store/compare/v3.5.0...v4.0.0
-[3.5.0]: https://github.com/yucelz/q-store/compare/v3.4.0...v3.5.0
+[4.0.0]: https://github.com/yucelz/q-store/compare/v3.4.0...v4.0.0
 [3.4.0]: https://github.com/yucelz/q-store/compare/v3.3.1...v3.4.0
 [3.3.1]: https://github.com/yucelz/q-store/compare/v3.3.0...v3.3.1
 [3.3.0]: https://github.com/yucelz/q-store/compare/v3.2.0...v3.3.0

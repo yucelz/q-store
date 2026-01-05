@@ -1,5 +1,5 @@
 """
-Adaptive Shot Allocator - v3.5
+Adaptive Shot Allocator - v4.0
 Dynamically adjusts measurement shots based on training phase
 
 KEY INNOVATION: Use minimum shots needed for gradient estimation

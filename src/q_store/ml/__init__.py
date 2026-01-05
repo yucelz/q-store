@@ -23,11 +23,17 @@ v3.4 Performance Revolution (2x speedup):
 - CircuitBatchManagerV34: Orchestrates all optimizations
 - Adaptive batch sizing and connection pooling
 
-v3.5 Advanced Optimizations (2-3x additional speedup):
+v4.0 Advanced Optimizations (2-3x additional speedup):
 - MultiBackendOrchestrator: Distribute across multiple backends (2-3x throughput)
 - AdaptiveCircuitOptimizer: Dynamic circuit simplification (30-40% faster)
 - AdaptiveShotAllocator: Smart shot allocation (20-30% time savings)
 - NaturalGradientEstimator: Natural gradient descent (2-3x fewer iterations)
+
+v4.1.1 Backend Integration & Data Management:
+- Enhanced data loading and preprocessing pipeline
+- ML framework schedulers and callbacks
+- Experiment tracking with MLflow
+- Hyperparameter optimization (Grid, Random, Bayesian, Optuna)
 """
 
 from .adaptive_optimizer import AdaptiveGradientOptimizer, GradientMethodScheduler
@@ -70,16 +76,16 @@ except ImportError:
     IonQNativeGateCompiler = None
     SmartCircuitCache = None
 
-# v3.5 NEW: Advanced optimizations (2-3x additional speedup)
+# v4.0 NEW: Advanced optimizations (2-3x additional speedup)
 try:
     from .multi_backend_orchestrator import MultiBackendOrchestrator, BackendConfig, BackendStats
     from .adaptive_circuit_optimizer import AdaptiveCircuitOptimizer, CircuitOptimizationResult
     from .adaptive_shot_allocator import AdaptiveShotAllocator
     from .natural_gradient_estimator import NaturalGradientEstimator, QFIMResult
 
-    V3_5_AVAILABLE = True
+    V4_0_AVAILABLE = True
 except ImportError:
-    V3_5_AVAILABLE = False
+    V4_0_AVAILABLE = False
     MultiBackendOrchestrator = None
     BackendConfig = None
     AdaptiveCircuitOptimizer = None
@@ -210,7 +216,7 @@ __all__ = [
     "SmartCircuitCache",
     "CircuitTemplate",
     "V3_4_AVAILABLE",
-    # v3.5: Advanced Optimizations (if available)
+    # v4.0: Advanced Optimizations (if available)
     "MultiBackendOrchestrator",
     "BackendConfig",
     "BackendStats",
@@ -219,7 +225,7 @@ __all__ = [
     "AdaptiveShotAllocator",
     "NaturalGradientEstimator",
     "QFIMResult",
-    "V3_5_AVAILABLE",
+    "V4_0_AVAILABLE",
     # v4.1 Enhanced
     "GradientNoiseTracker",
     "GradientStatistics",

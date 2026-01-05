@@ -1,5 +1,5 @@
 """
-Multi-Backend Orchestrator - v3.5
+Multi-Backend Orchestrator - v4.0
 Distributes circuit execution across multiple backends simultaneously
 
 KEY INNOVATION: Run circuits on multiple backends in parallel
