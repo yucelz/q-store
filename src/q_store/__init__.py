@@ -1,5 +1,5 @@
 """
-Quantum-Native (Q-Store) Database Architecture v3.5
+Quantum-Native (Q-Store) Database Architecture v4.1.1
 A novel database architecture leveraging quantum mechanical properties with hardware abstraction
 and complete ML training capabilities.
 
@@ -9,7 +9,7 @@ Key Features:
 - Plugin architecture for easy backend addition
 - Quantum ML training with gradient computation
 - Production-ready with comprehensive error handling
-- Backward compatible with v3.1, v3.2, v3.3, and v3.4
+- Backward compatible with v3.1, v3.2, v3.3, v3.4, and v4.1.0
 
 v3.3 Enhancements:
 - SPSA gradient estimation (24-48x faster training)
@@ -24,12 +24,19 @@ v3.4 Enhancements:
 - Smart template-based caching (3-4x faster prep)
 - Connection pooling and parallel execution
 
-v3.5 NEW: Advanced Optimizations (2-3x additional speedup)
+v3.5 Advanced Optimizations (2-3x additional speedup):
 - Multi-backend orchestration (distribute across backends)
 - Adaptive circuit optimization (dynamic simplification)
 - Adaptive shot allocation (smart resource management)
 - Natural gradient descent (2-3x fewer iterations)
 - Honest performance metrics and realistic expectations
+
+v4.1.1 NEW: Backend API Integration & Data Management Enhancement
+- Data Management Layer: Unified dataset loaders (Keras, HuggingFace, Backend API, local files)
+- ML Training Enhancements: Advanced schedulers, early stopping, callbacks
+- Experiment Tracking: MLflow integration for experiment management
+- Hyperparameter Tuning: Bayesian optimization, grid search, Optuna integration
+- Production Readiness: Enhanced monitoring, logging, and error handling
 """
 
 # Exceptions and constants
@@ -75,7 +82,7 @@ from .core.quantum_database import (
 from .core.state_manager import QuantumState, StateManager, StateStatus
 from .core.tunneling_engine import TunnelingEngine
 
-# ML Training Components (v3.2)
+# ML Training Components (v3.2, v4.1.1 Enhanced)
 from .ml import (
     FiniteDifferenceGradient,
     GradientResult,
@@ -91,9 +98,85 @@ from .ml import (
     QuantumTrainer,
     TrainingConfig,
     TrainingMetrics,
+    # v4.1.1 NEW: Learning rate schedulers
+    LRScheduler,
+    StepLR,
+    ExponentialLR,
+    CosineAnnealingLR,
+    CyclicLR,
+    OneCycleLR,
+    ReduceLROnPlateau,
+    WarmupScheduler,
+    create_scheduler,
+    # v4.1.1 NEW: Early stopping and convergence detection
+    EarlyStopping,
+    ConvergenceDetector,
+    create_early_stopping,
+    # v4.1.1 NEW: Training callbacks
+    Callback,
+    CallbackList,
+    ModelCheckpoint,
+    CSVLogger,
+    ProgressCallback,
+    LearningRateLogger,
+    TensorBoardCallback,
+    MLflowCallback,
+    WandBCallback,
+    create_callback,
+    # v4.1.1 NEW: Experiment tracking
+    MLflowTracker,
+    MLflowConfig,
+    # v4.1.1 NEW: Enhanced logging and metrics
+    QuantumMLLogger,
+    LogLevel,
+    create_logger,
+    MetricsTracker,
+    MetricHistory,
+    MetricsAnalyzer,
+    MetricEntry,
+    create_metrics_tracker,
+    # v4.1.1 NEW: Hyperparameter tuning
+    GridSearch,
+    RandomSearch,
+    BayesianOptimizer,
+    OptunaTuner,
+    OptunaConfig,
 )
 
-__version__ = "4.1.0"
+# v4.1.1 NEW: Data Management Layer
+from .data import (
+    # Dataset loaders
+    DatasetLoader,
+    DatasetConfig,
+    DatasetSource,
+    Dataset,
+    SourceAdapter,
+    KerasSourceAdapter,
+    HuggingFaceSourceAdapter,
+    BackendAPISourceAdapter,
+    LocalFilesSourceAdapter,
+    # Data adapters
+    QuantumDataAdapter,
+    DimensionReducer,
+    QuantumImageAdapter,
+    # Preprocessing
+    QuantumPreprocessor,
+    DataSplitter,
+    # Backend API client
+    BackendAPIClient,
+    # Data generators
+    QuantumDataGenerator,
+    StreamingDataGenerator,
+    # Data validation
+    DataValidator,
+    DataProfiler,
+    # Data augmentation
+    QuantumAugmentation,
+    ClassicalAugmentation,
+    HybridAugmentation,
+)
+
+__version__ = "4.1.1"
 __all__ = [
     # Core database
     "QuantumDatabase",
@@ -128,7 +211,7 @@ __all__ = [
     "StateStatus",
     "EntanglementRegistry",
     "TunnelingEngine",
-    # ML Training (v3.2)
+    # ML Training (v3.2, v4.1.1 Enhanced)
     "QuantumLayer",
     "QuantumConvolutionalLayer",
     "QuantumPoolingLayer",
@@ -143,4 +226,70 @@ __all__ = [
     "QuantumModel",
     "TrainingConfig",
     "TrainingMetrics",
+    # v4.1.1 NEW: Learning rate schedulers
+    "LRScheduler",
+    "StepLR",
+    "ExponentialLR",
+    "CosineAnnealingLR",
+    "CyclicLR",
+    "OneCycleLR",
+    "ReduceLROnPlateau",
+    "WarmupScheduler",
+    "create_scheduler",
+    # v4.1.1 NEW: Early stopping
+    "EarlyStopping",
+    "ConvergenceDetector",
+    "create_early_stopping",
+    # v4.1.1 NEW: Training callbacks
+    "Callback",
+    "CallbackList",
+    "ModelCheckpoint",
+    "CSVLogger",
+    "ProgressCallback",
+    "LearningRateLogger",
+    "TensorBoardCallback",
+    "MLflowCallback",
+    "WandBCallback",
+    "create_callback",
+    # v4.1.1 NEW: Experiment tracking
+    "MLflowTracker",
+    "MLflowConfig",
+    # v4.1.1 NEW: Logging and metrics
+    "QuantumMLLogger",
+    "LogLevel",
+    "create_logger",
+    "MetricsTracker",
+    "MetricHistory",
+    "MetricsAnalyzer",
+    "MetricEntry",
+    "create_metrics_tracker",
+    # v4.1.1 NEW: Hyperparameter tuning
+    "GridSearch",
+    "RandomSearch",
+    "BayesianOptimizer",
+    "OptunaTuner",
+    "OptunaConfig",
+    # v4.1.1 NEW: Data Management
+    "DatasetLoader",
+    "DatasetConfig",
+    "DatasetSource",
+    "Dataset",
+    "SourceAdapter",
+    "KerasSourceAdapter",
+    "HuggingFaceSourceAdapter",
+    "BackendAPISourceAdapter",
+    "LocalFilesSourceAdapter",
+    "QuantumDataAdapter",
+    "DimensionReducer",
+    "QuantumImageAdapter",
+    "QuantumPreprocessor",
+    "DataSplitter",
+    "BackendAPIClient",
+    "QuantumDataGenerator",
+    "StreamingDataGenerator",
+    "DataValidator",
+    "DataProfiler",
+    "QuantumAugmentation",
+    "ClassicalAugmentation",
+    "HybridAugmentation",
 ]
