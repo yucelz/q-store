@@ -124,3 +124,4 @@ data/
 examples/ml_frameworks/pytorch/__pycache__/
 examples/ml_frameworks/tensorflow/__pycache__/
 demo_output/
+checkpoints/
