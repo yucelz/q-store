@@ -76,17 +76,17 @@ class IonQBackendClientAdapter(BackendClient):
     def __init__(
         self,
         ionq_backend: 'IonQHardwareBackend',
-        max_workers: int = 4,
+        max_workers: int = 10,
         shots: int = 1024
     ):
         self.ionq_backend = ionq_backend
-        self.max_workers = max_workers
+        self.max_workers = max_workers  # Parallel workers for IonQ circuit execution
         self.shots = shots
         self._jobs: Dict[str, AdapterJob] = {}
 
         logger.info(
             f"IonQBackendClientAdapter initialized "
-            f"(target={ionq_backend.target}, workers={max_workers})"
+            f"(target={ionq_backend.target}, max_workers={max_workers}, shots={shots})"
         )
 
     async def submit_batch(self, circuits: List[Any]) -> str:
@@ -154,11 +154,13 @@ class IonQBackendClientAdapter(BackendClient):
         logger.debug(f"Job {job_id} executing in thread pool")
 
         try:
-            # Run blocking execute_batch() in thread
+            # Run blocking execute_batch() in thread with parallel execution
             results = await asyncio.to_thread(
                 self.ionq_backend.execute_batch,
                 circuits=job.circuits,
-                shots=self.shots
+                shots=self.shots,
+                max_workers=self.max_workers,  # Enable parallel circuit execution
+                use_parallel=True  # Explicitly enable parallel mode
             )
 
             # Success
