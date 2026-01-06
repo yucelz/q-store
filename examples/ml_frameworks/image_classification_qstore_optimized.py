@@ -154,6 +154,7 @@ class Config:
     use_mock = True
     ionq_api_key = None
     ionq_target = 'simulator'
+    backend_instance = None  # Will hold IonQHardwareBackend when using real hardware
 
     # Quick test mode
     quick_test = False
@@ -657,6 +658,7 @@ def make_qstore_optimized_model(
                 n_qubits=Config.n_qubits_features,
                 depth=Config.quantum_depth,
                 backend=Config.backend,
+                backend_instance=Config.backend_instance,
                 entanglement='full',
                 measurement_bases=[Config.measurement_basis]  # Single basis for speed
             )
@@ -686,7 +688,8 @@ def make_qstore_optimized_model(
                 pool_size=2,
                 pooling_type='measurement',
                 aggregation='max',
-                backend=Config.backend
+                backend=Config.backend,
+                backend_instance=Config.backend_instance
             )
             x = OptimizedQuantumWrapper(
                 quantum_pool,
@@ -712,6 +715,7 @@ def make_qstore_optimized_model(
             quantum_read = QuantumReadout(
                 n_qubits=Config.n_qubits_readout,
                 backend=Config.backend,
+                backend_instance=Config.backend_instance,
                 measurement_basis=Config.measurement_basis
             )
             x = OptimizedQuantumWrapper(
@@ -1009,6 +1013,41 @@ def parse_args():
     return parser.parse_args()
 
 
+def setup_ionq_backend():
+    """Setup IonQ hardware backend with API credentials."""
+    try:
+        from q_store.backends import IonQHardwareBackend
+    except ImportError as e:
+        print(f"\n❌ ERROR: Missing IonQ backend dependency: {e}")
+        print("   Install with: pip install cirq cirq-ionq")
+        return None
+
+    try:
+        print(f"\n✓ Creating REAL IonQ hardware backend...")
+        print(f"  API Key: {Config.ionq_api_key[:10]}...{Config.ionq_api_key[-4:]}")
+        print(f"  Target: {Config.ionq_target}")
+        print(f"\n  ⚠️  WARNING: This will use REAL quantum hardware")
+        print(f"  ⚠️  API calls will consume your IonQ credits!")
+
+        backend_instance = IonQHardwareBackend(
+            api_key=Config.ionq_api_key,
+            target=Config.ionq_target,
+            use_native_gates=False,
+            timeout=300
+        )
+
+        print(f"\n✓ Real IonQ backend created successfully")
+        print(f"  Type: {type(backend_instance).__name__}")
+        print(f"  Target: {backend_instance.target}")
+
+        return backend_instance
+
+    except Exception as e:
+        print(f"\n❌ ERROR: Failed to create IonQ backend: {e}")
+        print("   Falling back to local simulator")
+        return None
+
+
 def main():
     """Main execution function."""
     args = parse_args()
@@ -1035,10 +1074,19 @@ def main():
             print("   Please set IONQ_API_KEY in examples/.env or use mock mode")
             sys.exit(1)
 
-        Config.backend = 'ionq'
-        print(f"\n✓ Using real IonQ backend: {Config.ionq_target}")
+        # Create IonQ backend instance
+        Config.backend_instance = setup_ionq_backend()
+        if Config.backend_instance:
+            Config.backend = 'ionq'
+            print(f"\n✓ Using real IonQ backend: {Config.ionq_target}")
+        else:
+            # Fallback to simulator if backend creation failed
+            Config.backend = 'simulator'
+            Config.use_mock = True
+            print(f"\n✓ Falling back to simulator backend")
     elif Config.use_quantum:
         Config.backend = 'simulator'
+        Config.backend_instance = None
         print(f"\n✓ Using simulator backend (no API keys required)")
 
     # Print header

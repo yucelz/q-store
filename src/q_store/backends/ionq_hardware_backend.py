@@ -292,16 +292,19 @@ class IonQHardwareBackend(QuantumBackend):
             circuit = circuit.bind_parameters(parameters)
 
         # Debug: Check for invalid parameters in gates before compilation
-        if circuit.n_qubits <= 4:
-            invalid_params = []
-            for i, gate in enumerate(circuit.gates):
-                if gate.parameters:
-                    for param_name, param_val in gate.parameters.items():
-                        if isinstance(param_val, (int, float)):
-                            if np.isnan(param_val) or np.isinf(param_val):
-                                invalid_params.append((i, gate.gate_type, param_name, param_val))
-            if invalid_params:
-                logger.error(f"Invalid parameters before compilation: {invalid_params[:5]}")
+        # Check all circuits, not just small ones
+        invalid_params = []
+        for i, gate in enumerate(circuit.gates):
+            if gate.parameters:
+                for param_name, param_val in gate.parameters.items():
+                    if isinstance(param_val, (int, float)):
+                        if np.isnan(param_val) or np.isinf(param_val):
+                            invalid_params.append((i, gate.gate_type, param_name, param_val))
+        if invalid_params:
+            error_msg = f"Invalid parameters (NaN/Inf) detected in circuit: {invalid_params[:5]}"
+            logger.error(error_msg)
+            # Raise error instead of continuing - prevents submission of bad circuits
+            raise ValueError(error_msg)
 
         # Compile to native gates if requested
         if self.use_native_gates:
