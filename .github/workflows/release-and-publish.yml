@@ -5,7 +5,6 @@ on:
     workflows:
       - "Build Linux Wheels"
       - "Build Windows Wheels"
-      - "Build macOS Intel Wheels"
       - "Build macOS ARM64 Wheels"
     types:
       - completed
@@ -90,29 +89,26 @@ jobs:
           # Get all workflow runs for this tag
           RUNS=$(gh api "/repos/${{ github.repository }}/actions/runs?event=push&head_sha=$(gh api /repos/${{ github.repository }}/git/ref/tags/$TAG --jq '.object.sha')" --jq '.workflow_runs')
 
-          # Check if we have all 4 build workflows completed successfully
+          # Check if we have all 3 build workflows completed successfully
           LINUX_STATUS=$(echo "$RUNS" | jq -r '.[] | select(.name == "Build Linux Wheels") | .conclusion' | head -1)
           WINDOWS_STATUS=$(echo "$RUNS" | jq -r '.[] | select(.name == "Build Windows Wheels") | .conclusion' | head -1)
-          MACOS_INTEL_STATUS=$(echo "$RUNS" | jq -r '.[] | select(.name == "Build macOS Intel Wheels") | .conclusion' | head -1)
           MACOS_ARM_STATUS=$(echo "$RUNS" | jq -r '.[] | select(.name == "Build macOS ARM64 Wheels") | .conclusion' | head -1)
 
           echo "Linux: $LINUX_STATUS"
           echo "Windows: $WINDOWS_STATUS"
-          echo "macOS Intel: $MACOS_INTEL_STATUS"
           echo "macOS ARM: $MACOS_ARM_STATUS"
 
-          # Check if at least 3 major platforms succeeded (allow skipping one)
+          # Check if all 3 platforms succeeded
           SUCCESS_COUNT=0
           [[ "$LINUX_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
           [[ "$WINDOWS_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
           [[ "$MACOS_ARM_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-          [[ "$MACOS_INTEL_STATUS" == "success" ]] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
 
           if [[ $SUCCESS_COUNT -ge 3 ]]; then
-            echo "✓ At least 3 platforms completed successfully ($SUCCESS_COUNT/4)"
+            echo "✓ All 3 platforms completed successfully ($SUCCESS_COUNT/3)"
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
-            echo "⚠ Not enough builds completed: $SUCCESS_COUNT/4 succeeded"
+            echo "⚠ Not enough builds completed: $SUCCESS_COUNT/3 succeeded"
             echo "should_release=false" >> $GITHUB_OUTPUT
           fi
 
@@ -203,7 +199,6 @@ jobs:
             This release includes pre-built wheels for:
             - **Linux**: manylinux x86_64 (Python 3.11, 3.12, 3.13)
             - **Windows**: AMD64 (Python 3.11, 3.12, 3.13)
-            - **macOS**: Intel x86_64 (Python 3.11, 3.12, 3.13)
             - **macOS**: ARM64 (Python 3.11, 3.12, 3.13)
 
             ### Installation
