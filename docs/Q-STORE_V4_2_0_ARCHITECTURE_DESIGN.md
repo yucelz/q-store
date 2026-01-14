@@ -114,89 +114,536 @@ K(x, x') = |⟨0| U†(x') U(x) |0⟩|²
 
 ---
 
-## High-Level Architecture
+## High-Level 4-Layer Hybrid Architecture
+
+**Core Mathematical Principle**: *"Use quantum computers to construct distributions that are classically hard, but keep learning and optimization classical."*
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    Q-Store v4.2.0 Quantum Kernel Architecture                │
+│                  Q-Store v4.2.0 Quantum Kernel Architecture                  │
+│                          4-Layer Hybrid System                               │
 └─────────────────────────────────────────────────────────────────────────────┘
 
+                         ┌──────────────────────┐
+                         │   Client / UI        │
+                         └──────────┬───────────┘
+                                    │
+                                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 1: GPU-Accelerated Data Preprocessing                                 │
+│  LAYER 4: GraphQL Orchestration (Optional but Recommended)                   │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  • Load data on GPU (PyTorch DataLoader)                               │ │
-│  │  • GPU preprocessing (normalization, augmentation)                     │ │
-│  │  • GPU feature extraction (optional CNN for dimension reduction)       │ │
-│  │  • Prepare data for quantum encoding                                   │ │
+│  │  • Job Scheduling: Async quantum kernel job management                 │ │
+│  │  • Data Routing: Route data to GPU, QPU, or Vector DB                  │ │
+│  │  • Caching: Intelligent kernel caching and reuse                       │ │
+│  │  • Cost Tracking: Monitor quantum circuit costs                        │ │
+│  │  • Backend Abstraction: Unified API for IonQ, Quantinuum, etc.         │ │
 │  │                                                                          │ │
-│  │  Expected Speedup: 10-50x vs CPU preprocessing                         │ │
+│  │  GraphQL Schema:                                                        │ │
+│  │  - submitKernelJob(backend, datasetId, shots)                          │ │
+│  │  - kernelValue(x1, x2) → cached lookup                                 │ │
+│  │  - jobStatus(jobId) → async tracking                                   │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+          │                           │                           │
+          ▼                           ▼                           ▼
+┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+│  LAYER 1: GPU        │   │  LAYER 2: QPU        │   │  LAYER 3: Vector DB  │
+│  Classical Training  │   │  Quantum Kernels     │   │  Kernel Storage      │
+└──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 2: Quantum Kernel Matrix Construction                                 │
+│  LAYER 1: GPU - Classical Optimization (100-500x speedup vs CPU)             │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  For N training samples, compute N×N kernel matrix:                    │ │
+│  │  Mathematics:                                                           │ │
 │  │                                                                          │ │
-│  │  K[i,j] = Quantum_Kernel(x_i, x_j)                                     │ │
+│  │  min_α  ||Kα − y||² + λ||α||²    (Convex optimization)                 │ │
 │  │                                                                          │ │
-│  │  Quantum Feature Map Options:                                          │ │
-│  │  • Angle Encoding: Features → rotation angles                          │ │
-│  │  • IQP Encoding: Commuting gates (strong theoretical support)          │ │
+│  │  What happens here:                                                     │ │
+│  │  • Data preprocessing (normalization, augmentation)                     │ │
+│  │  • Feature extraction (optional CNN)                                    │ │
+│  │  • Convex optimization (SVM dual, kernel ridge regression)             │ │
+│  │  • Backprop-free: No quantum gradients needed                          │ │
+│  │  • Fast linear algebra on GPU (cuBLAS, cuSOLVER)                       │ │
+│  │                                                                          │ │
+│  │  Supported Models:                                                      │ │
+│  │  • Kernel SVM (cuML for GPU acceleration)                              │ │
+│  │  • Kernel Ridge Regression (closed-form solution)                      │ │
+│  │  • Gaussian Process Models                                             │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  LAYER 2: QPU - Quantum Kernel Evaluation (Feature Space Engine)             │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  Mathematics:                                                           │ │
+│  │                                                                          │ │
+│  │  |φ(x)⟩ = U(x)|0⟩^n         (Quantum feature map)                      │ │
+│  │  K(x, x') = |⟨φ(x)|φ(x')⟩|²  (Quantum kernel)                          │ │
+│  │                                                                          │ │
+│  │  Implementation (Adjoint Circuit Method):                               │ │
+│  │  K(x, x') = |⟨0|U†(x')U(x)|0⟩|²                                        │ │
+│  │                                                                          │ │
+│  │  Quantum Feature Maps:                                                  │ │
+│  │  • Angle Encoding: RY(x_i), RZ(x_i) + entanglement                     │ │
+│  │  • IQP Encoding: Diagonal gates + ZZ interactions                      │ │
 │  │  • Data Re-uploading: Multiple encoding layers                         │ │
 │  │                                                                          │ │
 │  │  Backend Options:                                                       │ │
-│  │  • Local GPU simulator (fast, <12 qubits)                              │ │
 │  │  • IonQ Simulator (free, testing)                                      │ │
-│  │  • IonQ Aria QPU (production)                                          │ │
-│  │  • Qiskit/PennyLane simulators                                         │ │
+│  │  • IonQ Aria QPU (25 qubits, $0.30/circuit)                            │ │
+│  │  • Quantinuum (high fidelity, fewer shots)                             │ │
+│  │  • Local simulators (Qiskit, PennyLane)                                │ │
 │  │                                                                          │ │
-│  │  Complexity: O(N²) quantum circuit executions                          │ │
-│  │  One-time cost: Compute once, reuse for all epochs                     │ │
+│  │  Complexity: O(N²) circuit executions                                  │ │
+│  │  Cost: One-time quantum computation, then cached                       │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+                                    │
+                                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 3: GPU-Accelerated Classical Training                                 │
+│  LAYER 3: Vector Database - Kernel & Support Vector Storage (NEW)            │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  Quantum kernel → Classical ML on GPU                                  │ │
+│  │  Purpose: Scalable kernel matrix storage and fast similarity search    │ │
 │  │                                                                          │ │
-│  │  Supported Models:                                                      │ │
-│  │  • Kernel SVM (GPU-accelerated via cuML/PyTorch)                       │ │
-│  │  • Kernel Ridge Regression                                             │ │
-│  │  • Gaussian Process Models                                             │ │
-│  │  • Custom kernel-based classifiers                                     │ │
+│  │  What's stored:                                                         │ │
+│  │  • Kernel matrix rows: K[i,:] for each sample                          │ │
+│  │  • Support vectors: x_sv for inference                                 │ │
+│  │  • Quantum embeddings: |φ(x)⟩ representations                          │ │
+│  │  • Metadata: Dataset info, backend used, shot counts                   │ │
 │  │                                                                          │ │
-│  │  Quantum hardware NOT used in this phase                               │ │
-│  │  All training happens on GPU                                           │ │
+│  │  Supported Vector DBs:                                                  │ │
+│  │  • FAISS (Facebook AI Similarity Search) - GPU-accelerated             │ │
+│  │  • Milvus - Distributed vector database                                │ │
+│  │  • Pinecone - Managed vector DB (cloud)                                │ │
+│  │  • Qdrant - Open-source alternative                                    │ │
 │  │                                                                          │ │
-│  │  Expected Speedup: 100-500x vs CPU training                            │ │
+│  │  Benefits:                                                              │ │
+│  │  • Scalability: Handle N > 1,000 samples                               │ │
+│  │  • Fast Lookup: O(log N) similarity search for inference               │ │
+│  │  • Persistent Cache: Reuse kernels across experiments                  │ │
+│  │  • Distributed: Scale across multiple machines                         │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    ↓
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Phase 4: Inference (Optional Quantum Kernel Evaluation)                     │
+│  Hybrid Data Flow: Training                                                  │
 │  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  For new test samples, compute quantum kernel:                         │ │
-│  │  K_test[i,j] = Quantum_Kernel(x_test_i, x_train_j)                    │ │
-│  │                                                                          │ │
-│  │  Then use classical SVM/model for prediction on GPU                    │ │
+│  │  1. GPU: Preprocess data → normalized features                         │ │
+│  │  2. QPU: Compute K[i,j] = quantum_kernel(x_i, x_j) for all pairs      │ │
+│  │  3. Vector DB: Store kernel matrix K (N×N) with indexing               │ │
+│  │  4. GPU: Load K from vector DB → solve convex optimization            │ │
+│  │  5. Vector DB: Store support vectors α_i, x_sv                         │ │
+│  └────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Hybrid Data Flow: Inference                                                 │
+│  ┌────────────────────────────────────────────────────────────────────────┐ │
+│  │  1. Vector DB: Retrieve support vectors x_sv                            │ │
+│  │  2. QPU: Compute k_new[i] = quantum_kernel(x_new, x_sv[i])            │ │
+│  │  3. Vector DB: Cache k_new for future queries                          │ │
+│  │  4. GPU: Prediction = Σ α_i * k_new[i] (fast dot product)             │ │
 │  └────────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Architectural Principles
 
-1. **Quantum for Representation, Classical for Training**: Quantum circuits compute feature mappings, GPU trains the model
-2. **One-time Kernel Computation**: O(N²) quantum calls, then cached and reused
-3. **No Parameter Optimization on QPU**: All optimization happens on GPU
-4. **Graceful Degradation**: Falls back to classical kernels if QPU unavailable
+1. **Quantum for Representation, Classical for Training**: QPU computes kernels (exponential feature space), GPU optimizes (convex problem)
+2. **One-time Kernel Computation**: O(N²) quantum calls, then cached in vector DB
+3. **No Quantum Gradients**: All optimization is classical and convex (no barren plateaus)
+4. **Scalable Storage**: Vector DB enables N > 1,000 samples
+5. **Orchestration Layer**: GraphQL provides unified API for hybrid workflows
 
 ---
 
 ## Component Details
 
-### 1. GPU-Accelerated Data Pipeline
+### 1. Vector Database Integration (NEW - LAYER 3)
+
+**File**: `q_store/storage/vector_db.py` (NEW)
+
+#### Purpose
+
+Scalable storage for quantum kernel matrices and support vectors, enabling:
+- N > 1,000 samples (beyond in-memory limits)
+- Fast similarity search (O(log N))
+- Persistent kernel caching across experiments
+- Distributed storage for production deployments
+
+#### Implementation
+
+```python
+import numpy as np
+from typing import Optional, List, Dict, Any
+import faiss
+
+class QuantumKernelStore:
+    """
+    Vector database for quantum kernel storage using FAISS.
+
+    Stores:
+    - Kernel matrix rows
+    - Support vectors
+    - Metadata (backend, shots, timestamp)
+    """
+
+    def __init__(
+        self,
+        dimension: int,
+        index_type: str = 'IVF',
+        use_gpu: bool = True,
+        cache_dir: str = './kernel_cache'
+    ):
+        """
+        Initialize vector database.
+
+        Args:
+            dimension: Feature dimension (matches kernel size)
+            index_type: 'Flat' (exact), 'IVF' (fast), 'HNSW' (balanced)
+            use_gpu: Use GPU-accelerated FAISS
+            cache_dir: Directory for persistent storage
+        """
+        self.dimension = dimension
+        self.cache_dir = cache_dir
+        self.use_gpu = use_gpu
+
+        # Create FAISS index
+        if index_type == 'Flat':
+            # Exact search (brute force)
+            index = faiss.IndexFlatL2(dimension)
+        elif index_type == 'IVF':
+            # Inverted file index (fast approximate search)
+            quantizer = faiss.IndexFlatL2(dimension)
+            index = faiss.IndexIVFFlat(quantizer, dimension, 100)  # 100 clusters
+        elif index_type == 'HNSW':
+            # Hierarchical Navigable Small World (balanced)
+            index = faiss.IndexHNSWFlat(dimension, 32)  # 32 neighbors
+
+        # Move to GPU if available
+        if use_gpu and faiss.get_num_gpus() > 0:
+            gpu_resource = faiss.StandardGpuResources()
+            index = faiss.index_cpu_to_gpu(gpu_resource, 0, index)
+
+        self.index = index
+        self.metadata_store = {}  # Maps sample_id → metadata
+
+    def store_kernel_row(
+        self,
+        sample_id: str,
+        kernel_row: np.ndarray,
+        metadata: Optional[Dict] = None
+    ):
+        """
+        Store a single kernel matrix row.
+
+        Args:
+            sample_id: Unique identifier for sample
+            kernel_row: K[i,:] - kernel values for sample i
+            metadata: Additional info (backend, shots, etc.)
+        """
+        # Add to FAISS index
+        kernel_row_2d = kernel_row.reshape(1, -1).astype('float32')
+        self.index.add(kernel_row_2d)
+
+        # Store metadata
+        self.metadata_store[sample_id] = metadata or {}
+
+    def store_kernel_matrix(
+        self,
+        K: np.ndarray,
+        sample_ids: List[str],
+        metadata: Optional[Dict] = None
+    ):
+        """
+        Store full kernel matrix.
+
+        Args:
+            K: Kernel matrix (N×N)
+            sample_ids: List of sample identifiers
+            metadata: Shared metadata for all rows
+        """
+        # Store each row
+        for i, sample_id in enumerate(sample_ids):
+            self.store_kernel_row(
+                sample_id,
+                K[i, :],
+                {**(metadata or {}), 'row_index': i}
+            )
+
+    def retrieve_kernel_row(
+        self,
+        sample_id: str
+    ) -> Optional[np.ndarray]:
+        """Retrieve kernel row by sample ID."""
+        if sample_id not in self.metadata_store:
+            return None
+
+        row_idx = self.metadata_store[sample_id]['row_index']
+        # Reconstruct from FAISS
+        kernel_row = self.index.reconstruct(row_idx)
+        return kernel_row
+
+    def similarity_search(
+        self,
+        query_kernel: np.ndarray,
+        k: int = 5
+    ) -> List[tuple]:
+        """
+        Find k most similar kernel rows.
+
+        Args:
+            query_kernel: Query kernel vector
+            k: Number of nearest neighbors
+
+        Returns:
+            List of (distance, sample_id) tuples
+        """
+        query_2d = query_kernel.reshape(1, -1).astype('float32')
+        distances, indices = self.index.search(query_2d, k)
+
+        # Map indices to sample IDs
+        results = []
+        for dist, idx in zip(distances[0], indices[0]):
+            # Find sample_id from metadata
+            for sample_id, meta in self.metadata_store.items():
+                if meta.get('row_index') == idx:
+                    results.append((dist, sample_id))
+                    break
+
+        return results
+
+    def save(self, path: Optional[str] = None):
+        """Save index and metadata to disk."""
+        save_path = path or f"{self.cache_dir}/kernel_index.faiss"
+        faiss.write_index(self.index, save_path)
+
+        # Save metadata separately
+        import pickle
+        with open(f"{self.cache_dir}/metadata.pkl", 'wb') as f:
+            pickle.dump(self.metadata_store, f)
+
+    def load(self, path: Optional[str] = None):
+        """Load index and metadata from disk."""
+        load_path = path or f"{self.cache_dir}/kernel_index.faiss"
+        self.index = faiss.read_index(load_path)
+
+        # Load metadata
+        import pickle
+        with open(f"{self.cache_dir}/metadata.pkl", 'rb') as f:
+            self.metadata_store = pickle.load(f)
+
+
+class SupportVectorStore:
+    """
+    Store trained SVM support vectors in vector DB.
+
+    Enables fast inference via similarity search.
+    """
+
+    def __init__(self, use_gpu: bool = True):
+        self.use_gpu = use_gpu
+        self.support_vectors = []
+        self.alpha_coefficients = []
+        self.labels = []
+
+    def store_support_vectors(
+        self,
+        x_sv: np.ndarray,
+        alpha: np.ndarray,
+        y_sv: np.ndarray
+    ):
+        """
+        Store support vectors from trained SVM.
+
+        Args:
+            x_sv: Support vector features
+            alpha: Dual coefficients
+            y_sv: Support vector labels
+        """
+        self.support_vectors = x_sv
+        self.alpha_coefficients = alpha
+        self.labels = y_sv
+
+    def get_support_vectors(self) -> tuple:
+        """Retrieve all support vectors."""
+        return (
+            self.support_vectors,
+            self.alpha_coefficients,
+            self.labels
+        )
+```
+
+**Benefits**:
+- **Scalability**: Handle datasets with N > 1,000 samples
+- **Performance**: O(log N) similarity search vs O(N) linear scan
+- **Persistence**: Reuse quantum kernels across experiments
+- **GPU-Accelerated**: FAISS supports GPU for faster search
+
+---
+
+### 2. GraphQL Orchestration Layer (NEW - LAYER 4 - Optional)
+
+**File**: `q_store/orchestration/graphql_api.py` (NEW)
+
+#### Purpose
+
+Unified API for managing hybrid quantum-classical workflows, providing:
+- Async quantum job management
+- Kernel caching and reuse
+- Backend abstraction (IonQ, Quantinuum, simulators)
+- Cost tracking and budget management
+
+#### GraphQL Schema
+
+```graphql
+type QuantumKernelJob {
+  id: ID!
+  status: String!                # QUEUED, RUNNING, COMPLETED, FAILED
+  backend: String!               # ionq.simulator, ionq.aria, quantinuum
+  datasetId: ID!
+  shots: Int!
+  progressPercent: Float
+  costEstimateUSD: Float
+  actualCostUSD: Float
+  createdAt: String
+  completedAt: String
+}
+
+type KernelValue {
+  x1: ID!
+  x2: ID!
+  value: Float!
+  backend: String
+  shots: Int
+  cachedAt: String
+}
+
+type SupportVector {
+  id: ID!
+  features: [Float!]!
+  alpha: Float!
+  label: Int!
+}
+
+type Query {
+  # Retrieve cached kernel value
+  kernelValue(x1: ID!, x2: ID!): KernelValue
+
+  # Check job status
+  jobStatus(jobId: ID!): QuantumKernelJob
+
+  # List all jobs
+  listJobs(status: String, limit: Int): [QuantumKernelJob!]!
+
+  # Get support vectors for trained model
+  supportVectors(modelId: ID!): [SupportVector!]!
+
+  # Estimate cost for kernel computation
+  estimateCost(datasetId: ID!, backend: String!, shots: Int!): Float
+}
+
+type Mutation {
+  # Submit quantum kernel computation job
+  submitKernelJob(
+    backend: String!
+    datasetId: ID!
+    shots: Int!
+    featureMap: String          # angle, iqp, data_reuploading
+  ): QuantumKernelJob!
+
+  # Cancel running job
+  cancelJob(jobId: ID!): Boolean
+
+  # Clear kernel cache
+  clearCache(datasetId: ID): Boolean
+}
+
+type Subscription {
+  # Real-time job progress updates
+  jobProgress(jobId: ID!): QuantumKernelJob!
+}
+```
+
+#### Implementation (Simplified)
+
+```python
+import graphene
+from typing import Optional
+
+class QuantumKernelJobType(graphene.ObjectType):
+    id = graphene.ID()
+    status = graphene.String()
+    backend = graphene.String()
+    dataset_id = graphene.ID()
+    shots = graphene.Int()
+    progress_percent = graphene.Float()
+    cost_estimate_usd = graphene.Float()
+    actual_cost_usd = graphene.Float()
+
+class KernelValueType(graphene.ObjectType):
+    x1 = graphene.ID()
+    x2 = graphene.ID()
+    value = graphene.Float()
+    backend = graphene.String()
+    shots = graphene.Int()
+
+class Query(graphene.ObjectType):
+    kernel_value = graphene.Field(
+        KernelValueType,
+        x1=graphene.ID(required=True),
+        x2=graphene.ID(required=True)
+    )
+
+    job_status = graphene.Field(
+        QuantumKernelJobType,
+        job_id=graphene.ID(required=True)
+    )
+
+    def resolve_kernel_value(self, info, x1, x2):
+        # Check cache (vector DB)
+        cached = kernel_store.retrieve_kernel_value(x1, x2)
+        if cached:
+            return cached
+
+        # Not cached - return None or trigger computation
+        return None
+
+    def resolve_job_status(self, info, job_id):
+        # Query job status from backend
+        job = job_manager.get_job(job_id)
+        return job
+
+class Mutation(graphene.ObjectType):
+    submit_kernel_job = graphene.Field(
+        QuantumKernelJobType,
+        backend=graphene.String(required=True),
+        dataset_id=graphene.ID(required=True),
+        shots=graphene.Int(required=True)
+    )
+
+    def resolve_submit_kernel_job(self, info, backend, dataset_id, shots):
+        # Create async job
+        job = QuantumKernelJobManager().submit(
+            backend=backend,
+            dataset_id=dataset_id,
+            shots=shots
+        )
+        return job
+
+schema = graphene.Schema(query=Query, mutation=Mutation)
+```
+
+**Benefits**:
+- **Unified API**: Single interface for all backends
+- **Async Management**: Non-blocking quantum job execution
+- **Caching**: Automatic kernel reuse across experiments
+- **Cost Tracking**: Real-time cost monitoring
+
+---
+
+### 3. GPU-Accelerated Data Pipeline
 
 **File**: `q_store/gpu/data_pipeline.py` (NEW)
 
@@ -998,6 +1445,179 @@ class QuantumKernelWorkflow:
 
 ---
 
+## Concrete Cost Estimates
+
+### IonQ Pricing (via AWS/Azure)
+
+**Pricing Model**: Shots × Circuit Cost
+
+**Typical Quantum Kernel Circuit**:
+- 10-20 two-qubit gates (CNOT for entanglement)
+- 8-12 single-qubit gates (RY, RZ rotations)
+- ~1-5 ms execution time per circuit
+- Cost per circuit: ~$0.30 (IonQ Aria)
+
+### PoC Cost Estimates
+
+| Dataset Size (N) | Kernel Elements (N²) | Shots per Kernel | Total Shots | IonQ Aria Cost | Quantinuum Cost |
+|------------------|---------------------|------------------|-------------|----------------|-----------------|
+| **20 samples** | 400 | 1,000 | 400K | **$50-80** | **$100-150** |
+| **50 samples** | 2,500 | 1,000 | 2.5M | **$120-200** | **$200-350** |
+| **100 samples** | 10,000 | 1,000 | 10M | **$300-500** | **$500-800** |
+| **500 samples** | 250,000 | 1,000 | 250M | **$7,500-12,000** | **N/A** |
+
+### Cost Optimization Strategies
+
+1. **Start with Simulators** (FREE):
+   - IonQ Simulator: $0
+   - Qiskit Aer: $0
+   - PennyLane default.qubit: $0
+
+2. **Small N for PoC** (N = 20-50):
+   - Cost: $50-200
+   - Validate quantum advantage
+   - Test feature maps
+
+3. **Quantinuum for High Fidelity**:
+   - Fewer shots needed (200-500 vs 1,000)
+   - Higher quality kernels
+   - Best for research-grade results
+
+4. **Cache Kernel Matrix in Vector DB**:
+   - One-time quantum cost
+   - Reuse across multiple training runs
+   - Amortize cost over experiments
+
+### When Quantum Kernels Are Cost-Effective
+
+- **Small datasets** (N < 100): Quantum cost ~$50-500
+- **Research projects**: One-time kernel computation, many experiments
+- **High-value applications**: Where quantum advantage justifies cost
+- **Proof-of-concept**: Validate approach before scaling
+
+### When Classical Kernels Are Better
+
+- **Large datasets** (N > 500): Quantum cost > $5,000
+- **Production deployments**: Need low latency and cost
+- **Commodity ML**: Where classical RBF/polynomial kernels suffice
+
+---
+
+## 4-Phase PoC Roadmap
+
+### Phase 1: Simulation & Validation (Week 1-2)
+
+**Goal**: Validate quantum kernel methods without QPU cost
+
+**Tasks**:
+1. Implement quantum kernel engine with local simulators
+2. Test 3 feature maps (angle, IQP, data re-uploading)
+3. Compare quantum kernels vs classical kernels (RBF, polynomial)
+4. Benchmark on small dataset (N=20, Fashion MNIST)
+
+**Tools**:
+- PennyLane + default.qubit simulator (FREE)
+- GPU for classical training
+- FAISS for kernel storage
+
+**Deliverables**:
+- Working quantum kernel computation (simulator-based)
+- Performance comparison report
+- Feature map selection guide
+
+**Expected Outcome**: Validate that quantum kernels provide different feature space than classical
+
+---
+
+### Phase 2: Real QPU with Small N (Week 3-4)
+
+**Goal**: Run on actual quantum hardware with minimal cost
+
+**Tasks**:
+1. Integrate with IonQ Simulator (cloud-based, FREE)
+2. Test with N=20-50 samples
+3. Measure quantum circuit execution time
+4. Cache kernel matrix in FAISS vector DB
+5. Train SVM on GPU using quantum kernel
+
+**Backend**: IonQ Simulator (free) → IonQ Aria (paid, small N)
+
+**Cost**: $50-200 for N=20-50 on IonQ Aria
+
+**Deliverables**:
+- Quantum kernel matrix from real QPU
+- Trained SVM model
+- Performance metrics (accuracy, time, cost)
+
+**Expected Outcome**: Demonstrate end-to-end hybrid workflow with real quantum hardware
+
+---
+
+### Phase 3: Hybrid Scaling with Vector DB (Week 5-6)
+
+**Goal**: Scale to N=100-500 with vector DB optimization
+
+**Tasks**:
+1. Implement FAISS vector DB integration
+2. Batch kernel computation (compute in chunks)
+3. Implement GraphQL orchestration layer (optional)
+4. Add kernel caching and reuse logic
+5. Test with N=100 samples (10K kernel elements)
+
+**Infrastructure**:
+- GPU: Single NVIDIA GPU (A100 or V100)
+- Vector DB: FAISS (GPU-accelerated)
+- QPU: IonQ Aria or Quantinuum
+
+**Cost**: $300-800 for N=100
+
+**Deliverables**:
+- Scalable kernel storage system
+- GraphQL API for job management
+- Benchmark: Training time breakdown (QPU vs GPU vs vector DB)
+
+**Expected Outcome**: Demonstrate scalability to N=100 with manageable cost
+
+---
+
+### Phase 4: Benchmarking & Comparison (Week 7)
+
+**Goal**: Compare quantum kernels vs classical baselines
+
+**Tasks**:
+1. Benchmark quantum kernels vs RBF kernels
+2. Measure accuracy improvement (if any)
+3. Analyze cost-benefit trade-off
+4. Document when quantum kernels provide advantage
+5. Write research paper or blog post
+
+**Comparison Metrics**:
+- **Accuracy**: Quantum kernel SVM vs classical kernel SVM
+- **Training Time**: GPU optimization time (same for both)
+- **Total Cost**: Quantum kernel cost vs $0 for classical
+- **Feature Space**: Visualize quantum vs classical embeddings
+
+**Deliverables**:
+- Comprehensive benchmark report
+- When-to-use decision matrix
+- Publication-ready results
+
+**Expected Outcome**: Clear guidance on when quantum kernels justify the cost
+
+---
+
+### PoC Timeline Summary
+
+| Phase | Duration | N | QPU Cost | Key Milestone |
+|-------|----------|---|----------|---------------|
+| **1: Simulation** | Weeks 1-2 | 20 | $0 | Validate approach |
+| **2: Real QPU** | Weeks 3-4 | 20-50 | $50-200 | End-to-end workflow |
+| **3: Scaling** | Weeks 5-6 | 100 | $300-800 | Vector DB integration |
+| **4: Benchmark** | Week 7 | 100 | $0 | Publication results |
+| **Total** | **7 weeks** | **100** | **$350-1,000** | **Production-ready** |
+
+---
+
 ## Implementation Roadmap
 
 ### Phase 1: GPU Data Pipeline (Week 1)
@@ -1115,55 +1735,101 @@ class QuantumKernelWorkflow:
 
 ---
 
-## File Structure
+## File Structure (4-Layer Architecture)
 
 ```
 q-store/
 ├── src/q_store/
+│   │
+│   ├── LAYER 4: Orchestration (Optional)
+│   ├── orchestration/                 🆕 NEW
+│   │   ├── __init__.py
+│   │   ├── graphql_api.py            🆕 GraphQL API for hybrid workflows
+│   │   ├── job_manager.py            🆕 Async quantum job management
+│   │   └── cost_tracker.py           🆕 QPU cost tracking & budgeting
+│   │
+│   ├── LAYER 1: GPU - Classical Training
 │   ├── gpu/                           🆕 NEW
 │   │   ├── __init__.py
 │   │   └── data_pipeline.py          🆕 GPU data loading & preprocessing
 │   │
-│   ├── kernels/                       🆕 NEW
-│   │   ├── __init__.py
-│   │   └── quantum_kernel.py         🆕 Quantum kernel computation
-│   │
 │   ├── ml/                            🔧 ENHANCED
 │   │   ├── kernel_svm_gpu.py         🆕 GPU-accelerated kernel SVM
+│   │   ├── kernel_ridge_gpu.py       🆕 GPU kernel ridge regression
 │   │   └── [existing v4.1.1 modules] ✅ Unchanged
 │   │
+│   ├── LAYER 2: QPU - Quantum Kernel Evaluation
+│   ├── kernels/                       🆕 NEW
+│   │   ├── __init__.py
+│   │   ├── quantum_kernel.py         🆕 Quantum kernel computation
+│   │   ├── feature_maps.py           🆕 Angle, IQP, data re-uploading
+│   │   └── adjoint_circuit.py        🆕 Adjoint circuit method
+│   │
+│   ├── LAYER 3: Vector DB - Kernel Storage
+│   ├── storage/                       🆕 NEW
+│   │   ├── __init__.py
+│   │   ├── vector_db.py              🆕 FAISS vector database integration
+│   │   ├── kernel_cache.py           🆕 Kernel matrix caching
+│   │   └── support_vector_store.py   🆕 SVM support vector storage
+│   │
+│   ├── Hybrid Workflows
 │   ├── workflows/                     🆕 NEW
 │   │   ├── __init__.py
-│   │   └── quantum_kernel_workflow.py 🆕 End-to-end workflow
+│   │   ├── quantum_kernel_workflow.py 🆕 End-to-end QKM workflow
+│   │   └── hybrid_trainer.py         🆕 Orchestrates all 4 layers
 │   │
+│   ├── Existing Components (v4.1.0, v4.1.1)
 │   ├── data/                          ✅ FROM v4.1.1
 │   ├── tracking/                      ✅ FROM v4.1.1
 │   ├── tuning/                        ✅ FROM v4.1.1
-│   └── [existing modules]             ✅ FROM v4.1.0
+│   ├── backends/                      ✅ FROM v4.1.0 (IonQ, Cirq, Qiskit)
+│   ├── layers/                        ✅ FROM v4.1.0 (VQC support)
+│   └── [other v4.1.0 modules]         ✅ Unchanged (151 files)
 │
 ├── examples/
 │   ├── quantum_kernels/               🆕 NEW
+│   │   ├── 01_simulation_poc.py      🆕 Phase 1: Local simulation
+│   │   ├── 02_real_qpu_small_n.py    🆕 Phase 2: IonQ with N=20-50
+│   │   ├── 03_vector_db_scaling.py   🆕 Phase 3: FAISS scaling
+│   │   ├── 04_benchmark_classical.py 🆕 Phase 4: Quantum vs classical
 │   │   ├── fashion_mnist_qkm.py      🆕 Fashion MNIST with quantum kernels
-│   │   ├── kernel_comparison.py      🆕 Quantum vs classical kernels
-│   │   ├── feature_map_selection.py  🆕 Compare different feature maps
-│   │   ├── scalability_analysis.py   🆕 N² scaling analysis
-│   │   └── hybrid_workflow_demo.py   🆕 Complete workflow demo
+│   │   ├── kernel_comparison.py      🆕 RBF vs quantum kernels
+│   │   ├── feature_map_selection.py  🆕 Compare angle/IQP/data-upload
+│   │   ├── cost_optimization.py      🆕 Minimize QPU cost
+│   │   └── graphql_api_demo.py       🆕 GraphQL orchestration example
 │
 ├── tests/
 │   ├── test_gpu/                      🆕 NEW
 │   │   └── test_data_pipeline.py
 │   ├── test_kernels/                  🆕 NEW
 │   │   ├── test_quantum_kernel.py
-│   │   └── test_feature_maps.py
+│   │   ├── test_feature_maps.py
+│   │   └── test_adjoint_circuit.py
+│   ├── test_storage/                  🆕 NEW
+│   │   ├── test_vector_db.py
+│   │   └── test_kernel_cache.py
+│   ├── test_orchestration/            🆕 NEW (Optional)
+│   │   ├── test_graphql_api.py
+│   │   └── test_job_manager.py
 │   ├── test_ml/                       🔧 ENHANCED
-│   │   └── test_kernel_svm_gpu.py    🆕 NEW
+│   │   ├── test_kernel_svm_gpu.py    🆕 NEW
+│   │   └── test_kernel_ridge_gpu.py  🆕 NEW
 │   └── integration/                   🔧 ENHANCED
-│       └── test_qkm_workflow.py      🆕 NEW
+│       ├── test_qkm_workflow.py      🆕 End-to-end test
+│       ├── test_4layer_integration.py 🆕 All layers working together
+│       └── test_real_qpu.py          🆕 IonQ/Quantinuum integration
 │
 └── docs/
     ├── Q-STORE_V4_2_0_ARCHITECTURE_DESIGN.md     🆕 THIS FILE
     ├── V4_2_0_MIGRATION_GUIDE.md                 🆕 TODO
     ├── QUANTUM_KERNEL_METHODS_GUIDE.md           🆕 TODO
+    ├── VECTOR_DB_INTEGRATION_GUIDE.md            🆕 TODO
+    ├── GRAPHQL_API_REFERENCE.md                  🆕 TODO (Optional)
+    ├── POC_PHASE_REPORTS/                        🆕 TODO
+    │   ├── PHASE1_SIMULATION.md
+    │   ├── PHASE2_REAL_QPU.md
+    │   ├── PHASE3_SCALING.md
+    │   └── PHASE4_BENCHMARK.md
     └── PERFORMANCE_BENCHMARKS_V4_2_0.md          🆕 TODO
 ```
 
@@ -1171,22 +1837,54 @@ q-store/
 
 ## Dependencies
 
-### New Dependencies
+### New Dependencies (v4.2.0)
 
 ```txt
-# GPU acceleration
+# LAYER 1: GPU acceleration
 torch>=2.2.0              # PyTorch with CUDA support (single GPU initially)
-
-# GPU-accelerated ML (optional, for advanced SVM)
 cuml>=24.0.0              # NVIDIA RAPIDS for GPU SVM (optional)
+scikit-learn>=1.4.0       # Classical kernel methods for comparison
 
-# Classical kernel methods
-scikit-learn>=1.4.0       # For classical kernel comparison
+# LAYER 2: Quantum backends (use existing)
+# ionq-api-client, cirq, qiskit, pennylane - already in v4.1.0
+
+# LAYER 3: Vector Database
+faiss-gpu>=1.7.4          # GPU-accelerated FAISS for kernel storage
+# OR faiss-cpu>=1.7.4     # CPU-only version (fallback)
+# Optional alternatives:
+# milvus>=2.3.0           # Distributed vector DB
+# qdrant-client>=1.7.0    # Alternative vector DB
+
+# LAYER 4: GraphQL Orchestration (Optional)
+graphene>=3.3.0           # GraphQL framework for Python
+graphql-core>=3.2.0       # GraphQL core library
+starlette>=0.32.0         # ASGI framework for GraphQL API
+# OR fastapi>=0.108.0     # Alternative API framework
 
 # Performance monitoring
 GPUtil>=1.4.0             # GPU monitoring
 psutil>=5.9.0             # System monitoring
 ```
+
+### Layer-Specific Dependencies
+
+**LAYER 1 (GPU Classical Training)**:
+- torch (PyTorch for GPU operations)
+- cuml (NVIDIA RAPIDS for GPU-accelerated SVM - optional)
+- scikit-learn (Classical kernel baselines)
+
+**LAYER 2 (QPU Quantum Kernels)**:
+- ionq-api-client (IonQ backend - from v4.1.0)
+- pennylane (Quantum ML framework - optional)
+- cirq, qiskit (Alternative backends - from v4.1.0)
+
+**LAYER 3 (Vector Database)**:
+- faiss-gpu (Primary choice for kernel storage)
+- milvus or qdrant (Alternative for production deployments)
+
+**LAYER 4 (GraphQL Orchestration - Optional)**:
+- graphene (GraphQL schema definition)
+- starlette or fastapi (API server)
 
 ### Existing Dependencies (from v4.1.0, v4.1.1)
 
